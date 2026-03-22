@@ -16,14 +16,6 @@ export class TileLoader {
     return tileset;
   }
 
-  /** Fallback to CesiumJS World Terrain + Bing imagery for areas without 3D tiles */
-  async loadFallbackTerrain(viewer: Cesium.Viewer): Promise<void> {
-    const terrainProvider = await Cesium.CesiumTerrainProvider.fromIonAssetId(
-      1,
-    );
-    viewer.terrainProvider = terrainProvider;
-  }
-
   getTileset(): Cesium.Cesium3DTileset | null {
     return this.tileset;
   }

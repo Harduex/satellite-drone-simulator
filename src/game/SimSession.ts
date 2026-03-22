@@ -2,7 +2,6 @@ import * as Cesium from "cesium";
 import { createENUFrame } from "../world/CoordUtils";
 import { CesiumManager } from "../world/CesiumManager";
 import { TileLoader } from "../world/TileLoader";
-import { TerrainSampler } from "../world/TerrainSampler";
 import { GameLoop } from "./GameLoop";
 import { useStore } from "../store";
 import { DEFAULT_DRONE_CONFIG } from "../core/physics/types";
@@ -17,14 +16,12 @@ export interface SpawnOrigin {
 export class SimSession {
   private cesiumManager: CesiumManager;
   private tileLoader: TileLoader;
-  private terrainSampler: TerrainSampler;
   private gameLoop: GameLoop | null = null;
   private spawnOrigin: SpawnOrigin | null = null;
 
   constructor(cesiumManager: CesiumManager) {
     this.cesiumManager = cesiumManager;
     this.tileLoader = new TileLoader();
-    this.terrainSampler = new TerrainSampler();
   }
 
   async startSession(
@@ -32,35 +29,17 @@ export class SimSession {
   ): Promise<void> {
     const viewer = this.cesiumManager.getViewer();
 
-    // Load Google 3D Tiles if API key present
+    // Load Google 3D Tiles
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
-    let usingGoogle3DTiles = false;
     if (apiKey) {
-      try {
-        await this.tileLoader.loadGoogleTiles(viewer, apiKey);
-        usingGoogle3DTiles = true;
-      } catch {
-        await this.tileLoader.loadFallbackTerrain(viewer);
-      }
-    } else {
-      await this.tileLoader.loadFallbackTerrain(viewer);
+      await this.tileLoader.loadGoogleTiles(viewer, apiKey);
     }
 
-    // Determine terrain height at spawn location
-    let terrainHeight: number;
-
-    if (usingGoogle3DTiles && apiKey) {
-      // Google 3D Tiles are primitives, not terrain — terrainProvider returns 0.
-      // Use the Google Elevation API for accurate ground height.
-      terrainHeight = await this.getElevationFromGoogleAPI(
-        location.lat,
-        location.lon,
-        apiKey,
-      );
-    } else {
-      await this.terrainSampler.init(viewer, location.lon, location.lat);
-      terrainHeight = this.terrainSampler.getDefaultHeight();
-    }
+    // Get ground elevation via Google Elevation Service
+    const terrainHeight = await this.getElevationFromGoogleAPI(
+      location.lat,
+      location.lon,
+    );
 
     // Show Cesium container
     this.cesiumManager.showContainer();
@@ -106,7 +85,6 @@ export class SimSession {
   private async getElevationFromGoogleAPI(
     lat: number,
     lon: number,
-    _apiKey: string,
   ): Promise<number> {
     try {
       // Use the Google Maps JavaScript API Elevation service (loaded in LocationPicker)

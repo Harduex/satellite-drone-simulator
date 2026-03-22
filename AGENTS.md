@@ -59,13 +59,11 @@ Create a `.env` file in the project root:
 
 ```
 VITE_GOOGLE_MAPS_API_KEY=your_key_here
-VITE_CESIUM_ION_TOKEN=your_token_here
 ```
 
 - **Google Maps Platform**: Enable Maps JavaScript API, Places API, Map Tiles API at [console.cloud.google.com](https://console.cloud.google.com)
-- **Cesium Ion**: Free tier at [cesium.com/ion](https://cesium.com/ion)
 
-If keys are missing, the app shows a setup guide screen.
+If the key is missing, the app shows a setup guide screen.
 
 ## Controls
 

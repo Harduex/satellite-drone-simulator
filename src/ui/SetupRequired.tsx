@@ -16,7 +16,7 @@ export function SetupRequired() {
         FPV Drone Simulator
       </h1>
       <h2 style={{ fontSize: '1.2rem', fontWeight: 400, opacity: 0.8 }}>
-        API Keys Required
+        API Key Required
       </h2>
 
       <div style={{
@@ -38,32 +38,24 @@ export function SetupRequired() {
           fontSize: '0.85rem',
           fontFamily: "'Fira Code', 'Cascadia Code', monospace",
         }}>
-{`VITE_GOOGLE_MAPS_API_KEY=your_key_here
-VITE_CESIUM_ION_TOKEN=your_token_here`}
+{`VITE_GOOGLE_MAPS_API_KEY=your_key_here`}
         </pre>
 
         <div style={{ marginTop: '1.5rem' }}>
           <p style={{ fontWeight: 600, color: '#00ff88', margin: '0 0 0.5rem' }}>
-            1. Google Maps Platform
+            Google Maps Platform
           </p>
           <p style={{ margin: '0 0 0.25rem', opacity: 0.8 }}>
             Enable: Maps JavaScript API, Places API, Map Tiles API
           </p>
-          <p style={{ margin: '0 0 1rem', opacity: 0.6 }}>
-            console.cloud.google.com
-          </p>
-
-          <p style={{ fontWeight: 600, color: '#00ff88', margin: '0 0 0.5rem' }}>
-            2. Cesium Ion (free tier)
-          </p>
           <p style={{ margin: '0', opacity: 0.6 }}>
-            cesium.com/ion
+            console.cloud.google.com
           </p>
         </div>
       </div>
 
       <p style={{ opacity: 0.5, fontSize: '0.8rem' }}>
-        Restart the dev server after adding keys.
+        Restart the dev server after adding the key.
       </p>
     </div>
   );

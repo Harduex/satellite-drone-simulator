@@ -3,10 +3,7 @@ import * as Cesium from "cesium";
 export class CesiumManager {
   private viewer: Cesium.Viewer | null = null;
 
-  init(containerId: string, ionToken?: string): void {
-    if (ionToken) {
-      Cesium.Ion.defaultAccessToken = ionToken;
-    }
+  init(containerId: string): void {
 
     this.viewer = new Cesium.Viewer(containerId, {
       animation: false,

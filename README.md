@@ -24,7 +24,6 @@ Create a `.env` file with:
 
 ```
 VITE_GOOGLE_MAPS_API_KEY=your_key_here
-VITE_CESIUM_ION_TOKEN=your_token_here
 ```
 
 ### Google Maps Platform
@@ -34,10 +33,6 @@ VITE_CESIUM_ION_TOKEN=your_token_here
    - Places API
    - Map Tiles API
 3. Create an API key and add it to `.env`
-
-### Cesium Ion
-1. Sign up at [cesium.com/ion](https://cesium.com/ion) (free tier)
-2. Copy your access token to `.env`
 
 ## How to Use
 

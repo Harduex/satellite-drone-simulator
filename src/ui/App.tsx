@@ -13,8 +13,7 @@ let simSession: SimSession | null = null;
 function getOrCreateCesiumManager(): CesiumManager {
   if (!cesiumManager) {
     cesiumManager = new CesiumManager();
-    const ionToken = import.meta.env.VITE_CESIUM_ION_TOKEN as string;
-    cesiumManager.init('cesium-container', ionToken || undefined);
+    cesiumManager.init('cesium-container');
     cesiumManager.hideContainer();
   }
   return cesiumManager;
@@ -79,7 +78,5 @@ export function App() {
 
 function checkApiKeys(): boolean {
   const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
-  const cesiumToken = import.meta.env.VITE_CESIUM_ION_TOKEN as string;
-  // Allow running with just one key (Google tiles work without Cesium Ion)
-  return Boolean(googleKey || cesiumToken);
+  return Boolean(googleKey);
 }
