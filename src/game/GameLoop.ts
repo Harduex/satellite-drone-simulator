@@ -5,7 +5,6 @@ import { GamepadManager } from "../core/input/GamepadManager";
 import { KeyboardInput } from "../core/input/KeyboardInput";
 import { FPVCamera } from "../camera/FPVCamera";
 import { DroneRenderer } from "../world/DroneRenderer";
-import { TerrainSampler } from "../world/TerrainSampler";
 import { BatteryModel } from "./BatteryModel";
 import { enuToEcef } from "../world/CoordUtils";
 import { useStore } from "../store";
@@ -28,6 +27,7 @@ export class GameLoop {
   private readonly PHYSICS_DT = 1 / 500;
   private lastTimestamp = 0;
   private frameCount = 0;
+  private lastMotorCommands = { m1: 0, m2: 0, m3: 0, m4: 0 };
 
   private droneState: DroneState;
   private physics: DronePhysics;
@@ -36,26 +36,21 @@ export class GameLoop {
   private keyboardInput: KeyboardInput;
   private fpvCamera: FPVCamera;
   private droneRenderer: DroneRenderer;
-  private terrainSampler: TerrainSampler;
   private batteryModel: BatteryModel;
   private enuFrame: Cesium.Matrix4;
   private viewer: Cesium.Viewer;
   private preRenderListener: Cesium.Event.RemoveCallback | null = null;
 
   private spawnAltitude: number;
-  private terrainHeight: number;
 
   constructor(params: {
     viewer: Cesium.Viewer;
     enuFrame: Cesium.Matrix4;
     physicsConfig: PhysicsConfig;
     ratesConfig: RatesConfig;
-    terrainSampler: TerrainSampler;
-    terrainHeight: number;
   }) {
     this.viewer = params.viewer;
     this.enuFrame = params.enuFrame;
-    this.terrainHeight = params.terrainHeight;
     this.spawnAltitude = params.physicsConfig.spawnAltitude;
 
     this.physics = new DronePhysics(params.physicsConfig);
@@ -67,7 +62,6 @@ export class GameLoop {
     this.keyboardInput = new KeyboardInput();
     this.fpvCamera = new FPVCamera();
     this.droneRenderer = new DroneRenderer();
-    this.terrainSampler = params.terrainSampler;
     this.batteryModel = new BatteryModel();
 
     this.droneState = createDefaultDroneState(this.spawnAltitude);
@@ -130,22 +124,21 @@ export class GameLoop {
       stickInputs = this.keyboardInput.read(wallDt);
     }
 
-    // 2. Flight controller: sticks → motor commands
-    const motorCommands = this.flightController.update(
-      stickInputs,
-      this.droneState,
-      this.PHYSICS_DT,
-    );
-
-    // 3. Physics substeps (fixed 500Hz)
+    // 2+3. Flight controller + physics substeps at fixed 500Hz
+    // PID runs inside the substep loop with consistent PHYSICS_DT for stable integration.
     this.physicsAccumulator += wallDt;
     let steps = 0;
     while (
       this.physicsAccumulator >= this.PHYSICS_DT && steps < MAX_PHYSICS_SUBSTEPS
     ) {
+      this.lastMotorCommands = this.flightController.update(
+        stickInputs,
+        this.droneState,
+        this.PHYSICS_DT,
+      );
       this.droneState = this.physics.step(
         this.droneState,
-        motorCommands,
+        this.lastMotorCommands,
         this.PHYSICS_DT,
       );
       this.physicsAccumulator -= this.PHYSICS_DT;
@@ -164,15 +157,13 @@ export class GameLoop {
     this.droneRenderer.update(ecefPosition);
 
     // 6. Battery drain
-    const batteryState = this.batteryModel.drain(motorCommands, wallDt);
+    const batteryState = this.batteryModel.drain(this.lastMotorCommands, wallDt);
 
     // 7. Terrain collision check (on telemetry update cycle to avoid spam)
     this.frameCount++;
     if (this.frameCount % TELEMETRY_UPDATE_INTERVAL === 0) {
-      const agl = this.terrainSampler.getAGL(
-        this.droneState.position.z,
-        this.terrainHeight,
-      );
+      // AGL = drone's z-position in ENU frame (ENU origin is at ground level)
+      const agl = this.droneState.position.z;
       const speed = v3Magnitude(this.droneState.velocity);
 
       useStore.getState().updateTelemetry({

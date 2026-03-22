@@ -1,6 +1,16 @@
 import { useRef, useEffect, useState } from 'react';
 import { MapController } from './MapController';
 
+// Ensure Google Places autocomplete dropdown renders above everything
+const GLOBAL_STYLE_ID = 'fpvsim-pac-style';
+function ensureAutocompleteStyles() {
+  if (document.getElementById(GLOBAL_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = GLOBAL_STYLE_ID;
+  style.textContent = `.pac-container { z-index: 10000 !important; }`;
+  document.head.appendChild(style);
+}
+
 interface Props {
   onFlyHere: (location: { lon: number; lat: number; name: string }) => void;
 }
@@ -15,8 +25,10 @@ export function LocationPicker({ onFlyHere }: Props) {
     name: string;
   } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [locatingUser, setLocatingUser] = useState(false);
 
   useEffect(() => {
+    ensureAutocompleteStyles();
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
     if (!apiKey || !mapContainerRef.current || !searchInputRef.current) {
       if (!apiKey) setMapError('Google Maps API key not configured');
@@ -45,6 +57,15 @@ export function LocationPicker({ onFlyHere }: Props) {
       lat: selectedLocation.lat,
       name: selectedLocation.name,
     });
+  };
+
+  const handleMyLocation = () => {
+    const ctrl = mapControllerRef.current;
+    if (!ctrl || locatingUser) return;
+    setLocatingUser(true);
+    ctrl.goToCurrentLocation()
+      .catch((e) => console.warn("Geolocation failed:", e))
+      .finally(() => setLocatingUser(false));
   };
 
   return (
@@ -80,13 +101,15 @@ export function LocationPicker({ onFlyHere }: Props) {
         transform: 'translateX(-50%)',
         zIndex: 10,
         width: 'min(90%, 480px)',
+        display: 'flex',
+        gap: '8px',
       }}>
         <input
           ref={searchInputRef}
           type="text"
           placeholder="Search location..."
           style={{
-            width: '100%',
+            flex: 1,
             padding: '12px 16px',
             fontSize: '1rem',
             border: 'none',
@@ -97,6 +120,34 @@ export function LocationPicker({ onFlyHere }: Props) {
             boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
           }}
         />
+        <button
+          onClick={handleMyLocation}
+          disabled={locatingUser}
+          title="Go to my location"
+          style={{
+            padding: '12px 14px',
+            border: 'none',
+            borderRadius: '8px',
+            background: 'rgba(26, 26, 46, 0.95)',
+            color: locatingUser ? '#888' : '#00ff88',
+            cursor: locatingUser ? 'wait' : 'pointer',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            fontSize: '1.2rem',
+            lineHeight: 1,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="4" />
+            <line x1="12" y1="2" x2="12" y2="6" />
+            <line x1="12" y1="18" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="6" y2="12" />
+            <line x1="18" y1="12" x2="22" y2="12" />
+          </svg>
+        </button>
       </div>
 
       {/* Fly Here button */}

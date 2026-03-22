@@ -41,16 +41,22 @@ export class FlightController {
     const { rollRate, pitchRate, yawRate, expo } = this.ratesConfig;
 
     // Stick → target angular rate (rad/s)
-    const targetRollRate = applyExpo(stickInputs.roll, expo) * rollRate *
+    // In body frame (X=right, Y=forward, Z=up) with right-hand rotation:
+    //   Positive omega.y → left roll, so negate for stick-right = roll-right
+    //   Positive omega.x → nose up, so negate for stick-forward = pitch down (fly forward)
+    //   Positive omega.z → yaw left (CCW from above), so negate for stick-right = yaw right
+    const targetRollRate = -applyExpo(stickInputs.roll, expo) * rollRate *
       DEG_TO_RAD;
-    const targetPitchRate = applyExpo(stickInputs.pitch, expo) * pitchRate *
+    const targetPitchRate = -applyExpo(stickInputs.pitch, expo) * pitchRate *
       DEG_TO_RAD;
-    const targetYawRate = applyExpo(stickInputs.yaw, expo) * yawRate *
+    const targetYawRate = -applyExpo(stickInputs.yaw, expo) * yawRate *
       DEG_TO_RAD;
 
     // PID error = target - actual (body frame angular velocity)
-    const rollError = targetRollRate - droneState.angularVelocity.x;
-    const pitchError = targetPitchRate - droneState.angularVelocity.y;
+    // Body frame: X=right, Y=forward, Z=up
+    // Roll = rotation around Y (forward axis), Pitch = rotation around X (right axis)
+    const rollError = targetRollRate - droneState.angularVelocity.y;
+    const pitchError = targetPitchRate - droneState.angularVelocity.x;
     const yawError = targetYawRate - droneState.angularVelocity.z;
 
     const rollCmd = this.rollPID.update(rollError, dt);

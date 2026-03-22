@@ -18,6 +18,7 @@ export class MapController {
     await importLibrary("maps");
     await importLibrary("places");
     await importLibrary("marker");
+    await importLibrary("elevation");
 
     this.map = new google.maps.Map(container, {
       center: { lat: 48.8584, lng: 2.2945 }, // Eiffel Tower default
@@ -26,6 +27,8 @@ export class MapController {
       disableDefaultUI: true,
       zoomControl: true,
       mapId: "fpvsim-map",
+      minZoom: 3,
+      maxZoom: 21,
     });
 
     // Click to select spawn point
@@ -76,6 +79,31 @@ export class MapController {
   flyTo(lat: number, lng: number, zoom: number): void {
     this.map?.panTo({ lat, lng });
     this.map?.setZoom(zoom);
+  }
+
+  goToCurrentLocation(): Promise<{ lat: number; lng: number }> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation not supported"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          this.setMarker(lat, lng);
+          this.flyTo(lat, lng, 16);
+          this.onLocationSelect?.({
+            lat,
+            lng,
+            name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+          });
+          resolve({ lat, lng });
+        },
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+    });
   }
 
   destroy(): void {

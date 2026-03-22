@@ -18,12 +18,6 @@ export class GamepadManager {
     window.addEventListener("gamepadconnected", this.handleConnect);
     window.addEventListener("gamepaddisconnected", this.handleDisconnect);
 
-    // Load saved mapping from localStorage
-    const saved = AxisMapper.loadFromStorage();
-    if (saved) {
-      this.axisMapper = new AxisMapper(saved);
-    }
-
     // Check if a gamepad is already connected
     this.detectExisting();
   }
@@ -44,14 +38,7 @@ export class GamepadManager {
     if (!gp) return null;
 
     if (!this.axisMapper) {
-      // Auto-detect preset if no mapping configured
-      const preset = matchPreset(gp.id);
-      if (preset) {
-        const mapping = RADIO_PRESETS[preset];
-        if (mapping) {
-          this.axisMapper = new AxisMapper(mapping);
-        }
-      }
+      this.applyMappingForGamepad(gp);
       if (!this.axisMapper) return null;
     }
 
@@ -70,16 +57,37 @@ export class GamepadManager {
     AxisMapper.saveToStorage(mapping);
   }
 
+  private applyMappingForGamepad(gp: Gamepad): void {
+    // Try saved mapping from localStorage first
+    const saved = AxisMapper.loadFromStorage();
+    if (saved) {
+      this.axisMapper = new AxisMapper(saved);
+      return;
+    }
+
+    // Auto-detect preset from gamepad name
+    const preset = matchPreset(gp.id);
+    if (preset) {
+      const mapping = RADIO_PRESETS[preset];
+      if (mapping) {
+        this.axisMapper = new AxisMapper(mapping);
+      }
+    }
+  }
+
   private handleConnect(e: GamepadEvent): void {
     const gp = e.gamepad;
     if (gp.axes.length >= 4) {
       this.gamepadIndex = gp.index;
+      // Clear stale mapper so we re-detect for the newly connected device
+      this.axisMapper = null;
       this.onConnect?.(gp);
     }
   }
 
   private handleDisconnect(_e: GamepadEvent): void {
     this.gamepadIndex = null;
+    this.axisMapper = null;
     this.onDisconnect?.();
   }
 

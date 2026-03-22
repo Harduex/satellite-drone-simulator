@@ -86,11 +86,11 @@ export class DronePhysics {
     // ── Compute net torque in body frame ──────────────────
     const d = this.motorArmOffset;
 
-    // Roll torque: (right motors - left motors) * arm offset
+    // Roll torque: (right motors - left motors) * arm offset → around body Y (forward axis)
     // Right = M2 + M3, Left = M1 + M4
     const rollTorque = (t2 + t3 - t1 - t4) * d;
 
-    // Pitch torque: (front motors - back motors) * arm offset
+    // Pitch torque: (front motors - back motors) * arm offset → around body X (right axis)
     // Front = M1 + M2, Back = M3 + M4
     const pitchTorque = (t1 + t2 - t3 - t4) * d;
 
@@ -102,7 +102,10 @@ export class DronePhysics {
     const q4 = reactionTorques[3]!;
     const yawTorque = q1 - q2 + q3 - q4;
 
-    const motorTorque: Vector3 = vec3(rollTorque, pitchTorque, yawTorque);
+    // Body frame: X=right, Y=forward, Z=up
+    // Pitch torque (front/back differential) → around X axis
+    // Roll torque (left/right differential) → around Y axis
+    const motorTorque: Vector3 = vec3(pitchTorque, rollTorque, yawTorque);
 
     // Angular drag
     const angularDrag = computeAngularDrag(state.angularVelocity);
@@ -140,14 +143,15 @@ export class DronePhysics {
       v3Scale(angularAccel, dt),
     );
 
-    // Quaternion: q_dot = 0.5 * [0, omega] * q
+    // Quaternion kinematics: q_dot = 0.5 * q * [0, omega_body]
+    // q rotates body→world, so omega_body is applied on the right.
     const omegaQuat: Quaternion = {
       w: 0,
       x: state.angularVelocity.x,
       y: state.angularVelocity.y,
       z: state.angularVelocity.z,
     };
-    const qDot = quatMultiply(omegaQuat, state.quaternion);
+    const qDot = quatMultiply(state.quaternion, omegaQuat);
     const newQuaternion = quatNormalize({
       w: state.quaternion.w + 0.5 * qDot.w * dt,
       x: state.quaternion.x + 0.5 * qDot.x * dt,

@@ -106,8 +106,8 @@ describe("DronePhysics", () => {
         state = physics.step(state, rollMotors, PHYSICS_DT);
       }
 
-      // Should have non-zero roll angular velocity
-      expect(Math.abs(state.angularVelocity.x)).toBeGreaterThan(0.01);
+      // Should have non-zero roll angular velocity (roll = rotation around Y axis)
+      expect(Math.abs(state.angularVelocity.y)).toBeGreaterThan(0.01);
     });
   });
 });

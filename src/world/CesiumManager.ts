@@ -39,10 +39,21 @@ export class CesiumManager {
     >)
       .requestsByServer = { "tile.googleapis.com:443": 18 };
 
-    // Disable atmosphere/fog for close-range flying
+    // Blue daytime sky: completely remove the star skybox and sky atmosphere
+    // so only the solid blue backgroundColor shows as the sky
+    this.viewer.scene.skyBox = this.viewer.scene.skyBox && this.viewer.scene.skyBox.destroy() as never;
     if (this.viewer.scene.skyAtmosphere) {
       this.viewer.scene.skyAtmosphere.show = false;
     }
+    if (this.viewer.scene.sun) this.viewer.scene.sun.show = false;
+    if (this.viewer.scene.moon) this.viewer.scene.moon.show = false;
+    this.viewer.scene.backgroundColor = new Cesium.Color(0.53, 0.81, 0.98, 1.0);
+
+    // Set clock to user's current local time so sun position matches reality
+    this.viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date());
+    this.viewer.clock.shouldAnimate = false;
+
+    // Disable fog (interferes with close-range viewing)
     this.viewer.scene.fog.enabled = false;
 
     // Near/far clip for drone-scale (0.1m to 5000m)

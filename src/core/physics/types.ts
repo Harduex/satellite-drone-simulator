@@ -156,8 +156,13 @@ export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
   mass: 0.550,
   armLength: 0.11,
   inertia: { xx: 0.003, yy: 0.003, zz: 0.005 },
-  kT: 8.5e-6,
-  kQ: 1.1e-7,
+  // kT chosen so hover occurs at ~35% throttle:
+  // T_hover_per_motor = (0.550 * 9.81) / 4 = 1.349 N
+  // RPM_hover = 0.35 * 24000 = 8400
+  // kT = 1.349 / 8400² ≈ 1.9e-8
+  kT: 1.9e-8,
+  // kQ maintains same kQ/kT ratio as original (≈0.01314, ~13mm torque arm)
+  kQ: 2.5e-10,
   motorTimeConstant: 0.05,
   maxThrottleRpm: 24000,
   dragCoefficient: 0.3,

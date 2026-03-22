@@ -1,12 +1,17 @@
 import type { StickInputs } from "../physics/types";
 
 const THROTTLE_RAMP_RATE = 0.8; // per second
-const STICK_VALUE = 0.7; // how much roll/pitch/yaw keyboard gives
+const STICK_RAMP_RATE = 4.0; // per second — how fast roll/pitch/yaw ramp to target
+const STICK_MAX = 0.7; // maximum roll/pitch/yaw value from keyboard
+const STICK_DECAY_RATE = 6.0; // per second — how fast sticks return to center
 
 /** Keyboard fallback input for development/testing without radio controller */
 export class KeyboardInput {
   private keys = new Set<string>();
   private throttleLevel = 0;
+  private rollLevel = 0;
+  private pitchLevel = 0;
+  private yawLevel = 0;
 
   constructor() {
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -23,11 +28,15 @@ export class KeyboardInput {
     window.removeEventListener("keyup", this.onKeyUp);
     this.keys.clear();
     this.throttleLevel = 0;
+    this.rollLevel = 0;
+    this.pitchLevel = 0;
+    this.yawLevel = 0;
   }
 
   /**
    * Read keyboard state and produce StickInputs.
-   * @param dt Time since last call in seconds (for throttle ramping)
+   * All stick axes ramp smoothly to prevent instant full-deflection flips.
+   * @param dt Time since last call in seconds
    */
   read(dt: number): StickInputs {
     // Throttle: W ramps up, S ramps down (incremental, not binary)
@@ -44,26 +53,35 @@ export class KeyboardInput {
       );
     }
 
-    // Roll: Arrow Left/Right
-    let roll = 0;
-    if (this.keys.has("ArrowRight")) roll += STICK_VALUE;
-    if (this.keys.has("ArrowLeft")) roll -= STICK_VALUE;
+    // Roll: Arrow Left/Right (inverted: ArrowLeft = roll left = negative)
+    this.rollLevel = rampAxis(
+      this.rollLevel,
+      this.keys.has("ArrowLeft"),
+      this.keys.has("ArrowRight"),
+      dt,
+    );
 
     // Pitch: Arrow Up/Down
-    let pitch = 0;
-    if (this.keys.has("ArrowUp")) pitch += STICK_VALUE;
-    if (this.keys.has("ArrowDown")) pitch -= STICK_VALUE;
+    this.pitchLevel = rampAxis(
+      this.pitchLevel,
+      this.keys.has("ArrowUp"),
+      this.keys.has("ArrowDown"),
+      dt,
+    );
 
     // Yaw: A/D
-    let yaw = 0;
-    if (this.keys.has("KeyD")) yaw += STICK_VALUE;
-    if (this.keys.has("KeyA")) yaw -= STICK_VALUE;
+    this.yawLevel = rampAxis(
+      this.yawLevel,
+      this.keys.has("KeyD"),
+      this.keys.has("KeyA"),
+      dt,
+    );
 
     return {
       throttle: this.throttleLevel,
-      roll,
-      pitch,
-      yaw,
+      roll: this.rollLevel,
+      pitch: this.pitchLevel,
+      yaw: this.yawLevel,
     };
   }
 
@@ -79,5 +97,30 @@ export class KeyboardInput {
 
   private onKeyUp(e: KeyboardEvent): void {
     this.keys.delete(e.code);
+  }
+}
+
+/** Smoothly ramp a stick axis toward target or decay to zero */
+function rampAxis(
+  current: number,
+  positiveHeld: boolean,
+  negativeHeld: boolean,
+  dt: number,
+): number {
+  let target = 0;
+  if (positiveHeld) target += STICK_MAX;
+  if (negativeHeld) target -= STICK_MAX;
+
+  if (target !== 0) {
+    // Ramp toward target
+    const diff = target - current;
+    const step = STICK_RAMP_RATE * dt;
+    if (Math.abs(diff) < step) return target;
+    return current + Math.sign(diff) * step;
+  } else {
+    // Decay to zero when no key held
+    const step = STICK_DECAY_RATE * dt;
+    if (Math.abs(current) < step) return 0;
+    return current - Math.sign(current) * step;
   }
 }
