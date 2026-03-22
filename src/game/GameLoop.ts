@@ -5,7 +5,6 @@ import { GamepadManager } from "../core/input/GamepadManager";
 import { KeyboardInput } from "../core/input/KeyboardInput";
 import { FPVCamera, DEFAULT_CAMERA_CONFIG } from "../camera/FPVCamera";
 import { DroneRenderer } from "../world/DroneRenderer";
-import { BatteryModel } from "./BatteryModel";
 import { CrashDetector } from "./CrashDetector";
 import { TelemetryPublisher } from "./TelemetryPublisher";
 import { enuToEcef } from "../world/CoordUtils";
@@ -38,7 +37,6 @@ export class GameLoop {
   private keyboardInput: KeyboardInput;
   private fpvCamera: FPVCamera;
   private droneRenderer: DroneRenderer;
-  private batteryModel: BatteryModel;
   private crashDetector: CrashDetector;
   private telemetryPublisher: TelemetryPublisher;
   private enuFrame: Cesium.Matrix4;
@@ -74,15 +72,15 @@ export class GameLoop {
     this.gamepadManager = new GamepadManager();
     this.keyboardInput = new KeyboardInput();
 
-    // Apply FOV from settings store
-    const storeFov = useStore.getState().fov;
+    // Apply FOV and camera tilt from settings store
+    const { fov: storeFov, cameraTilt: storeCameraTilt } = useStore.getState();
     this.fpvCamera = new FPVCamera({
       ...DEFAULT_CAMERA_CONFIG,
       fov: storeFov,
+      tiltDegrees: storeCameraTilt,
     });
 
     this.droneRenderer = new DroneRenderer();
-    this.batteryModel = new BatteryModel();
     this.crashDetector = new CrashDetector(this.spawnAltitude);
     this.telemetryPublisher = new TelemetryPublisher();
 
@@ -139,7 +137,6 @@ export class GameLoop {
     this.droneState = createDefaultDroneState(this.spawnPosition);
     this.physics.reset();
     this.flightController.reset();
-    this.batteryModel.reset();
     this.telemetryPublisher.reset();
     this.crashDetector.reset();
     this.physicsAccumulator = 0;
@@ -198,18 +195,14 @@ export class GameLoop {
     const ecefPosition = enuToEcef(this.droneState.position, this.enuFrame);
     this.droneRenderer.update(ecefPosition);
 
-    // 6. Battery drain
-    const batteryState = this.batteryModel.drain(this.lastMotorCommands, wallDt);
-
-    // 7. Publish telemetry (throttled to ~10Hz)
+    // 6. Publish telemetry (throttled to ~10Hz)
     const published = this.telemetryPublisher.maybePublish(
       this.droneState,
-      batteryState,
       stickInputs.throttle,
       groundHeight,
     );
 
-    // 8. Crash detection (only on telemetry frames to avoid spam)
+    // 7. Crash detection (only on telemetry frames to avoid spam)
     if (published) {
       const crashed = this.crashDetector.check(this.droneState, groundHeight);
       if (crashed) {

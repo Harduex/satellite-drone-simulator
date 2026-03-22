@@ -1,5 +1,4 @@
 import type { DroneState } from "../core/physics/types";
-import type { BatteryState } from "./BatteryModel";
 import { v3Magnitude } from "../core/physics/types";
 import { useStore } from "../store";
 
@@ -15,7 +14,6 @@ export class TelemetryPublisher {
    */
   maybePublish(
     droneState: DroneState,
-    batteryState: BatteryState,
     throttle: number,
     groundHeight: number,
   ): boolean {
@@ -29,8 +27,6 @@ export class TelemetryPublisher {
       positionZ: droneState.position.z,
       speed,
       altitudeAGL: Math.max(0, droneState.position.z - groundHeight),
-      batteryPercent: batteryState.percentRemaining,
-      batteryVoltage: batteryState.voltage,
       throttle,
     });
 

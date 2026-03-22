@@ -8,8 +8,6 @@ interface Props {
 export function HUD({ locationName }: Props) {
   const speed = useStore((s) => s.speed);
   const altitudeAGL = useStore((s) => s.altitudeAGL);
-  const batteryPercent = useStore((s) => s.batteryPercent);
-  const batteryVoltage = useStore((s) => s.batteryVoltage);
   const throttle = useStore((s) => s.throttle);
 
   return (
@@ -85,32 +83,6 @@ export function HUD({ locationName }: Props) {
           fontFeatureSettings: hud.fontFeatureSettings,
         }}>
           {altitudeAGL.toFixed(1)} <span style={{ ...hud.labelStyle }}>m AGL</span>
-        </div>
-      </div>
-
-      {/* Bottom-right: battery */}
-      <div style={{
-        position: 'absolute',
-        bottom: 16,
-        right: 16,
-        textAlign: 'right',
-        ...textStyle,
-      }}>
-        <div style={{
-          fontSize: fontSizes.display_sm,
-          fontFamily: hud.fontFamily,
-          fontFeatureSettings: hud.fontFeatureSettings,
-          color: batteryPercent < 20 ? colors.error : batteryPercent < 40 ? colors.warning : colors.on_surface,
-        }}>
-          {batteryPercent.toFixed(0)}<span style={{ ...hud.labelStyle }}>%</span>
-        </div>
-        <div style={{
-          fontSize: '0.75rem',
-          opacity: 0.6,
-          fontFamily: hud.fontFamily,
-          fontFeatureSettings: hud.fontFeatureSettings,
-        }}>
-          {batteryVoltage.toFixed(1)}<span style={{ ...hud.labelStyle }}>V</span>
         </div>
       </div>
 

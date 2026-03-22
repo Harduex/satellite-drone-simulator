@@ -25,7 +25,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   physicsConfig: DEFAULT_DRONE_CONFIG,
   flightMode: FlightMode.ACRO,
   fov: 90,
-  cameraTilt: 0,
+  cameraTilt: 15,
   setAxisMapping: (mapping) => set({ axisMapping: mapping }),
   setRates: (rates) =>
     set((state) => ({ rates: { ...state.rates, ...rates } })),

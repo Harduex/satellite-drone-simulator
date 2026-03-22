@@ -53,11 +53,11 @@ export class KeyboardInput {
       );
     }
 
-    // Roll: Arrow Left/Right (inverted: ArrowLeft = roll left = negative)
+    // Roll: Arrow Right/Left
     this.rollLevel = rampAxis(
       this.rollLevel,
-      this.keys.has("ArrowLeft"),
       this.keys.has("ArrowRight"),
+      this.keys.has("ArrowLeft"),
       dt,
     );
 

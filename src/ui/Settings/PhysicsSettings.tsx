@@ -11,6 +11,8 @@ export function PhysicsSettings({ onClose }: Props) {
   const setConfig = useStore((s) => s.setPhysicsConfig);
   const fov = useStore((s) => s.fov);
   const setFov = useStore((s) => s.setFov);
+  const cameraTilt = useStore((s) => s.cameraTilt);
+  const setCameraTilt = useStore((s) => s.setCameraTilt);
 
   const handleReset = () => {
     setConfig(DEFAULT_DRONE_CONFIG);
@@ -66,6 +68,15 @@ export function PhysicsSettings({ onClose }: Props) {
         step={1}
         unit="deg"
         onChange={(v) => setFov(v)}
+      />
+      <Slider
+        label="Cam. Tilt"
+        value={cameraTilt}
+        min={0}
+        max={45}
+        step={1}
+        unit="deg"
+        onChange={(v) => setCameraTilt(v)}
       />
 
       <button onClick={handleReset} style={{

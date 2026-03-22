@@ -6,8 +6,6 @@ export interface DroneTelemetry {
   positionZ: number;
   speed: number; // m/s
   altitudeAGL: number; // m
-  batteryPercent: number;
-  batteryVoltage: number;
   throttle: number; // 0-1
 }
 
@@ -24,8 +22,6 @@ const INITIAL_TELEMETRY: DroneTelemetry = {
   positionZ: 0,
   speed: 0,
   altitudeAGL: 0,
-  batteryPercent: 100,
-  batteryVoltage: 16.8,
   throttle: 0,
 };
 
