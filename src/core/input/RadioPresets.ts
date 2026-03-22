@@ -5,19 +5,19 @@ export const RADIO_PRESETS: Record<string, AxisMapping> = {
     throttle: { axis: 1, inverted: false },
     yaw: { axis: 3, inverted: false },
     pitch: { axis: 2, inverted: false },
-    roll: { axis: 0, inverted: false },
+    roll: { axis: 0, inverted: true },
   },
   Jumper: {
     throttle: { axis: 1, inverted: true },
     yaw: { axis: 3, inverted: false },
     pitch: { axis: 2, inverted: false },
-    roll: { axis: 0, inverted: false },
+    roll: { axis: 0, inverted: true },
   },
   "TBS Tango": {
     throttle: { axis: 1, inverted: false },
     yaw: { axis: 0, inverted: false },
     pitch: { axis: 3, inverted: false },
-    roll: { axis: 2, inverted: false },
+    roll: { axis: 2, inverted: true },
   },
   // BETAFPV LiteRadio 2 SE — USB HID joystick (Mode 2):
   //   Left stick:  throttle axis 1 (inverted: full up = -1), yaw axis 0
@@ -26,13 +26,13 @@ export const RADIO_PRESETS: Record<string, AxisMapping> = {
     throttle: { axis: 1, inverted: true },
     yaw: { axis: 0, inverted: false },
     pitch: { axis: 2, inverted: true },
-    roll: { axis: 3, inverted: false },
+    roll: { axis: 3, inverted: true },
   },
   Generic: {
     throttle: { axis: 1, inverted: true },
     yaw: { axis: 0, inverted: false },
     pitch: { axis: 2, inverted: true },
-    roll: { axis: 3, inverted: false },
+    roll: { axis: 3, inverted: true },
   },
 };
 

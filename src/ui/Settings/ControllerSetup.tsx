@@ -1,34 +1,63 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../../store';
 import { RADIO_PRESETS, matchPreset } from '../../core/input/RadioPresets';
-import type { AxisMapping } from '../../core/input/AxisMapper';
-import { AxisMapper } from '../../core/input/AxisMapper';
+import type { AxisMapping, AxisChannelConfig } from '../../core/input/AxisMapper';
+import { AxisMapper, DEFAULT_DEADZONE } from '../../core/input/AxisMapper';
 
 interface Props {
   onClose: () => void;
 }
 
-type WizardStep = 'detect' | 'throttle' | 'yaw' | 'pitch' | 'roll' | 'done';
-const STEPS: WizardStep[] = ['detect', 'throttle', 'yaw', 'pitch', 'roll', 'done'];
-const STEP_LABELS: Record<WizardStep, string> = {
-  detect: 'Detecting Controller',
-  throttle: 'Move THROTTLE stick fully up',
-  yaw: 'Move YAW stick fully right',
-  pitch: 'Move PITCH stick fully forward',
-  roll: 'Move ROLL stick fully right',
-  done: 'Mapping Complete',
+// ── Wizard Steps ──────────────────────────────────────────
+type WizardStep =
+  | 'detect'
+  | 'center'
+  | 'map-throttle'
+  | 'map-yaw'
+  | 'map-pitch'
+  | 'map-roll'
+  | 'verify'
+  | 'deadzones';
+
+const CHANNEL_STEPS: WizardStep[] = ['map-throttle', 'map-yaw', 'map-pitch', 'map-roll'];
+type Channel = 'throttle' | 'yaw' | 'pitch' | 'roll';
+
+const CHANNEL_INSTRUCTIONS: Record<Channel, string> = {
+  throttle: 'Move THROTTLE stick fully UP',
+  yaw: 'Move YAW stick fully RIGHT',
+  pitch: 'Move PITCH stick fully FORWARD',
+  roll: 'Move ROLL stick fully RIGHT',
 };
 
+function getStageNumber(step: WizardStep): number {
+  if (step === 'detect') return 1;
+  if (step === 'center') return 2;
+  if (step.startsWith('map-')) return 3;
+  if (step === 'verify') return 4;
+  return 5;
+}
+
+const STAGE_LABELS = ['Detect', 'Center', 'Map', 'Verify', 'Config'];
+
+// ── Main Component ────────────────────────────────────────
 export function ControllerSetup({ onClose }: Props) {
   const [step, setStep] = useState<WizardStep>('detect');
   const [gamepad, setGamepad] = useState<Gamepad | null>(null);
-  const [mapping, setMapping] = useState<Partial<AxisMapping>>({});
   const [liveAxes, setLiveAxes] = useState<number[]>([]);
+  const [centerOffsets, setCenterOffsets] = useState<number[]>([]);
+  const [centerCalibrated, setCenterCalibrated] = useState(false);
+  const [mapping, setMapping] = useState<Partial<AxisMapping>>({});
+  const [detectionPhase, setDetectionPhase] = useState<'waiting' | 'detected'>('waiting');
+  const [selectedPreset, setSelectedPreset] = useState<string>('Generic');
   const rates = useStore((s) => s.rates);
   const setRates = useStore((s) => s.setRates);
   const pollRef = useRef<number | null>(null);
+  const detectionCountRef = useRef<{ axis: number; count: number } | null>(null);
 
-  // Poll gamepad axes at 60Hz
+  const DETECTION_FRAMES = 10;
+  const DETECTION_THRESHOLD = 0.5;
+
+  // ── Gamepad polling at rAF rate ──
   useEffect(() => {
     const poll = () => {
       const gamepads = navigator.getGamepads();
@@ -47,42 +76,127 @@ export function ControllerSetup({ onClose }: Props) {
     };
   }, []);
 
-  // Auto-detect preset when gamepad connects
+  // ── Auto-select matching preset when gamepad first connects ──
   useEffect(() => {
     if (gamepad && step === 'detect') {
       const preset = matchPreset(gamepad.id);
-      if (preset) {
-        const presetMapping = RADIO_PRESETS[preset];
-        if (presetMapping) {
-          setMapping(presetMapping);
-          setStep('done');
-        }
-      }
+      if (preset) setSelectedPreset(preset);
     }
   }, [gamepad, step]);
 
-  // Detect which axis moved for wizard
+  // ── Axis detection for mapping steps ──
   useEffect(() => {
-    if (step === 'detect' || step === 'done') return;
-    const threshold = 0.8;
+    if (!step.startsWith('map-') || detectionPhase !== 'waiting') return;
+    const channel = step.replace('map-', '') as Channel;
+
+    // Axes already assigned to other channels
+    const usedAxes = new Set<number>();
+    for (const [ch, config] of Object.entries(mapping)) {
+      if (ch !== channel && config) usedAxes.add((config as AxisChannelConfig).axis);
+    }
+
+    let maxDelta = 0;
+    let maxIndex = -1;
     for (let i = 0; i < liveAxes.length; i++) {
-      const val = liveAxes[i];
-      if (val !== undefined && Math.abs(val) > threshold) {
-        const inverted = val < 0;
-        const axisConfig = { axis: i, inverted };
-        const newMapping = { ...mapping };
-        if (step === 'throttle') newMapping.throttle = axisConfig;
-        else if (step === 'yaw') newMapping.yaw = axisConfig;
-        else if (step === 'pitch') newMapping.pitch = axisConfig;
-        else if (step === 'roll') newMapping.roll = axisConfig;
-        setMapping(newMapping);
-        // Advance to next step
-        const idx = STEPS.indexOf(step);
-        setStep(STEPS[idx + 1] ?? 'done');
-        break;
+      if (usedAxes.has(i)) continue;
+      const center = centerOffsets[i] ?? 0;
+      const delta = Math.abs(liveAxes[i]! - center);
+      if (delta > DETECTION_THRESHOLD && delta > maxDelta) {
+        maxDelta = delta;
+        maxIndex = i;
       }
     }
-  }, [liveAxes, step, mapping]);
+
+    if (maxIndex >= 0) {
+      const ref = detectionCountRef.current;
+      if (ref && ref.axis === maxIndex) {
+        ref.count++;
+        if (ref.count >= DETECTION_FRAMES) {
+          const center = centerOffsets[maxIndex] ?? 0;
+          const delta = liveAxes[maxIndex]! - center;
+          // If delta is negative when moving in the "positive" direction, invert
+          const inverted = delta < 0;
+          setMapping(prev => ({
+            ...prev,
+            [channel]: {
+              axis: maxIndex,
+              inverted,
+              deadzone: DEFAULT_DEADZONE,
+              centerOffset: center,
+            },
+          }));
+          setDetectionPhase('detected');
+          detectionCountRef.current = null;
+        }
+      } else {
+        detectionCountRef.current = { axis: maxIndex, count: 1 };
+      }
+    } else {
+      detectionCountRef.current = null;
+    }
+  }, [liveAxes, step, detectionPhase, centerOffsets, mapping]);
+
+  // ── Compute mapped stick inputs for crosshair preview ──
+  const mappedInputs = useMemo(() => {
+    const m = mapping;
+    if (!m.throttle || !m.yaw || !m.pitch || !m.roll) return null;
+    const mapper = new AxisMapper(m as AxisMapping);
+    return mapper.map(liveAxes);
+  }, [mapping, liveAxes]);
+
+  // ── Handlers ──
+  const handleUsePreset = () => {
+    const preset = RADIO_PRESETS[selectedPreset];
+    if (preset) {
+      setMapping({ ...preset });
+      setCenterOffsets(new Array(liveAxes.length).fill(0));
+      setCenterCalibrated(false);
+      setStep('verify');
+    }
+  };
+
+  const handleCalibrateCenter = () => {
+    setCenterOffsets(Array.from(liveAxes));
+    setCenterCalibrated(true);
+  };
+
+  const handleNextChannel = () => {
+    const idx = CHANNEL_STEPS.indexOf(step);
+    if (idx < CHANNEL_STEPS.length - 1) {
+      setStep(CHANNEL_STEPS[idx + 1]!);
+    } else {
+      setStep('verify');
+    }
+    setDetectionPhase('waiting');
+    detectionCountRef.current = null;
+  };
+
+  const handleRedoChannel = () => {
+    const channel = step.replace('map-', '') as Channel;
+    setMapping(prev => {
+      const next = { ...prev };
+      delete next[channel];
+      return next;
+    });
+    setDetectionPhase('waiting');
+    detectionCountRef.current = null;
+  };
+
+  const handleStartOver = () => {
+    setMapping({});
+    setCenterOffsets([]);
+    setCenterCalibrated(false);
+    setDetectionPhase('waiting');
+    detectionCountRef.current = null;
+    setStep('center');
+  };
+
+  const handleDeadzoneChange = (channel: Channel, value: number) => {
+    setMapping(prev => ({
+      ...prev,
+      [channel]: { ...prev[channel]!, deadzone: value },
+    }));
+  };
 
   const handleSave = () => {
     if (mapping.throttle && mapping.yaw && mapping.pitch && mapping.roll) {
@@ -93,161 +207,459 @@ export function ControllerSetup({ onClose }: Props) {
     onClose();
   };
 
-  const handleSkipToManual = () => {
-    setStep('throttle');
-  };
+  const currentStage = getStageNumber(step);
+  const currentChannel = step.startsWith('map-') ? step.replace('map-', '') as Channel : null;
 
   return (
     <div>
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h2 style={{ margin: 0, color: '#e0e0e0', fontWeight: 400 }}>Controller Setup</h2>
         <button onClick={onClose} style={closeButtonStyle}>X</button>
       </div>
 
       {/* Gamepad status */}
-      <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={{
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
+          width: 8, height: 8, borderRadius: '50%',
           background: gamepad ? '#00ff88' : '#ff4444',
         }} />
         <span style={{ color: '#e0e0e0', fontSize: '0.85rem' }}>
-          {gamepad ? gamepad.id : 'No controller detected'}
+          {gamepad ? gamepad.id : 'No controller detected — plug in via USB'}
         </span>
       </div>
 
-      {/* Axis visualizer */}
-      {gamepad && (
-        <div style={{ marginBottom: '1rem', display: 'flex', gap: '4px' }}>
-          {liveAxes.map((val, i) => (
-            <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{
-                height: 60,
-                background: '#1a1a2e',
-                borderRadius: 3,
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  bottom: '50%',
-                  left: 0,
-                  right: 0,
-                  height: `${Math.abs(val) * 50}%`,
-                  background: '#00ff88',
-                  transform: val < 0 ? 'scaleY(-1) translateY(100%)' : undefined,
-                  transformOrigin: 'bottom',
-                  borderRadius: 2,
-                }} />
+      {/* Progress indicator */}
+      <StepIndicator currentStage={currentStage} />
+
+      {/* ── Step 1: Detect ── */}
+      {step === 'detect' && (
+        <StepPanel>
+          <StepTitle>Connect Controller</StepTitle>
+          {gamepad ? (
+            <>
+              <p style={hintStyle}>
+                Select a preset for quick setup, or run manual calibration for precise mapping.
+              </p>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ color: '#e0e0e0', fontSize: '0.85rem', marginRight: 8 }}>Preset:</label>
+                <select
+                  value={selectedPreset}
+                  onChange={(e) => setSelectedPreset(e.target.value)}
+                  style={selectStyle}
+                >
+                  {Object.keys(RADIO_PRESETS).map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
               </div>
-              <span style={{ color: '#e0e0e0', fontSize: '0.65rem', opacity: 0.6 }}>
-                {i}
-              </span>
-            </div>
-          ))}
-        </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <button onClick={handleUsePreset} style={accentButtonStyle}>
+                  Use Preset & Verify
+                </button>
+                <button onClick={() => setStep('center')} style={secondaryButtonStyle}>
+                  Manual Calibration
+                </button>
+              </div>
+            </>
+          ) : (
+            <p style={hintStyle}>Waiting for controller connection...</p>
+          )}
+        </StepPanel>
       )}
 
-      {/* Wizard step */}
-      <div style={{
-        background: '#1a1a2e',
-        borderRadius: '8px',
-        padding: '1rem',
-        marginBottom: '1rem',
-        textAlign: 'center',
-        color: '#e0e0e0',
-      }}>
-        <p style={{ fontSize: '1.1rem', margin: '0 0 0.5rem' }}>
-          {STEP_LABELS[step]}
-        </p>
-        {step === 'detect' && !gamepad && (
-          <p style={{ opacity: 0.5, fontSize: '0.85rem', margin: 0 }}>
-            Plug in your radio controller via USB
+      {/* ── Step 2: Center Calibration ── */}
+      {step === 'center' && (
+        <StepPanel>
+          <StepTitle>Center Calibration</StepTitle>
+          <p style={hintStyle}>
+            Release all sticks (hands off). Click the button to record center position.
           </p>
-        )}
-        {step === 'detect' && gamepad && (
-          <button onClick={handleSkipToManual} style={smallButtonStyle}>
-            Manual Mapping
+          {/* Raw axis bars */}
+          {gamepad && <AxisBars axes={liveAxes} centerOffsets={centerOffsets} />}
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
+            <button onClick={handleCalibrateCenter} style={accentButtonStyle}>
+              {centerCalibrated ? 'Re-Calibrate Center' : 'Calibrate Center'}
+            </button>
+            {centerCalibrated && (
+              <button onClick={() => { setStep('map-throttle'); setDetectionPhase('waiting'); }} style={accentButtonStyle}>
+                Next
+              </button>
+            )}
+          </div>
+          {centerCalibrated && (
+            <p style={{ ...hintStyle, color: '#00ff88', marginTop: '8px' }}>
+              Center recorded for {centerOffsets.length} axes
+            </p>
+          )}
+        </StepPanel>
+      )}
+
+      {/* ── Steps 3a-3d: Axis Mapping ── */}
+      {currentChannel && (
+        <StepPanel>
+          <StepTitle>Map Axes</StepTitle>
+          <ChannelSubIndicator current={currentChannel} mapping={mapping} />
+          {detectionPhase === 'waiting' ? (
+            <>
+              <p style={{ color: '#00ff88', fontSize: '1.1rem', textAlign: 'center', margin: '12px 0' }}>
+                {CHANNEL_INSTRUCTIONS[currentChannel]}
+              </p>
+              <p style={hintStyle}>Hold the stick in that position...</p>
+              {gamepad && <AxisBars axes={liveAxes} centerOffsets={centerOffsets} />}
+            </>
+          ) : (
+            <>
+              <div style={{
+                textAlign: 'center', padding: '12px',
+                background: 'rgba(0,255,136,0.1)', borderRadius: 6, margin: '8px 0',
+              }}>
+                <span style={{ color: '#00ff88', fontSize: '1rem' }}>
+                  {currentChannel.toUpperCase()}: Axis {(mapping[currentChannel] as AxisChannelConfig).axis}
+                  {(mapping[currentChannel] as AxisChannelConfig).inverted ? ' (Inverted)' : ' (Normal)'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <button onClick={handleNextChannel} style={accentButtonStyle}>Next</button>
+                <button onClick={handleRedoChannel} style={secondaryButtonStyle}>Redo</button>
+              </div>
+            </>
+          )}
+        </StepPanel>
+      )}
+
+      {/* ── Step 4: Verify ── */}
+      {step === 'verify' && (
+        <StepPanel>
+          <StepTitle>Verify Mapping</StepTitle>
+          <p style={hintStyle}>Move all sticks to verify correct response.</p>
+          {mappedInputs && (
+            <DualStickCrosshair
+              leftX={mappedInputs.yaw}
+              leftY={mappedInputs.throttle}
+              rightX={mappedInputs.roll}
+              rightY={mappedInputs.pitch}
+              size={150}
+            />
+          )}
+          <MappingSummary mapping={mapping} />
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
+            <button onClick={() => setStep('deadzones')} style={accentButtonStyle}>Looks Good</button>
+            <button onClick={handleStartOver} style={secondaryButtonStyle}>Start Over</button>
+          </div>
+        </StepPanel>
+      )}
+
+      {/* ── Step 5: Deadzones & Rates ── */}
+      {step === 'deadzones' && (
+        <StepPanel>
+          <StepTitle>Deadzones & Rates</StepTitle>
+          {mappedInputs && (
+            <DualStickCrosshair
+              leftX={mappedInputs.yaw}
+              leftY={mappedInputs.throttle}
+              rightX={mappedInputs.roll}
+              rightY={mappedInputs.pitch}
+              size={120}
+            />
+          )}
+          {/* Deadzone sliders */}
+          <SectionLabel>Deadzones</SectionLabel>
+          {(['throttle', 'yaw', 'pitch', 'roll'] as Channel[]).map(ch => (
+            <RateSlider
+              key={ch}
+              label={ch.charAt(0).toUpperCase() + ch.slice(1)}
+              value={(mapping[ch] as AxisChannelConfig)?.deadzone ?? DEFAULT_DEADZONE}
+              min={0}
+              max={0.30}
+              step={0.01}
+              onChange={(v) => handleDeadzoneChange(ch, v)}
+            />
+          ))}
+          {/* Rate sliders */}
+          <SectionLabel>Rates</SectionLabel>
+          <RateSlider label="Roll Rate" value={rates.rollRate} min={100} max={900} unit="deg/s" onChange={(v) => setRates({ rollRate: v })} />
+          <RateSlider label="Pitch Rate" value={rates.pitchRate} min={100} max={900} unit="deg/s" onChange={(v) => setRates({ pitchRate: v })} />
+          <RateSlider label="Yaw Rate" value={rates.yawRate} min={100} max={900} unit="deg/s" onChange={(v) => setRates({ yawRate: v })} />
+          <RateSlider label="Expo" value={rates.expo} min={0} max={1} step={0.05} onChange={(v) => setRates({ expo: v })} />
+          <button onClick={handleSave} style={{ ...accentButtonStyle, width: '100%', marginTop: '12px' }}>
+            Save & Close
           </button>
-        )}
-      </div>
+        </StepPanel>
+      )}
 
-      {/* Rates config (always visible) */}
-      <div style={{ marginBottom: '1rem' }}>
-        <h3 style={{ color: '#e0e0e0', fontWeight: 400, fontSize: '0.9rem', margin: '0 0 0.5rem' }}>
-          Rates
-        </h3>
-        <RateSlider
-          label="Roll Rate"
-          value={rates.rollRate}
-          min={100}
-          max={900}
-          unit="deg/s"
-          onChange={(v) => setRates({ rollRate: v })}
-        />
-        <RateSlider
-          label="Pitch Rate"
-          value={rates.pitchRate}
-          min={100}
-          max={900}
-          unit="deg/s"
-          onChange={(v) => setRates({ pitchRate: v })}
-        />
-        <RateSlider
-          label="Yaw Rate"
-          value={rates.yawRate}
-          min={100}
-          max={900}
-          unit="deg/s"
-          onChange={(v) => setRates({ yawRate: v })}
-        />
-        <RateSlider
-          label="Expo"
-          value={rates.expo}
-          min={0}
-          max={1}
-          step={0.05}
-          onChange={(v) => setRates({ expo: v })}
-        />
-      </div>
-
-      {/* Save button */}
-      {step === 'done' && (
-        <button onClick={handleSave} style={{
-          ...smallButtonStyle,
-          width: '100%',
-          background: '#00ff88',
-          color: '#1a1a2e',
-          fontWeight: 600,
-        }}>
-          Save & Close
-        </button>
+      {/* Dual-stick crosshair shown on detect/center/map steps as raw preview */}
+      {(step === 'detect' || step === 'center' || step.startsWith('map-')) && gamepad && (
+        <div style={{ marginTop: '12px' }}>
+          <RawStickPreview axes={liveAxes} centerOffsets={centerOffsets} mapping={mapping} />
+        </div>
       )}
     </div>
   );
 }
 
+// ── Step Progress Indicator ───────────────────────────────
+function StepIndicator({ currentStage }: { currentStage: number }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: '1rem' }}>
+      {STAGE_LABELS.map((label, i) => {
+        const stageNum = i + 1;
+        const isActive = stageNum === currentStage;
+        const isCompleted = stageNum < currentStage;
+        return (
+          <div key={label} style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 50 }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: '50%', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 600,
+                background: isActive ? '#00ff88' : isCompleted ? 'transparent' : 'transparent',
+                color: isActive ? '#1a1a2e' : isCompleted ? '#00ff88' : '#3a3a4e',
+                border: `2px solid ${isActive ? '#00ff88' : isCompleted ? '#00ff88' : '#3a3a4e'}`,
+              }}>
+                {isCompleted ? '\u2713' : stageNum}
+              </div>
+              <span style={{
+                fontSize: '0.6rem', marginTop: 2,
+                color: isActive ? '#00ff88' : isCompleted ? '#00ff88' : '#3a3a4e',
+              }}>
+                {label}
+              </span>
+            </div>
+            {i < STAGE_LABELS.length - 1 && (
+              <div style={{
+                width: 24, height: 2, marginBottom: 14,
+                background: stageNum < currentStage ? '#00ff88' : '#3a3a4e',
+              }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Channel Sub-Indicator (for mapping step) ──────────────
+function ChannelSubIndicator({ current, mapping }: { current: Channel; mapping: Partial<AxisMapping> }) {
+  const channels: Channel[] = ['throttle', 'yaw', 'pitch', 'roll'];
+  const labels = ['THR', 'YAW', 'PIT', 'ROL'];
+  return (
+    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginBottom: '8px' }}>
+      {channels.map((ch, i) => {
+        const isCurrent = ch === current;
+        const isDone = !!mapping[ch];
+        return (
+          <span key={ch} style={{
+            fontSize: '0.75rem', padding: '2px 8px', borderRadius: 4,
+            background: isCurrent ? '#00ff88' : isDone ? 'rgba(0,255,136,0.15)' : '#2a2a3e',
+            color: isCurrent ? '#1a1a2e' : isDone ? '#00ff88' : '#e0e0e0',
+            fontWeight: isCurrent ? 700 : 400,
+          }}>
+            {labels[i]}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Dual-Stick Crosshair ──────────────────────────────────
+function DualStickCrosshair({ leftX, leftY, rightX, rightY, size = 140 }: {
+  leftX: number; leftY: number; rightX: number; rightY: number; size?: number;
+}) {
+  return (
+    <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', padding: '8px 0' }}>
+      <div style={{ textAlign: 'center' }}>
+        <StickBox x={leftX} y={leftY} yIsThrottle={true} xLabel="YAW" yLabel="THR" size={size} />
+        <div style={{ color: '#e0e0e0', fontSize: '0.65rem', opacity: 0.4, marginTop: 2 }}>Left Stick</div>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <StickBox x={rightX} y={rightY} yIsThrottle={false} xLabel="ROLL" yLabel="PITCH" size={size} />
+        <div style={{ color: '#e0e0e0', fontSize: '0.65rem', opacity: 0.4, marginTop: 2 }}>Right Stick</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Single Stick Box ──────────────────────────────────────
+function StickBox({ x, y, yIsThrottle, xLabel, yLabel, size }: {
+  x: number; y: number; yIsThrottle: boolean; xLabel: string; yLabel: string; size: number;
+}) {
+  // x: [-1,1], y: [0,1] for throttle or [-1,1] for pitch
+  const dotX = ((x + 1) / 2) * size;
+  const dotY = yIsThrottle ? (1 - y) * size : ((1 - y) / 2) * size;
+  const centerY = yIsThrottle ? size : size / 2;
+
+  return (
+    <div style={{ position: 'relative', width: size + 20, height: size + 20, margin: '0 auto' }}>
+      {/* Background */}
+      <div style={{
+        position: 'absolute', top: 10, left: 20, width: size, height: size,
+        background: '#1a1a2e', border: '1px solid #3a3a4e', borderRadius: 8,
+      }} />
+      {/* Horizontal center line */}
+      <div style={{
+        position: 'absolute', top: 10 + centerY, left: 20, width: size,
+        height: 1, background: '#3a3a4e',
+      }} />
+      {/* Vertical center line */}
+      <div style={{
+        position: 'absolute', left: 20 + size / 2, top: 10, height: size,
+        width: 1, background: '#3a3a4e',
+      }} />
+      {/* Dot */}
+      <div style={{
+        position: 'absolute',
+        left: 20 + dotX, top: 10 + dotY,
+        width: 12, height: 12, borderRadius: '50%',
+        background: '#00ff88',
+        boxShadow: '0 0 8px rgba(0,255,136,0.5)',
+        transform: 'translate(-50%, -50%)',
+        transition: 'left 0.03s, top 0.03s',
+      }} />
+      {/* X label (below box) */}
+      <span style={{
+        position: 'absolute', bottom: -2, left: 20 + size / 2, transform: 'translateX(-50%)',
+        color: '#e0e0e0', fontSize: '0.6rem', opacity: 0.5,
+      }}>
+        {xLabel}
+      </span>
+      {/* Y label (left of box, rotated) */}
+      <span style={{
+        position: 'absolute', top: 10 + size / 2, left: 4, transform: 'translateY(-50%) rotate(-90deg)',
+        color: '#e0e0e0', fontSize: '0.6rem', opacity: 0.5,
+        transformOrigin: 'center',
+      }}>
+        {yLabel}
+      </span>
+    </div>
+  );
+}
+
+// ── Raw Stick Preview (before mapping is complete) ────────
+function RawStickPreview({ axes, centerOffsets, mapping }: {
+  axes: number[]; centerOffsets: number[]; mapping: Partial<AxisMapping>;
+}) {
+  // If we have a partial or full mapping, use it to show mapped values
+  // Otherwise show raw axes 0-3 as a best-guess
+  if (mapping.throttle && mapping.yaw && mapping.pitch && mapping.roll) {
+    const mapper = new AxisMapper(mapping as AxisMapping);
+    const mapped = mapper.map(axes);
+    return (
+      <DualStickCrosshair
+        leftX={mapped.yaw} leftY={mapped.throttle}
+        rightX={mapped.roll} rightY={mapped.pitch}
+        size={100}
+      />
+    );
+  }
+
+  // Raw preview: use first 4 axes with center offset subtracted
+  const raw = axes.map((v, i) => v - (centerOffsets[i] ?? 0));
+  return (
+    <DualStickCrosshair
+      leftX={raw[0] ?? 0}
+      leftY={((raw[1] ?? 0) + 1) / 2} // treat as throttle range
+      rightX={raw[3] ?? 0}
+      rightY={raw[2] ?? 0}
+      size={100}
+    />
+  );
+}
+
+// ── Axis Bars Visualizer ──────────────────────────────────
+function AxisBars({ axes, centerOffsets }: { axes: number[]; centerOffsets: number[] }) {
+  return (
+    <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+      {axes.map((val, i) => {
+        const center = centerOffsets[i] ?? 0;
+        const adjusted = val - center;
+        return (
+          <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{
+              height: 50, background: '#1a1a2e', borderRadius: 3,
+              position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', bottom: '50%', left: 0, right: 0,
+                height: `${Math.abs(adjusted) * 50}%`,
+                background: '#00ff88',
+                transform: adjusted < 0 ? 'scaleY(-1) translateY(100%)' : undefined,
+                transformOrigin: 'bottom', borderRadius: 2,
+              }} />
+              {/* Center marker if calibrated */}
+              {center !== 0 && (
+                <div style={{
+                  position: 'absolute', bottom: '50%', left: 0, right: 0,
+                  height: 1, background: '#ff884488',
+                }} />
+              )}
+            </div>
+            <span style={{ color: '#e0e0e0', fontSize: '0.6rem', opacity: 0.5 }}>{i}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Mapping Summary ───────────────────────────────────────
+function MappingSummary({ mapping }: { mapping: Partial<AxisMapping> }) {
+  const channels: Channel[] = ['throttle', 'yaw', 'pitch', 'roll'];
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px',
+      fontSize: '0.75rem', color: '#e0e0e0', opacity: 0.7,
+      marginTop: '8px', padding: '8px', background: '#1a1a2e', borderRadius: 6,
+    }}>
+      {channels.map(ch => {
+        const config = mapping[ch] as AxisChannelConfig | undefined;
+        return (
+          <div key={ch}>
+            <span style={{ fontWeight: 600 }}>{ch.toUpperCase()}</span>: Axis {config?.axis ?? '?'}
+            {config?.inverted ? ' (Inv)' : ''}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Reusable Sub-Components ───────────────────────────────
+function StepPanel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: '#1a1a2e', borderRadius: 8, padding: '1rem', marginBottom: '0.5rem',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function StepTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 style={{ color: '#e0e0e0', fontWeight: 500, fontSize: '0.95rem', margin: '0 0 8px', textAlign: 'center' }}>
+      {children}
+    </h3>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h4 style={{ color: '#e0e0e0', fontWeight: 400, fontSize: '0.85rem', margin: '12px 0 6px', opacity: 0.7 }}>
+      {children}
+    </h4>
+  );
+}
+
 function RateSlider({ label, value, min, max, step = 10, unit = '', onChange }: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  unit?: string;
-  onChange: (v: number) => void;
+  label: string; value: number; min: number; max: number;
+  step?: number; unit?: string; onChange: (v: number) => void;
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-      <span style={{ color: '#e0e0e0', fontSize: '0.8rem', width: '80px', opacity: 0.7 }}>
-        {label}
-      </span>
+      <span style={{ color: '#e0e0e0', fontSize: '0.8rem', width: '80px', opacity: 0.7 }}>{label}</span>
       <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
+        type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         style={{ flex: 1, accentColor: '#00ff88' }}
       />
@@ -258,22 +670,27 @@ function RateSlider({ label, value, min, max, step = 10, unit = '', onChange }: 
   );
 }
 
-const closeButtonStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: '1px solid rgba(255,255,255,0.2)',
-  color: '#e0e0e0',
-  borderRadius: '4px',
-  padding: '4px 10px',
-  cursor: 'pointer',
-  fontSize: '0.9rem',
+// ── Styles ────────────────────────────────────────────────
+const hintStyle: React.CSSProperties = {
+  color: '#e0e0e0', opacity: 0.5, fontSize: '0.85rem', textAlign: 'center', margin: '4px 0 12px',
 };
 
-const smallButtonStyle: React.CSSProperties = {
-  padding: '8px 20px',
-  fontSize: '0.9rem',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  background: '#3a3a4e',
-  color: '#e0e0e0',
+const closeButtonStyle: React.CSSProperties = {
+  background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
+  color: '#e0e0e0', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '0.9rem',
+};
+
+const accentButtonStyle: React.CSSProperties = {
+  padding: '8px 20px', fontSize: '0.9rem', border: 'none', borderRadius: 6,
+  cursor: 'pointer', background: '#00ff88', color: '#1a1a2e', fontWeight: 600,
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  padding: '8px 20px', fontSize: '0.9rem', border: 'none', borderRadius: 6,
+  cursor: 'pointer', background: '#3a3a4e', color: '#e0e0e0',
+};
+
+const selectStyle: React.CSSProperties = {
+  background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #3a3a4e',
+  borderRadius: 4, padding: '6px 12px', fontSize: '0.85rem',
 };

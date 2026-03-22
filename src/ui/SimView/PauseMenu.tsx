@@ -16,7 +16,7 @@ export function PauseMenu({ onResume, onChangeLocation }: Props) {
           background: '#2a2a3e',
           borderRadius: '12px',
           padding: '2rem',
-          maxWidth: '500px',
+          maxWidth: '560px',
           width: '90%',
           maxHeight: '80vh',
           overflow: 'auto',

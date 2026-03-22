@@ -42,10 +42,10 @@ export class FlightController {
 
     // Stick → target angular rate (rad/s)
     // In body frame (X=right, Y=forward, Z=up) with right-hand rotation:
-    //   Positive omega.y → left roll, so negate for stick-right = roll-right
+    //   Positive omega.y → right roll (right side down), no negation needed
     //   Positive omega.x → nose up, so negate for stick-forward = pitch down (fly forward)
     //   Positive omega.z → yaw left (CCW from above), so negate for stick-right = yaw right
-    const targetRollRate = -applyExpo(stickInputs.roll, expo) * rollRate *
+    const targetRollRate = applyExpo(stickInputs.roll, expo) * rollRate *
       DEG_TO_RAD;
     const targetPitchRate = -applyExpo(stickInputs.pitch, expo) * pitchRate *
       DEG_TO_RAD;

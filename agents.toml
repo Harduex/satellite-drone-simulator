@@ -16,3 +16,7 @@ source = "mattpocock/skills"
 name = "playwright"
 command = "npx"
 args = ["@playwright/mcp@latest"]
+
+[[skills]]
+name = "improve-codebase-architecture"
+source = "mattpocock/skills"
