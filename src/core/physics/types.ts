@@ -113,9 +113,14 @@ export interface DroneState {
   angularVelocity: Vector3; // rad/s, body frame
 }
 
-export function createDefaultDroneState(spawnAltitude: number): DroneState {
+export function createDefaultDroneState(spawnPosition: number | Vector3): DroneState {
+  const position =
+    typeof spawnPosition === "number"
+      ? vec3(0, 0, spawnPosition)
+      : spawnPosition;
+
   return {
-    position: vec3(0, 0, spawnAltitude),
+    position,
     velocity: V3_ZERO,
     quaternion: Q_IDENTITY,
     angularVelocity: V3_ZERO,
@@ -205,7 +210,7 @@ export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
   dragCoefficient: 0.3,
   referenceArea: 0.04,
   verticalDragMultiplier: 3.0,
-  spawnAltitude: 10.0,
+  spawnAltitude: 2.0,
 };
 
 export interface RatesConfig {

@@ -17,6 +17,7 @@ export class TelemetryPublisher {
     droneState: DroneState,
     batteryState: BatteryState,
     throttle: number,
+    groundHeight: number,
   ): boolean {
     this.frameCount++;
     if (this.frameCount % PUBLISH_INTERVAL !== 0) return false;
@@ -27,7 +28,7 @@ export class TelemetryPublisher {
       positionY: droneState.position.y,
       positionZ: droneState.position.z,
       speed,
-      altitudeAGL: droneState.position.z,
+      altitudeAGL: Math.max(0, droneState.position.z - groundHeight),
       batteryPercent: batteryState.percentRemaining,
       batteryVoltage: batteryState.voltage,
       throttle,

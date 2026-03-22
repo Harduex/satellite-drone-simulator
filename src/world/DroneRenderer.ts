@@ -18,6 +18,10 @@ export class DroneRenderer {
     });
   }
 
+  getEntity(): Cesium.Entity | null {
+    return this.entity;
+  }
+
   update(ecefPosition: Cesium.Cartesian3): void {
     if (!this.entity) return;
     (this.entity.position as Cesium.ConstantPositionProperty).setValue(

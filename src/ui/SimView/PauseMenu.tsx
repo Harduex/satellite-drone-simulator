@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ControllerSetup } from '../Settings/ControllerSetup';
+import { PhysicsSettings } from '../Settings/PhysicsSettings';
 import { colors, fonts, fontSizes, gradients, spacing, glass } from '../theme';
 
 interface Props {
@@ -7,8 +8,11 @@ interface Props {
   onChangeLocation: () => void;
 }
 
+type SettingsTab = 'controller' | 'physics';
+
 export function PauseMenu({ onResume, onChangeLocation }: Props) {
   const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('controller');
 
   if (showSettings) {
     return (
@@ -22,7 +26,34 @@ export function PauseMenu({ onResume, onChangeLocation }: Props) {
           maxHeight: '80vh',
           overflow: 'auto',
         }}>
-          <ControllerSetup onClose={() => setShowSettings(false)} />
+          {/* Tab bar */}
+          <div style={{
+            display: 'flex',
+            gap: '0',
+            marginBottom: spacing.md,
+            borderBottom: '1px solid ' + colors.outline_variant,
+          }}>
+            <button
+              onClick={() => setActiveTab('controller')}
+              style={tabStyle(activeTab === 'controller')}
+            >
+              Controller
+            </button>
+            <button
+              onClick={() => setActiveTab('physics')}
+              style={tabStyle(activeTab === 'physics')}
+            >
+              Physics
+            </button>
+          </div>
+
+          {/* Tab content */}
+          {activeTab === 'controller' && (
+            <ControllerSetup onClose={() => setShowSettings(false)} />
+          )}
+          {activeTab === 'physics' && (
+            <PhysicsSettings onClose={() => setShowSettings(false)} />
+          )}
         </div>
       </div>
     );
@@ -48,7 +79,7 @@ export function PauseMenu({ onResume, onChangeLocation }: Props) {
           Resume
         </button>
         <button onClick={() => setShowSettings(true)} style={ghostButtonStyle}>
-          Controller Setup
+          Settings
         </button>
         <button onClick={onChangeLocation} style={ghostButtonStyle}>
           Change Location
@@ -56,6 +87,21 @@ export function PauseMenu({ onResume, onChangeLocation }: Props) {
       </div>
     </div>
   );
+}
+
+function tabStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: '8px 20px',
+    fontSize: fontSizes.body_md,
+    border: 'none',
+    borderBottom: active ? '2px solid ' + colors.primary : '2px solid transparent',
+    borderRadius: 0,
+    cursor: 'pointer',
+    background: 'transparent',
+    color: active ? colors.primary : colors.on_surface_variant,
+    fontWeight: active ? 600 : 400,
+    transition: 'color 0.15s, border-color 0.15s',
+  };
 }
 
 const overlayStyle: React.CSSProperties = {

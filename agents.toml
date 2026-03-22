@@ -24,3 +24,7 @@ source = "mattpocock/skills"
 [[skills]]
 name = "frontend-design"
 source = "anthropics/skills"
+
+[[skills]]
+name = "debugger"
+source = "path:.agents/skills/debugger"

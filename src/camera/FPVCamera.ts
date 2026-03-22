@@ -11,8 +11,8 @@ export interface CameraConfig {
 
 export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
   fov: 90,
-  nearClip: 0.1,
-  farClip: 5000,
+  nearClip: 0.05,
+  farClip: 30000, // 30 km — needed to render clouds (3–7 km) and distant terrain
   tiltDegrees: 0,
 };
 

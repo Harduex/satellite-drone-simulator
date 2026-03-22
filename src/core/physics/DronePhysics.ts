@@ -53,8 +53,9 @@ export class DronePhysics {
   /**
    * Advance physics by dt seconds.
    * Uses Euler integration (upgrade to RK4 later if needed).
+   * @param groundHeight Dynamic ground floor in ENU Z coords (from terrain sampler)
    */
-  step(state: DroneState, motors: MotorCommands, dt: number): DroneState {
+  step(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number = 0): DroneState {
     const throttles = [motors.m1, motors.m2, motors.m3, motors.m4];
     const thrusts = this.motorModel.update(throttles, dt);
     const reactionTorques = this.motorModel.getReactionTorques();
@@ -158,19 +159,19 @@ export class DronePhysics {
       z: state.quaternion.z + 0.5 * qDot.z * dt,
     });
 
-    // ── Hard altitude floor at Z=0 (spawn elevation) ──────
+    // ── Hard altitude floor at dynamic ground height (terrain + buildings) ──
     let finalPosition = newPosition;
     let finalVelocity = newVelocity;
     let finalAngularVelocity = newAngularVelocity;
 
     // Pre-integration check: if on ground with downward velocity, kill immediately
-    if (state.position.z <= 0 && newVelocity.z < 0) {
-      finalPosition = vec3(newPosition.x, newPosition.y, 0);
+    if (state.position.z <= groundHeight && newVelocity.z < 0) {
+      finalPosition = vec3(newPosition.x, newPosition.y, groundHeight);
       finalVelocity = V3_ZERO;
       finalAngularVelocity = V3_ZERO;
-    } else if (newPosition.z < 0) {
+    } else if (newPosition.z < groundHeight) {
       // Post-integration: clamp position and zero ALL motion (hard stop)
-      finalPosition = vec3(newPosition.x, newPosition.y, 0);
+      finalPosition = vec3(newPosition.x, newPosition.y, groundHeight);
       finalVelocity = V3_ZERO;
       finalAngularVelocity = V3_ZERO;
     }

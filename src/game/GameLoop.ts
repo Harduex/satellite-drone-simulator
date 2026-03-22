@@ -9,13 +9,16 @@ import { BatteryModel } from "./BatteryModel";
 import { CrashDetector } from "./CrashDetector";
 import { TelemetryPublisher } from "./TelemetryPublisher";
 import { enuToEcef } from "../world/CoordUtils";
+import { TerrainSampler } from "../world/TerrainSampler";
 import { useStore } from "../store";
 import type {
   DroneState,
   PhysicsConfig,
   RatesConfig,
   StickInputs,
+  Vector3,
 } from "../core/physics/types";
+import { vec3 } from "../core/physics/types";
 import { createDefaultDroneState } from "../core/physics/types";
 
 const MAX_PHYSICS_SUBSTEPS = 10;
@@ -40,19 +43,28 @@ export class GameLoop {
   private telemetryPublisher: TelemetryPublisher;
   private enuFrame: Cesium.Matrix4;
   private viewer: Cesium.Viewer;
+  private terrainSampler: TerrainSampler;
   private preRenderListener: Cesium.Event.RemoveCallback | null = null;
+  private sceneExclusions: object[];
 
   private spawnAltitude: number;
+  private spawnPosition: Vector3;
 
   constructor(params: {
     viewer: Cesium.Viewer;
     enuFrame: Cesium.Matrix4;
     physicsConfig: PhysicsConfig;
     ratesConfig: RatesConfig;
+    terrainSampler: TerrainSampler;
+    initialPosition?: Vector3;
+    sceneExclusions?: object[];
   }) {
     this.viewer = params.viewer;
     this.enuFrame = params.enuFrame;
     this.spawnAltitude = params.physicsConfig.spawnAltitude;
+    this.spawnPosition = params.initialPosition ?? vec3(0, 0, this.spawnAltitude);
+    this.terrainSampler = params.terrainSampler;
+    this.sceneExclusions = params.sceneExclusions ?? [];
 
     this.physics = new DronePhysics(params.physicsConfig);
     this.flightController = new FlightController(
@@ -74,7 +86,7 @@ export class GameLoop {
     this.crashDetector = new CrashDetector(this.spawnAltitude);
     this.telemetryPublisher = new TelemetryPublisher();
 
-    this.droneState = createDefaultDroneState(this.spawnAltitude);
+    this.droneState = createDefaultDroneState(this.spawnPosition);
   }
 
   /** Register a callback for crash events */
@@ -90,6 +102,17 @@ export class GameLoop {
     // Initialize subsystems
     this.fpvCamera.init(this.viewer);
     this.droneRenderer.init(this.viewer);
+
+    // Exclude the drone entity (and other scene objects like clouds) from
+    // terrain height sampling so sampleHeight() doesn't read the drone's
+    // own depth-buffer pixel as "ground height."
+    const exclusions: object[] = [...this.sceneExclusions];
+    const droneEntity = this.droneRenderer.getEntity();
+    if (droneEntity) {
+      exclusions.push(droneEntity);
+    }
+    this.terrainSampler.setExclusions(exclusions);
+
     this.gamepadManager.startPolling();
     this.keyboardInput.start();
 
@@ -113,11 +136,12 @@ export class GameLoop {
   }
 
   reset(): void {
-    this.droneState = createDefaultDroneState(this.spawnAltitude);
+    this.droneState = createDefaultDroneState(this.spawnPosition);
     this.physics.reset();
     this.flightController.reset();
     this.batteryModel.reset();
     this.telemetryPublisher.reset();
+    this.crashDetector.reset();
     this.physicsAccumulator = 0;
     useStore.getState().resetTelemetry();
   }
@@ -139,7 +163,11 @@ export class GameLoop {
       stickInputs = this.keyboardInput.read(wallDt);
     }
 
-    // 2. Flight controller + physics substeps at fixed 500Hz
+    // 2. Sample terrain height at drone position (once per render frame)
+    this.terrainSampler.sampleAtPosition(this.droneState.position);
+    const groundHeight = this.terrainSampler.getGroundHeight();
+
+    // 3. Flight controller + physics substeps at fixed 500Hz
     this.physicsAccumulator += wallDt;
     let steps = 0;
     while (
@@ -154,6 +182,7 @@ export class GameLoop {
         this.droneState,
         this.lastMotorCommands,
         this.PHYSICS_DT,
+        groundHeight,
       );
       this.physicsAccumulator -= this.PHYSICS_DT;
       steps++;
@@ -162,26 +191,27 @@ export class GameLoop {
       this.physicsAccumulator = 0;
     }
 
-    // 3. Sync camera to physics state
+    // 4. Sync camera to physics state
     this.fpvCamera.sync(this.droneState, this.enuFrame);
 
-    // 4. Update drone renderer position
+    // 5. Update drone renderer position
     const ecefPosition = enuToEcef(this.droneState.position, this.enuFrame);
     this.droneRenderer.update(ecefPosition);
 
-    // 5. Battery drain
+    // 6. Battery drain
     const batteryState = this.batteryModel.drain(this.lastMotorCommands, wallDt);
 
-    // 6. Publish telemetry (throttled to ~10Hz)
+    // 7. Publish telemetry (throttled to ~10Hz)
     const published = this.telemetryPublisher.maybePublish(
       this.droneState,
       batteryState,
       stickInputs.throttle,
+      groundHeight,
     );
 
-    // 7. Crash detection (only on telemetry frames to avoid spam)
+    // 8. Crash detection (only on telemetry frames to avoid spam)
     if (published) {
-      const crashed = this.crashDetector.check(this.droneState);
+      const crashed = this.crashDetector.check(this.droneState, groundHeight);
       if (crashed) {
         this.reset();
       }
