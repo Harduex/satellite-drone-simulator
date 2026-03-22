@@ -37,6 +37,9 @@ export class TerrainSampler {
   private cachedGroundHeight = 0; // ENU Z coordinate of the ground surface
   private originCartographic: Cesium.Cartographic;
   private objectsToExclude: object[] = [];
+  // Scratch objects for per-frame sampleAtPosition — avoids allocations in hot path
+  private scratchEcef = new Cesium.Cartesian3();
+  private scratchCarto = new Cesium.Cartographic();
 
   constructor(scene: Cesium.Scene, enuFrame: Cesium.Matrix4) {
     this.scene = scene;
@@ -122,12 +125,14 @@ export class TerrainSampler {
    */
   sampleAtPosition(dronePosition: Vector3): void {
     try {
-      // Convert drone ENU position to ECEF, then to Cartographic
+      // Convert drone ENU position to ECEF, then to Cartographic.
+      // enuToEcef returns a shared scratch — clone into our own scratch.
       const ecef = enuToEcef(dronePosition, this.enuFrame);
-      const carto = Cesium.Cartographic.fromCartesian(ecef);
+      Cesium.Cartesian3.clone(ecef, this.scratchEcef);
+      Cesium.Cartographic.fromCartesian(this.scratchEcef, undefined, this.scratchCarto);
 
       const sampledGroundHeight =
-        this.sampleHeightFromScene(carto) ?? this.sampleHeightFromGlobe(carto);
+        this.sampleHeightFromScene(this.scratchCarto) ?? this.sampleHeightFromGlobe(this.scratchCarto);
       if (sampledGroundHeight !== null) {
         this.cachedGroundHeight = sampledGroundHeight;
       }

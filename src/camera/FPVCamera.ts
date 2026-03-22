@@ -1,6 +1,6 @@
 import * as Cesium from "cesium";
-import type { DroneState } from "../core/physics/types";
-import { quatMultiply } from "../core/physics/types";
+import type { DroneState, Quaternion } from "../core/physics/types";
+import { quatMultiplyInto } from "../core/physics/types";
 import { bodyQuatToEcefOrientation, enuToEcef } from "../world/CoordUtils";
 
 export interface CameraConfig {
@@ -17,12 +17,18 @@ export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
   tiltDegrees: 0,
 };
 
+// Scratch quaternion for camera orientation computation
+const _cameraQuat: Quaternion = { w: 1, x: 0, y: 0, z: 0 };
+
 export class FPVCamera {
   private viewer: Cesium.Viewer | null = null;
   private config: CameraConfig;
+  private cachedTiltQuat: Quaternion = { w: 1, x: 0, y: 0, z: 0 };
+  private cachedTiltDegrees: number = NaN; // NaN forces first update
 
   constructor(config: CameraConfig = DEFAULT_CAMERA_CONFIG) {
     this.config = config;
+    this.updateTiltQuat();
   }
 
   init(viewer: Cesium.Viewer): void {
@@ -46,6 +52,18 @@ export class FPVCamera {
   /** Update camera tilt angle at runtime */
   setTiltDegrees(degrees: number): void {
     this.config = { ...this.config, tiltDegrees: degrees };
+    this.updateTiltQuat();
+  }
+
+  /** Recompute the cached tilt quaternion (only when tilt changes) */
+  private updateTiltQuat(): void {
+    if (this.config.tiltDegrees === this.cachedTiltDegrees) return;
+    this.cachedTiltDegrees = this.config.tiltDegrees;
+    const halfTilt = Cesium.Math.toRadians(this.config.tiltDegrees) / 2;
+    this.cachedTiltQuat.w = Math.cos(halfTilt);
+    this.cachedTiltQuat.x = Math.sin(halfTilt);
+    this.cachedTiltQuat.y = 0;
+    this.cachedTiltQuat.z = 0;
   }
 
   /** Sync Cesium camera position and orientation from drone physics state */
@@ -55,20 +73,11 @@ export class FPVCamera {
     // Convert drone ENU position to ECEF
     const ecefPosition = enuToEcef(droneState.position, enuFrame);
 
-    // Apply camera tilt by compositing a body-frame rotation around the X axis
-    // (right/roll axis) before converting to ECEF. This tilts the FPV camera
-    // upward relative to the drone's body forward direction.
-    const halfTilt = Cesium.Math.toRadians(this.config.tiltDegrees) / 2;
-    const tiltQuat = {
-      w: Math.cos(halfTilt),
-      x: Math.sin(halfTilt),
-      y: 0,
-      z: 0,
-    };
-    const cameraQuat = quatMultiply(droneState.quaternion, tiltQuat);
+    // Apply cached camera tilt via composite quaternion — zero-alloc
+    quatMultiplyInto(droneState.quaternion, this.cachedTiltQuat, _cameraQuat);
 
     // Convert tilted quaternion to ECEF camera orientation
-    const { direction, up } = bodyQuatToEcefOrientation(cameraQuat, enuFrame);
+    const { direction, up } = bodyQuatToEcefOrientation(_cameraQuat, enuFrame);
 
     // Set camera — no animation, direct placement
     this.viewer.camera.setView({

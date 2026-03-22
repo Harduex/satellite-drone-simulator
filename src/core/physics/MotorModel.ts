@@ -7,6 +7,10 @@ export interface MotorState {
 export class MotorModel {
   private config: PhysicsConfig;
   state: MotorState;
+  // Pre-allocated buffers — returned by update()/getReactionTorques().
+  // Callers must consume values before the next call (same physics step).
+  private thrustBuffer: number[] = [0, 0, 0, 0];
+  private reactionTorqueBuffer: number[] = [0, 0, 0, 0];
 
   constructor(config: PhysicsConfig) {
     this.config = config;
@@ -16,11 +20,10 @@ export class MotorModel {
   /**
    * Update motor RPMs from throttle commands [0,1] with asymmetric spin-up/down lag.
    * Spin-up uses base motorTimeConstant, spin-down uses motorTimeConstant * motorSpinDownFactor.
-   * Returns thrust (N) for each of the 4 motors.
+   * Returns thrust (N) for each of the 4 motors (reused buffer).
    */
   update(throttleCommands: number[], dt: number): number[] {
     const { kT, maxThrottleRpm, motorTimeConstant, motorSpinDownFactor } = this.config;
-    const thrusts: number[] = [];
 
     for (let i = 0; i < 4; i++) {
       const cmd = Math.max(0, Math.min(1, throttleCommands[i] ?? 0));
@@ -36,16 +39,20 @@ export class MotorModel {
       this.state.rpm[i] = newRpm;
 
       // Thrust: T = kT * rpm²
-      thrusts.push(kT * newRpm * newRpm);
+      this.thrustBuffer[i] = kT * newRpm * newRpm;
     }
 
-    return thrusts;
+    return this.thrustBuffer;
   }
 
-  /** Get reaction torque per motor for yaw computation */
+  /** Get reaction torque per motor for yaw computation (reused buffer) */
   getReactionTorques(): number[] {
     const { kQ } = this.config;
-    return this.state.rpm.map((rpm) => kQ * rpm * rpm);
+    for (let i = 0; i < 4; i++) {
+      const rpm = this.state.rpm[i]!;
+      this.reactionTorqueBuffer[i] = kQ * rpm * rpm;
+    }
+    return this.reactionTorqueBuffer;
   }
 
   reset(): void {

@@ -49,6 +49,69 @@ export function v3Negate(v: Vector3): Vector3 {
   return { x: -v.x, y: -v.y, z: -v.z };
 }
 
+// ── Mutable "Into" variants for hot paths (zero allocation) ─
+// These write results into a caller-provided output object.
+// The originals above are kept for readability in non-hot code and tests.
+
+export function v3Set(out: Vector3, x: number, y: number, z: number): Vector3 {
+  out.x = x; out.y = y; out.z = z;
+  return out;
+}
+
+export function v3AddInto(a: Vector3, b: Vector3, out: Vector3): Vector3 {
+  out.x = a.x + b.x; out.y = a.y + b.y; out.z = a.z + b.z;
+  return out;
+}
+
+export function v3ScaleInto(v: Vector3, s: number, out: Vector3): Vector3 {
+  out.x = v.x * s; out.y = v.y * s; out.z = v.z * s;
+  return out;
+}
+
+export function v3CrossInto(a: Vector3, b: Vector3, out: Vector3): Vector3 {
+  // Use temps to allow a === out or b === out aliasing
+  const ox = a.y * b.z - a.z * b.y;
+  const oy = a.z * b.x - a.x * b.z;
+  const oz = a.x * b.y - a.y * b.x;
+  out.x = ox; out.y = oy; out.z = oz;
+  return out;
+}
+
+export function quatMultiplyInto(a: Quaternion, b: Quaternion, out: Quaternion): Quaternion {
+  // Use temps to allow a === out or b === out aliasing
+  const ow = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z;
+  const ox = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
+  const oy = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x;
+  const oz = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w;
+  out.w = ow; out.x = ox; out.y = oy; out.z = oz;
+  return out;
+}
+
+export function quatNormalizeInto(q: Quaternion, out: Quaternion): Quaternion {
+  const m = Math.sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
+  if (m < 1e-12) { out.w = 1; out.x = 0; out.y = 0; out.z = 0; return out; }
+  out.w = q.w / m; out.x = q.x / m; out.y = q.y / m; out.z = q.z / m;
+  return out;
+}
+
+/**
+ * Rotate a vector by a quaternion: q * v * q⁻¹ (zero-alloc).
+ * Uses the Rodrigues rotation formula applied to quaternions:
+ *   t = 2 * cross(q.xyz, v)
+ *   result = v + q.w * t + cross(q.xyz, t)
+ * Mathematically equivalent to the sandwich product but avoids all
+ * intermediate quaternion allocations.
+ */
+export function quatRotateVectorInto(q: Quaternion, v: Vector3, out: Vector3): Vector3 {
+  const tx = 2 * (q.y * v.z - q.z * v.y);
+  const ty = 2 * (q.z * v.x - q.x * v.z);
+  const tz = 2 * (q.x * v.y - q.y * v.x);
+  out.x = v.x + q.w * tx + (q.y * tz - q.z * ty);
+  out.y = v.y + q.w * ty + (q.z * tx - q.x * tz);
+  out.z = v.z + q.w * tz + (q.x * ty - q.y * tx);
+  return out;
+}
+
 // ── Quaternion ───────────────────────────────────────────
 export interface Quaternion {
   w: number;

@@ -44,10 +44,12 @@ export class TileLoader {
     // Increase in-session tile cache to 1GB for smoother revisits
     // cacheBytes is the newer API name (replaces maximumMemoryUsage in Cesium 1.107+)
     (tileset as unknown as Record<string, number>).cacheBytes = 1024 * 1024 * 1024;
-    tileset.maximumScreenSpaceError = 8;
-    tileset.skipLevelOfDetail = false;
+    tileset.maximumScreenSpaceError = 12;
+    tileset.skipLevelOfDetail = true;
     tileset.preloadFlightDestinations = true;
     tileset.preferLeaves = true;
+    (tileset as unknown as Record<string, number>).skipLevels = 1;
+    (tileset as unknown as Record<string, boolean>).immediatelyLoadDesiredLevelOfDetail = true;
     viewer.scene.primitives.add(tileset);
     this.tileset = tileset;
     return tileset;

@@ -16,6 +16,7 @@ export class CesiumManager {
   private globeToggleCleanup: Cesium.Event.RemoveCallback | null = null;
   private cloudCollection: Cesium.CloudCollection | null = null;
   private cloudDriftStart = performance.now();
+  private cloudDriftScratch = new Cesium.Cartesian3();
 
   init(containerId: string): void {
 
@@ -49,7 +50,7 @@ export class CesiumManager {
       string,
       Record<string, number>
     >)
-      .requestsByServer = { "tile.googleapis.com:443": 18 };
+      .requestsByServer = { "tile.googleapis.com:443": 12 };
 
     // Daytime sky tuning for FPV: vivid blue, natural gradient toward horizon.
     // skyAtmosphere handles all sky colour — skyBox provides the deep-space
@@ -132,7 +133,10 @@ export class CesiumManager {
 
       if (this.cloudCollection) {
         const drift = (performance.now() - this.cloudDriftStart) * 0.00002;
-        this.cloudCollection.noiseOffset = new Cesium.Cartesian3(drift, 0.12, 0.04);
+        this.cloudDriftScratch.x = drift;
+        this.cloudDriftScratch.y = 0.12;
+        this.cloudDriftScratch.z = 0.04;
+        this.cloudCollection.noiseOffset = this.cloudDriftScratch;
       }
     });
   }

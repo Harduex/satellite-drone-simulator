@@ -1,10 +1,27 @@
 import * as Cesium from "cesium";
 import type { Quaternion, Vector3 } from "../core/physics/types";
-import { quatRotateVector } from "../core/physics/types";
+import { quatRotateVectorInto } from "../core/physics/types";
 
-// Scratch variables to avoid allocation in hot paths
+// Scratch variables to avoid allocation in hot paths.
+// WARNING: Functions using these return shared mutable buffers.
+// Callers must consume returned values before the next call.
 const _scratchCartesian = new Cesium.Cartesian3();
 const _scratchMatrix3 = new Cesium.Matrix3();
+const _scratchLocalCartesian = new Cesium.Cartesian3();
+const _scratchResult = new Cesium.Cartesian3();
+const _scratchEnuForward = new Cesium.Cartesian3();
+const _scratchEnuUp = new Cesium.Cartesian3();
+const _scratchEcefDir = new Cesium.Cartesian3();
+const _scratchEcefUp = new Cesium.Cartesian3();
+
+// Pre-allocated physics direction vectors (body forward = +Y, body up = +Z)
+const _bodyForwardInput: Vector3 = { x: 0, y: 1, z: 0 };
+const _bodyUpInput: Vector3 = { x: 0, y: 0, z: 1 };
+const _bodyForwardResult: Vector3 = { x: 0, y: 0, z: 0 };
+const _bodyUpResult: Vector3 = { x: 0, y: 0, z: 0 };
+
+// Reusable return object for bodyQuatToEcefOrientation
+const _orientationResult = { direction: _scratchEcefDir, up: _scratchEcefUp };
 
 /** Create an ENU (East-North-Up) reference frame at a WGS84 position */
 export function createENUFrame(
@@ -16,16 +33,23 @@ export function createENUFrame(
   return Cesium.Transforms.eastNorthUpToFixedFrame(origin);
 }
 
-/** Convert ENU position to ECEF using the ENU-to-ECEF frame matrix */
+/**
+ * Convert ENU position to ECEF using the ENU-to-ECEF frame matrix.
+ *
+ * WARNING: Returns a shared scratch Cartesian3. The value is valid only until
+ * the next call to enuToEcef. Callers must consume the result immediately.
+ */
 export function enuToEcef(
   enuPos: Vector3,
   enuFrame: Cesium.Matrix4,
 ): Cesium.Cartesian3 {
-  const localCartesian = new Cesium.Cartesian3(enuPos.x, enuPos.y, enuPos.z);
+  _scratchLocalCartesian.x = enuPos.x;
+  _scratchLocalCartesian.y = enuPos.y;
+  _scratchLocalCartesian.z = enuPos.z;
   return Cesium.Matrix4.multiplyByPoint(
     enuFrame,
-    localCartesian,
-    new Cesium.Cartesian3(),
+    _scratchLocalCartesian,
+    _scratchResult,
   );
 }
 
@@ -52,37 +76,32 @@ export function ecefToEnu(
  *
  * CesiumJS camera wants direction (where camera looks) and up vector in ECEF.
  * FPV camera looks along body Y axis (forward), with body Z as up.
+ *
+ * WARNING: The returned Cartesian3 objects are shared scratch buffers.
+ * Callers must consume the values before the next call.
  */
 export function bodyQuatToEcefOrientation(
   bodyQuat: Quaternion,
   enuFrame: Cesium.Matrix4,
 ): { direction: Cesium.Cartesian3; up: Cesium.Cartesian3 } {
-  // Body forward direction (Y axis in body frame)
-  const bodyForward = quatRotateVector(bodyQuat, { x: 0, y: 1, z: 0 });
-  // Body up direction (Z axis in body frame)
-  const bodyUp = quatRotateVector(bodyQuat, { x: 0, y: 0, z: 1 });
+  // Body forward direction (Y axis in body frame) — zero-alloc
+  quatRotateVectorInto(bodyQuat, _bodyForwardInput, _bodyForwardResult);
+  // Body up direction (Z axis in body frame) — zero-alloc
+  quatRotateVectorInto(bodyQuat, _bodyUpInput, _bodyUpResult);
 
   // Extract rotation part of ENU frame (3x3 rotation matrix)
   const rotation = Cesium.Matrix4.getMatrix3(enuFrame, _scratchMatrix3);
 
-  // Transform ENU vectors to ECEF
-  const enuForward = new Cesium.Cartesian3(
-    bodyForward.x,
-    bodyForward.y,
-    bodyForward.z,
-  );
-  const enuUp = new Cesium.Cartesian3(bodyUp.x, bodyUp.y, bodyUp.z);
+  // Transform ENU vectors to ECEF — reuse scratch Cartesian3s
+  _scratchEnuForward.x = _bodyForwardResult.x;
+  _scratchEnuForward.y = _bodyForwardResult.y;
+  _scratchEnuForward.z = _bodyForwardResult.z;
+  _scratchEnuUp.x = _bodyUpResult.x;
+  _scratchEnuUp.y = _bodyUpResult.y;
+  _scratchEnuUp.z = _bodyUpResult.z;
 
-  const ecefDirection = Cesium.Matrix3.multiplyByVector(
-    rotation,
-    enuForward,
-    new Cesium.Cartesian3(),
-  );
-  const ecefUp = Cesium.Matrix3.multiplyByVector(
-    rotation,
-    enuUp,
-    new Cesium.Cartesian3(),
-  );
+  Cesium.Matrix3.multiplyByVector(rotation, _scratchEnuForward, _scratchEcefDir);
+  Cesium.Matrix3.multiplyByVector(rotation, _scratchEnuUp, _scratchEcefUp);
 
-  return { direction: ecefDirection, up: ecefUp };
+  return _orientationResult;
 }

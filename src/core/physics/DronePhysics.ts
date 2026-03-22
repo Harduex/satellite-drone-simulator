@@ -7,19 +7,42 @@ import type {
 } from "./types";
 import {
   MOTOR_LAYOUT,
-  quatMultiply,
-  quatNormalize,
-  quatRotateVector,
-  V3_ZERO,
-  v3Add,
-  v3Cross,
-  v3Scale,
-  vec3,
+  quatMultiplyInto,
+  quatNormalizeInto,
+  quatRotateVectorInto,
+  v3AddInto,
+  v3CrossInto,
+  v3ScaleInto,
+  v3Set,
 } from "./types";
 import { MotorModel } from "./MotorModel";
-import { computeAngularDrag, computeTranslationalDrag } from "./DragModel";
+import { computeAngularDragInto, computeTranslationalDragInto } from "./DragModel";
 
 const GRAVITY = 9.81; // m/s²
+
+// ── Scratch objects for step() ─────────────────────────
+// Reused every step to avoid GC pressure. Safe because step()
+// is synchronous and single-threaded.
+const _thrustBody: Vector3 = { x: 0, y: 0, z: 0 };
+const _thrustWorld: Vector3 = { x: 0, y: 0, z: 0 };
+const _gravity: Vector3 = { x: 0, y: 0, z: 0 };
+const _drag: Vector3 = { x: 0, y: 0, z: 0 };
+const _netForce: Vector3 = { x: 0, y: 0, z: 0 };
+const _temp1: Vector3 = { x: 0, y: 0, z: 0 };
+const _motorTorque: Vector3 = { x: 0, y: 0, z: 0 };
+const _angDrag: Vector3 = { x: 0, y: 0, z: 0 };
+const _Iomega: Vector3 = { x: 0, y: 0, z: 0 };
+const _gyro: Vector3 = { x: 0, y: 0, z: 0 };
+const _netTorque: Vector3 = { x: 0, y: 0, z: 0 };
+const _angAccel: Vector3 = { x: 0, y: 0, z: 0 };
+const _linAccel: Vector3 = { x: 0, y: 0, z: 0 };
+const _newVel: Vector3 = { x: 0, y: 0, z: 0 };
+const _newPos: Vector3 = { x: 0, y: 0, z: 0 };
+const _newAngVel: Vector3 = { x: 0, y: 0, z: 0 };
+const _omegaQuat: Quaternion = { w: 0, x: 0, y: 0, z: 0 };
+const _qDot: Quaternion = { w: 0, x: 0, y: 0, z: 0 };
+const _preNormQuat: Quaternion = { w: 0, x: 0, y: 0, z: 0 };
+const _newQuat: Quaternion = { w: 0, x: 0, y: 0, z: 0 };
 
 /**
  * Quadrotor physics engine.
@@ -43,6 +66,7 @@ export class DronePhysics {
   private config: PhysicsConfig;
   private motorModel: MotorModel;
   private motorArmOffset: number; // armLength * cos(45°)
+  private throttleBuffer: number[] = [0, 0, 0, 0];
 
   constructor(config: PhysicsConfig) {
     this.config = config;
@@ -53,11 +77,16 @@ export class DronePhysics {
   /**
    * Advance physics by dt seconds.
    * Uses Euler integration (upgrade to RK4 later if needed).
+   * All intermediate math uses pre-allocated scratch objects — the only
+   * allocation is the returned DroneState.
    * @param groundHeight Dynamic ground floor in ENU Z coords (from terrain sampler)
    */
   step(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number = 0): DroneState {
-    const throttles = [motors.m1, motors.m2, motors.m3, motors.m4];
-    const thrusts = this.motorModel.update(throttles, dt);
+    this.throttleBuffer[0] = motors.m1;
+    this.throttleBuffer[1] = motors.m2;
+    this.throttleBuffer[2] = motors.m3;
+    this.throttleBuffer[3] = motors.m4;
+    const thrusts = this.motorModel.update(this.throttleBuffer, dt);
     const reactionTorques = this.motorModel.getReactionTorques();
 
     // ── Compute net force in body frame ───────────────────
@@ -68,22 +97,20 @@ export class DronePhysics {
 
     // Total thrust along body Z axis (up)
     const totalThrust = t1 + t2 + t3 + t4;
-    const thrustBodyFrame: Vector3 = vec3(0, 0, totalThrust);
+    v3Set(_thrustBody, 0, 0, totalThrust);
 
     // Rotate thrust to world frame
-    const thrustWorldFrame = quatRotateVector(
-      state.quaternion,
-      thrustBodyFrame,
-    );
+    quatRotateVectorInto(state.quaternion, _thrustBody, _thrustWorld);
 
     // Gravity (world frame, Z is up in ENU)
-    const gravity: Vector3 = vec3(0, 0, -this.config.mass * GRAVITY);
+    v3Set(_gravity, 0, 0, -this.config.mass * GRAVITY);
 
     // Translational drag (direction-dependent, body-frame aware)
-    const drag = computeTranslationalDrag(state.velocity, state.quaternion, this.config);
+    computeTranslationalDragInto(state.velocity, state.quaternion, this.config, _drag);
 
-    // Net force
-    const netForce = v3Add(v3Add(thrustWorldFrame, gravity), drag);
+    // Net force = thrust + gravity + drag
+    v3AddInto(_thrustWorld, _gravity, _temp1);
+    v3AddInto(_temp1, _drag, _netForce);
 
     // ── Compute net torque in body frame (via MOTOR_LAYOUT) ──
     const d = this.motorArmOffset;
@@ -105,82 +132,74 @@ export class DronePhysics {
     }
 
     // Body frame: X=right(pitch axis), Y=forward(roll axis), Z=up(yaw axis)
-    const motorTorque: Vector3 = vec3(pitchTorque, rollTorque, yawTorque);
+    v3Set(_motorTorque, pitchTorque, rollTorque, yawTorque);
 
     // Angular drag
-    const angularDrag = computeAngularDrag(state.angularVelocity);
+    computeAngularDragInto(state.angularVelocity, _angDrag);
 
     // Gyroscopic effect: omega × (I * omega)
     const { xx, yy, zz } = this.config.inertia;
     const omega = state.angularVelocity;
-    const Iomega: Vector3 = vec3(xx * omega.x, yy * omega.y, zz * omega.z);
-    const gyro = v3Cross(omega, Iomega);
+    v3Set(_Iomega, xx * omega.x, yy * omega.y, zz * omega.z);
+    v3CrossInto(omega, _Iomega, _gyro);
 
     // Net torque = motor torques + angular drag - gyroscopic
-    const netTorque = v3Add(v3Add(motorTorque, angularDrag), v3Scale(gyro, -1));
+    v3AddInto(_motorTorque, _angDrag, _temp1);
+    v3ScaleInto(_gyro, -1, _gyro);
+    v3AddInto(_temp1, _gyro, _netTorque);
 
     // ── Angular acceleration ──────────────────────────────
     // alpha = I_inv * netTorque (diagonal inertia tensor)
-    const angularAccel: Vector3 = vec3(
-      netTorque.x / xx,
-      netTorque.y / yy,
-      netTorque.z / zz,
-    );
+    v3Set(_angAccel, _netTorque.x / xx, _netTorque.y / yy, _netTorque.z / zz);
 
     // ── Linear acceleration ───────────────────────────────
-    const linearAccel = v3Scale(netForce, 1 / this.config.mass);
+    v3ScaleInto(_netForce, 1 / this.config.mass, _linAccel);
 
     // ── Euler integration ─────────────────────────────────
     // Velocity
-    const newVelocity = v3Add(state.velocity, v3Scale(linearAccel, dt));
+    v3ScaleInto(_linAccel, dt, _temp1);
+    v3AddInto(state.velocity, _temp1, _newVel);
 
     // Position
-    const newPosition = v3Add(state.position, v3Scale(state.velocity, dt));
+    v3ScaleInto(state.velocity, dt, _temp1);
+    v3AddInto(state.position, _temp1, _newPos);
 
     // Angular velocity (body frame)
-    const newAngularVelocity = v3Add(
-      state.angularVelocity,
-      v3Scale(angularAccel, dt),
-    );
+    v3ScaleInto(_angAccel, dt, _temp1);
+    v3AddInto(state.angularVelocity, _temp1, _newAngVel);
 
     // Quaternion kinematics: q_dot = 0.5 * q * [0, omega_body]
     // q rotates body→world, so omega_body is applied on the right.
-    const omegaQuat: Quaternion = {
-      w: 0,
-      x: state.angularVelocity.x,
-      y: state.angularVelocity.y,
-      z: state.angularVelocity.z,
-    };
-    const qDot = quatMultiply(state.quaternion, omegaQuat);
-    const newQuaternion = quatNormalize({
-      w: state.quaternion.w + 0.5 * qDot.w * dt,
-      x: state.quaternion.x + 0.5 * qDot.x * dt,
-      y: state.quaternion.y + 0.5 * qDot.y * dt,
-      z: state.quaternion.z + 0.5 * qDot.z * dt,
-    });
+    _omegaQuat.w = 0;
+    _omegaQuat.x = state.angularVelocity.x;
+    _omegaQuat.y = state.angularVelocity.y;
+    _omegaQuat.z = state.angularVelocity.z;
+    quatMultiplyInto(state.quaternion, _omegaQuat, _qDot);
+
+    _preNormQuat.w = state.quaternion.w + 0.5 * _qDot.w * dt;
+    _preNormQuat.x = state.quaternion.x + 0.5 * _qDot.x * dt;
+    _preNormQuat.y = state.quaternion.y + 0.5 * _qDot.y * dt;
+    _preNormQuat.z = state.quaternion.z + 0.5 * _qDot.z * dt;
+    quatNormalizeInto(_preNormQuat, _newQuat);
 
     // ── Hard altitude floor at dynamic ground height (terrain + buildings) ──
-    let finalPosition = newPosition;
-    let finalVelocity = newVelocity;
-    let finalAngularVelocity = newAngularVelocity;
+    let fpX = _newPos.x, fpY = _newPos.y, fpZ = _newPos.z;
+    let fvX = _newVel.x, fvY = _newVel.y, fvZ = _newVel.z;
+    let favX = _newAngVel.x, favY = _newAngVel.y, favZ = _newAngVel.z;
 
     // Pre-integration check: if on ground with downward velocity, kill immediately
-    if (state.position.z <= groundHeight && newVelocity.z < 0) {
-      finalPosition = vec3(newPosition.x, newPosition.y, groundHeight);
-      finalVelocity = V3_ZERO;
-      finalAngularVelocity = V3_ZERO;
-    } else if (newPosition.z < groundHeight) {
-      // Post-integration: clamp position and zero ALL motion (hard stop)
-      finalPosition = vec3(newPosition.x, newPosition.y, groundHeight);
-      finalVelocity = V3_ZERO;
-      finalAngularVelocity = V3_ZERO;
+    if ((state.position.z <= groundHeight && _newVel.z < 0) || _newPos.z < groundHeight) {
+      fpZ = groundHeight;
+      fvX = 0; fvY = 0; fvZ = 0;
+      favX = 0; favY = 0; favZ = 0;
     }
 
+    // Return new state — the only allocation in the entire step()
     return {
-      position: finalPosition,
-      velocity: finalVelocity,
-      quaternion: newQuaternion,
-      angularVelocity: finalAngularVelocity,
+      position: { x: fpX, y: fpY, z: fpZ },
+      velocity: { x: fvX, y: fvY, z: fvZ },
+      quaternion: { w: _newQuat.w, x: _newQuat.x, y: _newQuat.y, z: _newQuat.z },
+      angularVelocity: { x: favX, y: favY, z: favZ },
     };
   }
 
