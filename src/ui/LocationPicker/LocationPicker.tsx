@@ -1,5 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { MapController } from './MapController';
+import { ControllerSetup } from '../Settings/ControllerSetup';
+import { PhysicsSettings } from '../Settings/PhysicsSettings';
 import { colors, fonts, fontSizes, gradients, spacing, glass } from '../theme';
 
 // Ensure Google Places autocomplete dropdown renders above everything
@@ -27,6 +29,7 @@ export function LocationPicker({ onFlyHere }: Props) {
   } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
+  const [settingsPanel, setSettingsPanel] = useState<'none' | 'controller' | 'physics'>('none');
 
   useEffect(() => {
     ensureAutocompleteStyles();
@@ -150,6 +153,30 @@ export function LocationPicker({ onFlyHere }: Props) {
             <line x1="18" y1="12" x2="22" y2="12" />
           </svg>
         </button>
+        <button
+          onClick={() => setSettingsPanel('controller')}
+          title="Settings"
+          style={{
+            padding: '12px 14px',
+            border: 'none',
+            borderRadius: 0,
+            background: glass.background,
+            backdropFilter: glass.backdropFilter,
+            color: colors.on_surface,
+            cursor: 'pointer',
+            fontSize: '1.2rem',
+            lineHeight: 1,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
       </div>
 
       {/* Fly Here button */}
@@ -197,6 +224,70 @@ export function LocationPicker({ onFlyHere }: Props) {
           Fly Here
         </button>
       </div>
+
+      {/* Settings overlay */}
+      {settingsPanel !== 'none' && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: glass.background,
+          backdropFilter: glass.backdropFilter,
+          zIndex: 20,
+        }}>
+          <div style={{
+            background: colors.surface_container_low,
+            borderRadius: 0,
+            padding: spacing.xl,
+            maxWidth: '560px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+          }}>
+            {/* Tab buttons */}
+            <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
+              <button
+                onClick={() => setSettingsPanel('controller')}
+                style={{
+                  ...tabStyle,
+                  background: settingsPanel === 'controller' ? colors.primary : 'transparent',
+                  color: settingsPanel === 'controller' ? colors.on_primary : colors.on_surface,
+                }}
+              >
+                Controller
+              </button>
+              <button
+                onClick={() => setSettingsPanel('physics')}
+                style={{
+                  ...tabStyle,
+                  background: settingsPanel === 'physics' ? colors.primary : 'transparent',
+                  color: settingsPanel === 'physics' ? colors.on_primary : colors.on_surface,
+                }}
+              >
+                Physics
+              </button>
+            </div>
+            {settingsPanel === 'controller' && (
+              <ControllerSetup onClose={() => setSettingsPanel('none')} />
+            )}
+            {settingsPanel === 'physics' && (
+              <PhysicsSettings onClose={() => setSettingsPanel('none')} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const tabStyle: React.CSSProperties = {
+  padding: '8px 16px',
+  fontSize: fontSizes.body_sm,
+  fontFamily: fonts.display,
+  fontWeight: 600,
+  border: '1px solid ' + colors.outline_variant,
+  borderRadius: 0,
+  cursor: 'pointer',
+};

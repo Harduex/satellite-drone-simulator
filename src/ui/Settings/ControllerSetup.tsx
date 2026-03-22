@@ -2,8 +2,26 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../../store';
 import { RADIO_PRESETS, matchPreset } from '../../core/input/RadioPresets';
 import type { AxisMapping, AxisChannelConfig } from '../../core/input/AxisMapper';
-import { AxisMapper, DEFAULT_DEADZONE } from '../../core/input/AxisMapper';
+import { DEFAULT_DEADZONE } from '../../core/input/AxisMapper';
+import { AxisMapper } from '../../core/input/AxisMapper';
 import { colors, fonts, gradients } from '../theme';
+
+/** Map axes for VISUAL display — reads correct axis per channel but does NOT
+ *  apply inversion. Inversion is only needed for flight controller sign convention.
+ *  For the preview, stick-right should always move dot-right. */
+function mapForDisplay(mapping: AxisMapping, rawAxes: number[]) {
+  const readRaw = (ch: AxisChannelConfig) => {
+    const raw = (rawAxes[ch.axis] ?? 0) - (ch.centerOffset ?? 0);
+    return raw; // no inversion — raw physical direction
+  };
+  const throttleRaw = readRaw(mapping.throttle);
+  return {
+    throttle: Math.max(0, Math.min(1, (throttleRaw + 1) / 2)),
+    yaw: readRaw(mapping.yaw),
+    pitch: readRaw(mapping.pitch),
+    roll: readRaw(mapping.roll),
+  };
+}
 
 interface Props {
   onClose: () => void;
@@ -47,7 +65,12 @@ export function ControllerSetup({ onClose }: Props) {
   const [liveAxes, setLiveAxes] = useState<number[]>([]);
   const [centerOffsets, setCenterOffsets] = useState<number[]>([]);
   const [centerCalibrated, setCenterCalibrated] = useState(false);
-  const [mapping, setMapping] = useState<Partial<AxisMapping>>({});
+  // Load saved mapping from localStorage on mount — this ensures the preview
+  // uses the user's actual calibrated mapping, not just the auto-detected preset
+  const [mapping, setMapping] = useState<Partial<AxisMapping>>(() => {
+    const saved = AxisMapper.loadFromStorage();
+    return saved ?? {};
+  });
   const [detectionPhase, setDetectionPhase] = useState<'waiting' | 'detected'>('waiting');
   const [selectedPreset, setSelectedPreset] = useState<string>('Generic');
   const rates = useStore((s) => s.rates);
@@ -137,12 +160,13 @@ export function ControllerSetup({ onClose }: Props) {
     }
   }, [liveAxes, step, detectionPhase, centerOffsets, mapping]);
 
-  // ── Compute mapped stick inputs for crosshair preview ──
+  // ── Compute stick inputs for crosshair preview (display-oriented) ──
+  // Uses raw axis values WITHOUT inversion — inversion is for flight controller
+  // sign convention, not for visual display where stick-right should = dot-right
   const mappedInputs = useMemo(() => {
     const m = mapping;
     if (!m.throttle || !m.yaw || !m.pitch || !m.roll) return null;
-    const mapper = new AxisMapper(m as AxisMapping);
-    return mapper.map(liveAxes);
+    return mapForDisplay(m as AxisMapping, liveAxes);
   }, [mapping, liveAxes]);
 
   // ── Handlers ──
@@ -392,7 +416,7 @@ export function ControllerSetup({ onClose }: Props) {
       {/* Dual-stick crosshair shown on detect/center/map steps as raw preview */}
       {(step === 'detect' || step === 'center' || step.startsWith('map-')) && gamepad && (
         <div style={{ marginTop: '12px' }}>
-          <RawStickPreview axes={liveAxes} centerOffsets={centerOffsets} mapping={mapping} />
+          <RawStickPreview axes={liveAxes} mapping={mapping} selectedPreset={selectedPreset} />
         </div>
       )}
     </div>
@@ -509,15 +533,15 @@ function StickBox({ x, y, yIsThrottle, xLabel, yLabel, size }: {
         position: 'absolute', left: 20 + size / 2, top: 10, height: size,
         width: 1, background: colors.surface_container_highest,
       }} />
-      {/* Dot */}
+      {/* Dot — uses transform for GPU-composited positioning */}
       <div style={{
         position: 'absolute',
-        left: 20 + dotX, top: 10 + dotY,
+        left: 0, top: 0,
         width: 12, height: 12, borderRadius: '50%',
         background: colors.primary,
         boxShadow: '0 0 8px rgba(255, 182, 147, 0.5)',
-        transform: 'translate(-50%, -50%)',
-        transition: 'left 0.03s, top 0.03s',
+        transform: `translate(${20 + dotX - 6}px, ${10 + dotY - 6}px)`,
+        willChange: 'transform',
       }} />
       {/* X label (below box) */}
       <span style={{
@@ -539,14 +563,12 @@ function StickBox({ x, y, yIsThrottle, xLabel, yLabel, size }: {
 }
 
 // ── Raw Stick Preview (before mapping is complete) ────────
-function RawStickPreview({ axes, centerOffsets, mapping }: {
-  axes: number[]; centerOffsets: number[]; mapping: Partial<AxisMapping>;
+function RawStickPreview({ axes, mapping, selectedPreset }: {
+  axes: number[]; mapping: Partial<AxisMapping>; selectedPreset: string;
 }) {
-  // If we have a partial or full mapping, use it to show mapped values
-  // Otherwise show raw axes 0-3 as a best-guess
+  // If we have a full mapping, use display-oriented mapping (no inversion)
   if (mapping.throttle && mapping.yaw && mapping.pitch && mapping.roll) {
-    const mapper = new AxisMapper(mapping as AxisMapping);
-    const mapped = mapper.map(axes);
+    const mapped = mapForDisplay(mapping as AxisMapping, axes);
     return (
       <DualStickCrosshair
         leftX={mapped.yaw} leftY={mapped.throttle}
@@ -556,14 +578,13 @@ function RawStickPreview({ axes, centerOffsets, mapping }: {
     );
   }
 
-  // Raw preview: use first 4 axes with center offset subtracted
-  const raw = axes.map((v, i) => v - (centerOffsets[i] ?? 0));
+  // Use the selected preset's axis assignments for the raw preview
+  const preset = RADIO_PRESETS[selectedPreset] ?? RADIO_PRESETS['Generic']!;
+  const mapped = mapForDisplay(preset, axes);
   return (
     <DualStickCrosshair
-      leftX={raw[0] ?? 0}
-      leftY={((raw[1] ?? 0) + 1) / 2} // treat as throttle range
-      rightX={raw[3] ?? 0}
-      rightY={raw[2] ?? 0}
+      leftX={mapped.yaw} leftY={mapped.throttle}
+      rightX={mapped.roll} rightY={mapped.pitch}
       size={100}
     />
   );
