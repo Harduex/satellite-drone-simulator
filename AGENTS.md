@@ -97,6 +97,10 @@ Skills are discovered progressively by each agent tool. dotagents handles:
 
 Each agent sees skills in its native format without knowing about the shared infrastructure.
 
+### Currently Installed MCP Servers
+
+- **playwright** (`@playwright/mcp@latest`) — Browser automation via Playwright. Used for end-to-end testing of the simulator (UI interactions, console log inspection, screenshots, keyboard/gamepad input simulation).
+
 ### Managing Skills
 
 ```bash
@@ -109,6 +113,46 @@ npx @sentry/dotagents sync                         # Reconcile state
 ### Trust Configuration
 
 `agents.toml` has `[trust] allow_all = true` — all skill sources are trusted. Restrict with explicit `allow` lists per the dotagents documentation.
+
+---
+
+## Testing Protocol (Agent Requirement)
+
+Before marking any feature or bug-fix as complete, agents **must** self-test using the Playwright MCP server. The dev server must be running (`npm run dev`) and accessible at `http://localhost:5173`.
+
+### Mandatory Test Checklist
+
+Run the following checks with Playwright after every feature implementation:
+
+1. **App loads** — Navigate to `http://localhost:5173`. Assert no fatal console errors. Assert the location search input is visible.
+2. **Search works** — Type a location (e.g. "Eiffel Tower, Paris") into the search box. Assert autocomplete suggestions appear. Select a suggestion and assert the "Fly Here" button becomes active.
+3. **Sim launches** — Click "Fly Here". Assert the simulator view loads (HUD visible, no crash screen). Assert no unhandled promise rejections in the console.
+4. **Keyboard controls** — With the sim active, send key events (`W`, `S`, `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `A`, `D`). Assert the drone telemetry values in the HUD change (throttle, roll, pitch, yaw).
+5. **ESC pause** — Press `Escape`. Assert the pause menu appears. Press `Escape` again. Assert the sim resumes.
+6. **No console errors** — After the full flow, assert there are no uncaught `TypeError`, `ReferenceError`, or `Error` messages in the browser console.
+
+### Gamepad / Radio Controller Testing
+
+The Web Gamepad API cannot be synthesized via Playwright in a standard browser context. For BETAFPV LiteRadio 2 SE (and similar) controller issues:
+
+- Verify that `GamepadManager.ts` polls `navigator.getGamepads()` each physics tick (not via event-only).
+- Verify that `RadioPresets.ts` includes a preset matching the BETAFPV LiteRadio 2 SE USB HID descriptor (VID/PID or name string match).
+- Verify the axis mapping: throttle on axis 1 (inverted), yaw on axis 0, pitch on axis 2 (inverted), roll on axis 3 — or that the Controller Setup wizard surfaces unrecognised controllers for manual mapping.
+- To manually test with a physical controller: open DevTools → Application → Gamepad and confirm the controller is detected before flying.
+
+### Running Tests
+
+```bash
+# Start the dev server first (keep running)
+npm run dev
+
+# Then use Playwright MCP tools in the agent session to:
+# - browser_navigate to http://localhost:5173
+# - browser_snapshot / browser_screenshot to inspect state
+# - browser_type / browser_click to interact with UI
+# - browser_console_messages to check for errors
+# - browser_press_key to test keyboard controls
+```
 
 ---
 

@@ -11,3 +11,8 @@ source = "getsentry/dotagents"
 [[skills]]
 name = "grill-me"
 source = "mattpocock/skills"
+
+[[mcp]]
+name = "playwright"
+command = "npx"
+args = ["@playwright/mcp@latest"]
