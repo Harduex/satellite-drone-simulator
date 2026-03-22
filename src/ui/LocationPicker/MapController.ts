@@ -16,9 +16,11 @@ export class MapController {
     setOptions({ key: apiKey, v: "weekly" });
 
     await importLibrary("maps");
-    await importLibrary("places");
-    await importLibrary("marker");
-    await importLibrary("elevation");
+    await Promise.all([
+      importLibrary("places"),
+      importLibrary("marker"),
+      importLibrary("elevation"),
+    ]);
 
     this.map = new google.maps.Map(container, {
       center: { lat: 48.8584, lng: 2.2945 }, // Eiffel Tower default
