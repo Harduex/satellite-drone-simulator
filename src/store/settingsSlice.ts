@@ -9,10 +9,14 @@ export interface SettingsSlice {
   rates: RatesConfig;
   physicsConfig: PhysicsConfig;
   flightMode: FlightMode;
+  fov: number;
+  cameraTilt: number;
   setAxisMapping: (mapping: AxisMapping) => void;
   setRates: (rates: Partial<RatesConfig>) => void;
   setPhysicsConfig: (config: Partial<PhysicsConfig>) => void;
   setFlightMode: (mode: FlightMode) => void;
+  setFov: (fov: number) => void;
+  setCameraTilt: (tilt: number) => void;
 }
 
 export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
@@ -20,10 +24,14 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   rates: DEFAULT_RATES,
   physicsConfig: DEFAULT_DRONE_CONFIG,
   flightMode: FlightMode.ACRO,
+  fov: 90,
+  cameraTilt: 0,
   setAxisMapping: (mapping) => set({ axisMapping: mapping }),
   setRates: (rates) =>
     set((state) => ({ rates: { ...state.rates, ...rates } })),
   setPhysicsConfig: (config) =>
     set((state) => ({ physicsConfig: { ...state.physicsConfig, ...config } })),
   setFlightMode: (mode) => set({ flightMode: mode }),
+  setFov: (fov) => set({ fov: Math.max(60, Math.min(140, fov)) }),
+  setCameraTilt: (tilt) => set({ cameraTilt: Math.max(0, Math.min(45, tilt)) }),
 });

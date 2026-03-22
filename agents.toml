@@ -20,3 +20,7 @@ args = ["@playwright/mcp@latest"]
 [[skills]]
 name = "improve-codebase-architecture"
 source = "mattpocock/skills"
+
+[[skills]]
+name = "frontend-design"
+source = "anthropics/skills"

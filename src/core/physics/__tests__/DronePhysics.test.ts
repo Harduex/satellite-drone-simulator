@@ -40,6 +40,52 @@ describe("DronePhysics", () => {
       expect(state.position.z).toBe(0);
       expect(state.velocity.z).toBe(0);
     });
+
+    it("ground collision zeroes ALL velocity components", () => {
+      const physics = new DronePhysics(DEFAULT_DRONE_CONFIG);
+      // Start at low altitude with lateral + rotational velocity
+      let state = createDefaultDroneState(0.5);
+      // Give it horizontal velocity and angular velocity via roll motors
+      const rollMotors: MotorCommands = { m1: 0.1, m2: 0.4, m3: 0.4, m4: 0.1 };
+      // Build up some lateral velocity
+      for (let i = 0; i < 50; i++) {
+        state = physics.step(state, rollMotors, PHYSICS_DT);
+      }
+      // Now let it crash with zero throttle
+      const zeroMotors: MotorCommands = { m1: 0, m2: 0, m3: 0, m4: 0 };
+      for (let i = 0; i < 500; i++) {
+        state = physics.step(state, zeroMotors, PHYSICS_DT);
+      }
+
+      expect(state.position.z).toBe(0);
+      // All velocity components zeroed, not just Z
+      expect(state.velocity.x).toBe(0);
+      expect(state.velocity.y).toBe(0);
+      expect(state.velocity.z).toBe(0);
+      expect(state.angularVelocity.x).toBe(0);
+      expect(state.angularVelocity.y).toBe(0);
+      expect(state.angularVelocity.z).toBe(0);
+    });
+
+    it("cannot tunnel through ground at extreme velocity", () => {
+      const physics = new DronePhysics(DEFAULT_DRONE_CONFIG);
+      let state = createDefaultDroneState(100);
+      const fullMotors: MotorCommands = { m1: 1, m2: 1, m3: 1, m4: 1 };
+      const zeroMotors: MotorCommands = { m1: 0, m2: 0, m3: 0, m4: 0 };
+
+      // Build up extreme downward velocity by flying up then inverting
+      // First fly up for 1 second
+      for (let i = 0; i < 500; i++) {
+        state = physics.step(state, fullMotors, PHYSICS_DT);
+      }
+      // Now free fall for 5 seconds from high altitude
+      for (let i = 0; i < 2500; i++) {
+        state = physics.step(state, zeroMotors, PHYSICS_DT);
+      }
+
+      // Position should never go below 0
+      expect(state.position.z).toBeGreaterThanOrEqual(0);
+    });
   });
 
   describe("hover test", () => {

@@ -4,6 +4,7 @@ import type {
   RatesConfig,
   StickInputs,
 } from "../physics/types";
+import { MOTOR_LAYOUT } from "../physics/types";
 import { PIDController } from "./PIDController";
 import { applyExpo } from "./FlightModes";
 
@@ -63,17 +64,14 @@ export class FlightController {
     const pitchCmd = this.pitchPID.update(pitchError, dt);
     const yawCmd = this.yawPID.update(yawError, dt);
 
-    // Motor mixing (must match motor layout exactly):
-    //   M1(front-left, CCW):  -roll + pitch + yaw
-    //   M2(front-right, CW):  +roll + pitch - yaw
-    //   M3(back-right, CCW):  +roll - pitch + yaw
-    //   M4(back-left, CW):    -roll - pitch - yaw
+    // Motor mixing via shared MOTOR_LAYOUT (single source of truth)
     const throttle = stickInputs.throttle;
+    const [ml1, ml2, ml3, ml4] = MOTOR_LAYOUT;
 
-    const m1 = clamp01(throttle - rollCmd + pitchCmd + yawCmd);
-    const m2 = clamp01(throttle + rollCmd + pitchCmd - yawCmd);
-    const m3 = clamp01(throttle + rollCmd - pitchCmd + yawCmd);
-    const m4 = clamp01(throttle - rollCmd - pitchCmd - yawCmd);
+    const m1 = clamp01(throttle + ml1.mixRoll * rollCmd + ml1.mixPitch * pitchCmd + ml1.mixYaw * yawCmd);
+    const m2 = clamp01(throttle + ml2.mixRoll * rollCmd + ml2.mixPitch * pitchCmd + ml2.mixYaw * yawCmd);
+    const m3 = clamp01(throttle + ml3.mixRoll * rollCmd + ml3.mixPitch * pitchCmd + ml3.mixYaw * yawCmd);
+    const m4 = clamp01(throttle + ml4.mixRoll * rollCmd + ml4.mixPitch * pitchCmd + ml4.mixYaw * yawCmd);
 
     return { m1, m2, m3, m4 };
   }

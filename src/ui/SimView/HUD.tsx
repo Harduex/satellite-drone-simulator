@@ -1,6 +1,5 @@
 import { useStore } from '../../store';
-
-const MONO = "'Fira Code', 'Cascadia Code', 'SF Mono', monospace";
+import { colors, fontSizes, hud } from '../theme';
 
 interface Props {
   locationName: string;
@@ -19,10 +18,10 @@ export function HUD({ locationName }: Props) {
       inset: 0,
       pointerEvents: 'none',
       zIndex: 10,
-      fontFamily: MONO,
+      fontFamily: hud.fontFamily,
     }}>
       {/* Top-left: location name */}
-      <div style={{ position: 'absolute', top: 16, left: 16, ...textStyle }}>
+      <div style={{ position: 'absolute', top: 16, left: 16, ...textStyle, ...hud.labelStyle }}>
         {locationName}
       </div>
 
@@ -38,8 +37,8 @@ export function HUD({ locationName }: Props) {
         <div style={{
           width: 12,
           height: 120,
-          background: 'rgba(255,255,255,0.1)',
-          borderRadius: 3,
+          background: colors.surface_container_lowest + '80',
+          borderRadius: 0,
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -48,12 +47,16 @@ export function HUD({ locationName }: Props) {
           <div style={{
             width: '100%',
             height: `${throttle * 100}%`,
-            background: throttle > 0.8 ? '#ff4444' : '#00ff88',
-            borderRadius: 3,
+            background: throttle > 0.8 ? colors.error : colors.primary,
+            borderRadius: 0,
             transition: 'height 0.05s',
           }} />
         </div>
-        <span style={{ ...textStyle, fontSize: '0.7rem' }}>
+        <span style={{
+          ...textStyle,
+          ...hud.labelStyle,
+          fontFeatureSettings: hud.fontFeatureSettings,
+        }}>
           {(throttle * 100).toFixed(0)}%
         </span>
       </div>
@@ -67,11 +70,21 @@ export function HUD({ locationName }: Props) {
         textAlign: 'center',
         ...textStyle,
       }}>
-        <div style={{ fontSize: '1.4rem', fontWeight: 600 }}>
-          {speed.toFixed(1)} <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>m/s</span>
+        <div style={{
+          fontSize: fontSizes.display_md,
+          fontWeight: 600,
+          fontFamily: hud.fontFamily,
+          fontFeatureSettings: hud.fontFeatureSettings,
+        }}>
+          {speed.toFixed(1)} <span style={{ ...hud.labelStyle }}>m/s</span>
         </div>
-        <div style={{ fontSize: '1rem', opacity: 0.8 }}>
-          {altitudeAGL.toFixed(1)} <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>m AGL</span>
+        <div style={{
+          fontSize: fontSizes.display_sm,
+          opacity: 0.8,
+          fontFamily: hud.fontFamily,
+          fontFeatureSettings: hud.fontFeatureSettings,
+        }}>
+          {altitudeAGL.toFixed(1)} <span style={{ ...hud.labelStyle }}>m AGL</span>
         </div>
       </div>
 
@@ -84,13 +97,20 @@ export function HUD({ locationName }: Props) {
         ...textStyle,
       }}>
         <div style={{
-          fontSize: '1rem',
-          color: batteryPercent < 20 ? '#ff4444' : batteryPercent < 40 ? '#ffaa00' : '#e0e0e0',
+          fontSize: fontSizes.display_sm,
+          fontFamily: hud.fontFamily,
+          fontFeatureSettings: hud.fontFeatureSettings,
+          color: batteryPercent < 20 ? colors.error : batteryPercent < 40 ? colors.warning : colors.on_surface,
         }}>
-          {batteryPercent.toFixed(0)}%
+          {batteryPercent.toFixed(0)}<span style={{ ...hud.labelStyle }}>%</span>
         </div>
-        <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>
-          {batteryVoltage.toFixed(1)}V
+        <div style={{
+          fontSize: '0.75rem',
+          opacity: 0.6,
+          fontFamily: hud.fontFamily,
+          fontFeatureSettings: hud.fontFeatureSettings,
+        }}>
+          {batteryVoltage.toFixed(1)}<span style={{ ...hud.labelStyle }}>V</span>
         </div>
       </div>
 
@@ -110,7 +130,7 @@ export function HUD({ locationName }: Props) {
 }
 
 const textStyle = {
-  color: '#e0e0e0',
-  textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-  fontSize: '0.85rem',
+  color: colors.on_surface,
+  textShadow: hud.textShadow,
+  fontSize: fontSizes.body_sm,
 };

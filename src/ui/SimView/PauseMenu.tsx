@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ControllerSetup } from '../Settings/ControllerSetup';
+import { colors, fonts, fontSizes, gradients, spacing, glass } from '../theme';
 
 interface Props {
   onResume: () => void;
@@ -13,9 +14,9 @@ export function PauseMenu({ onResume, onChangeLocation }: Props) {
     return (
       <div style={overlayStyle}>
         <div style={{
-          background: '#2a2a3e',
-          borderRadius: '12px',
-          padding: '2rem',
+          background: colors.surface_container_low,
+          borderRadius: 0,
+          padding: spacing.xl,
           maxWidth: '560px',
           width: '90%',
           maxHeight: '80vh',
@@ -35,14 +36,21 @@ export function PauseMenu({ onResume, onChangeLocation }: Props) {
         alignItems: 'center',
         gap: '12px',
       }}>
-        <h2 style={{ color: '#e0e0e0', fontWeight: 300, marginBottom: '8px' }}>Paused</h2>
-        <button onClick={onResume} style={buttonStyle}>
+        <h2 style={{
+          color: colors.on_surface,
+          fontWeight: 300,
+          marginBottom: '8px',
+          fontFamily: fonts.display,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+        }}>Paused</h2>
+        <button onClick={onResume} style={resumeButtonStyle}>
           Resume
         </button>
-        <button onClick={() => setShowSettings(true)} style={buttonStyle}>
+        <button onClick={() => setShowSettings(true)} style={ghostButtonStyle}>
           Controller Setup
         </button>
-        <button onClick={onChangeLocation} style={{ ...buttonStyle, background: '#3a3a4e' }}>
+        <button onClick={onChangeLocation} style={ghostButtonStyle}>
           Change Location
         </button>
       </div>
@@ -56,18 +64,31 @@ const overlayStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: 'rgba(0, 0, 0, 0.5)',
+  background: glass.background,
+  backdropFilter: glass.backdropFilter,
   zIndex: 20,
 };
 
-const buttonStyle: React.CSSProperties = {
+const resumeButtonStyle: React.CSSProperties = {
   padding: '12px 40px',
-  fontSize: '1rem',
+  fontSize: fontSizes.display_sm,
   border: 'none',
-  borderRadius: '8px',
+  borderRadius: 0,
   cursor: 'pointer',
-  background: '#00ff88',
-  color: '#1a1a2e',
+  background: gradients.cta,
+  color: colors.on_primary,
+  fontWeight: 600,
+  width: '200px',
+};
+
+const ghostButtonStyle: React.CSSProperties = {
+  padding: '12px 40px',
+  fontSize: fontSizes.display_sm,
+  border: '1px solid ' + colors.outline_variant,
+  borderRadius: 0,
+  cursor: 'pointer',
+  background: 'transparent',
+  color: colors.on_surface,
   fontWeight: 600,
   width: '200px',
 };

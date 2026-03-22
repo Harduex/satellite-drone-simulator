@@ -10,10 +10,10 @@ export interface CameraConfig {
 }
 
 export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
-  fov: 120,
+  fov: 90,
   nearClip: 0.1,
   farClip: 5000,
-  tiltDegrees: 0, // added in Phase 7
+  tiltDegrees: 0,
 };
 
 export class FPVCamera {
@@ -32,6 +32,14 @@ export class FPVCamera {
     frustum.fov = Cesium.Math.toRadians(this.config.fov);
     frustum.near = this.config.nearClip;
     frustum.far = this.config.farClip;
+  }
+
+  /** Update FOV at runtime (e.g. from settings slider) */
+  setFov(degrees: number): void {
+    this.config = { ...this.config, fov: degrees };
+    if (!this.viewer) return;
+    const frustum = this.viewer.camera.frustum as Cesium.PerspectiveFrustum;
+    frustum.fov = Cesium.Math.toRadians(degrees);
   }
 
   /** Sync Cesium camera position and orientation from drone physics state */

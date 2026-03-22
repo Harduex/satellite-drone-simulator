@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { MapController } from './MapController';
+import { colors, fonts, fontSizes, gradients, spacing, glass } from '../theme';
 
 // Ensure Google Places autocomplete dropdown renders above everything
 const GLOBAL_STYLE_ID = 'fpvsim-pac-style';
@@ -81,13 +82,13 @@ export function LocationPicker({ onFlyHere }: Props) {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#1a1a2e',
-          color: '#e0e0e0',
-          gap: '1rem',
+          background: colors.surface,
+          color: colors.on_surface,
+          gap: spacing.md,
         }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 300 }}>FPV Drone Simulator</h1>
-          <p style={{ opacity: 0.6 }}>{mapError}</p>
-          <p style={{ opacity: 0.4, fontSize: '0.8rem' }}>
+          <h1 style={{ fontSize: fontSizes.display_lg, fontWeight: 300, fontFamily: fonts.display }}>FPV Drone Simulator</h1>
+          <p style={{ opacity: 0.6, fontFamily: fonts.body }}>{mapError}</p>
+          <p style={{ opacity: 0.4, fontSize: fontSizes.body_sm, fontFamily: fonts.body }}>
             Add VITE_GOOGLE_MAPS_API_KEY to your .env file
           </p>
         </div>
@@ -102,7 +103,7 @@ export function LocationPicker({ onFlyHere }: Props) {
         zIndex: 10,
         width: 'min(90%, 480px)',
         display: 'flex',
-        gap: '8px',
+        gap: spacing.sm,
       }}>
         <input
           ref={searchInputRef}
@@ -111,13 +112,14 @@ export function LocationPicker({ onFlyHere }: Props) {
           style={{
             flex: 1,
             padding: '12px 16px',
-            fontSize: '1rem',
+            fontSize: fontSizes.display_sm,
+            fontFamily: fonts.body,
             border: 'none',
-            borderRadius: '8px',
-            background: 'rgba(26, 26, 46, 0.95)',
-            color: '#e0e0e0',
+            borderRadius: 0,
+            background: glass.background,
+            backdropFilter: glass.backdropFilter,
+            color: colors.on_surface,
             outline: 'none',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
           }}
         />
         <button
@@ -127,11 +129,11 @@ export function LocationPicker({ onFlyHere }: Props) {
           style={{
             padding: '12px 14px',
             border: 'none',
-            borderRadius: '8px',
-            background: 'rgba(26, 26, 46, 0.95)',
-            color: locatingUser ? '#888' : '#00ff88',
+            borderRadius: 0,
+            background: glass.background,
+            backdropFilter: glass.backdropFilter,
+            color: locatingUser ? colors.on_surface_muted : colors.secondary,
             cursor: locatingUser ? 'wait' : 'pointer',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
             fontSize: '1.2rem',
             lineHeight: 1,
             flexShrink: 0,
@@ -160,15 +162,17 @@ export function LocationPicker({ onFlyHere }: Props) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '8px',
+        gap: spacing.sm,
       }}>
         {selectedLocation && (
           <span style={{
-            color: '#e0e0e0',
-            fontSize: '0.85rem',
-            background: 'rgba(26, 26, 46, 0.85)',
+            color: colors.on_surface,
+            fontSize: fontSizes.body_sm,
+            fontFamily: fonts.body,
+            background: glass.background,
+            backdropFilter: glass.backdropFilter,
             padding: '4px 12px',
-            borderRadius: '4px',
+            borderRadius: 0,
           }}>
             {selectedLocation.name}
           </span>
@@ -179,13 +183,14 @@ export function LocationPicker({ onFlyHere }: Props) {
           style={{
             padding: '14px 48px',
             fontSize: '1.1rem',
+            fontFamily: fonts.display,
             fontWeight: 600,
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: 0,
             cursor: selectedLocation ? 'pointer' : 'not-allowed',
-            background: selectedLocation ? '#00ff88' : 'rgba(0, 255, 136, 0.3)',
-            color: selectedLocation ? '#1a1a2e' : 'rgba(26, 26, 46, 0.5)',
-            boxShadow: selectedLocation ? '0 4px 16px rgba(0, 255, 136, 0.3)' : 'none',
+            background: selectedLocation ? gradients.cta : 'rgba(255, 182, 147, 0.3)',
+            color: selectedLocation ? colors.on_primary : colors.on_surface_muted,
+            boxShadow: selectedLocation ? '0 0 20px rgba(255, 182, 147, 0.3)' : 'none',
             transition: 'all 0.2s',
           }}
         >

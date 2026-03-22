@@ -37,7 +37,7 @@ VITE_GOOGLE_MAPS_API_KEY=your_key_here
 ## How to Use
 
 1. **Search** — Type a location in the search bar (or click the map)
-2. **Fly Here** — Click the green button to enter FPV view
+2. **Fly Here** — Click the button to enter FPV view
 3. **Fly** — Use keyboard controls or plug in a radio controller
 4. **Pause** — Press ESC to pause, change location, or adjust settings
 
@@ -56,9 +56,10 @@ VITE_GOOGLE_MAPS_API_KEY=your_key_here
 ### Radio Controller (USB)
 
 Plug in your FPV radio via USB-C in Joystick mode. Supported radios with auto-detected presets:
-- RadioMaster (Boxer, TX16S)
+- RadioMaster (Boxer, TX16S, Pocket, Zorro)
 - Jumper (T-Pro, T-Lite)
 - TBS Tango 2
+- BETAFPV LiteRadio 2 SE
 
 Any radio with 4+ axes works — use the Controller Setup wizard to map custom axes.
 
@@ -81,10 +82,10 @@ src/
 │   ├── flight-controller/  PID rate controller + motor mixing
 │   └── input/      Gamepad API, axis mapping, keyboard fallback
 ├── world/          CesiumJS: 3D tiles, coordinates, terrain
-├── camera/         FPV camera sync (120° FOV)
-├── game/           Game loop, session, battery model
+├── camera/         FPV camera sync (configurable FOV, default 90°)
+├── game/           Game loop, crash detector, telemetry publisher, battery
 ├── store/          Zustand state management
-└── ui/             React UI overlays
+└── ui/             React UI overlays + theme.ts design token system
 ```
 
 ## Tech Stack
@@ -98,11 +99,14 @@ src/
 ## Physics Model
 
 - 5" freestyle quad (550g AUW)
-- 4-motor X config with differential thrust
+- 4-motor X config with shared `MOTOR_LAYOUT` constant
 - Euler integration at 500Hz (decoupled from render)
-- Translational + angular drag
+- Quadratic angular drag (`-k * |omega| * omega`)
+- Direction-dependent translational drag (3x vertical multiplier for downwash)
+- Asymmetric motor spin-up/down (spin-down 2x slower)
 - Motor spin-up lag (first-order filter, τ=50ms)
 - PID rate controller (Betaflight-comparable defaults)
+- Configurable FOV (60-140°, default 90°)
 
 ## License
 

@@ -18,7 +18,7 @@ A browser-based FPV drone simulator where the world IS the map. User picks any r
 ### In scope
 - Location picker: search bar + map view (Google Maps JS API)
 - One drone: 5" freestyle quad with sane defaults
-- FPV camera: realistic FOV (120°), slight fisheye, no artificial post-processing
+- FPV camera: configurable FOV (default 90°, range 60–140°), slight fisheye, no artificial post-processing
 - Physics: thrust model, drag, gravity, angular inertia (no prop wash for MVP)
 - Radio controller: Web Gamepad API, auto-detect, axis mapping UI
 - World: Google Photorealistic 3D Tiles via CesiumJS streaming
@@ -209,12 +209,14 @@ Motor positions offset from CoM: `±arm_length * cos(45°)` in body X and Y.
 ### 6.5 Motor Model (simplified Liftoff-style)
 - Static thrust: `T = kT * throttle^2 * air_density_factor`
 - Motor spin-up lag: first-order filter τ ≈ 50ms (realistic for 2306 motors)
+- Motor spin-down lag: `motorSpinDownFactor` (default 2.0) multiplies the time constant during spin-down, making deceleration slower than acceleration — realistic for brushless motors with prop inertia.
 - No voltage sag in v0.1 (battery affects only HUD display)
 
 ### 6.6 Drag
 - Translational: `F_drag = -0.5 * rho * Cd * A * |v| * v`
 - `A` (projected area): simplified constant for MVP (~0.04 m² for 5" quad)
-- Angular drag: `tau_drag = -kD_angular * omega`
+- Direction-dependent: velocity is transformed to body frame, separate Cd×A applied per axis. Vertical axis uses `verticalDragMultiplier` (default 3.0) for stronger downwash resistance. Drag force is transformed back to world frame.
+- Angular drag: `tau_drag = -kD_angular * |omega| * omega` (quadratic — doubling angular rate quadruples drag)
 
 ---
 
@@ -238,7 +240,7 @@ viewer.camera.setView({
   orientation: { direction: ecefOrientation.forward, up: ecefOrientation.up }
 });
 ```
-Camera FOV set to 120° to match FPV feel. No gimbal — camera is rigidly attached to body (FPV, not cinematic).
+Camera FOV configurable via settings slider (default 90°, range 60–140°). Real FPV cameras typically run 90–120°. No gimbal — camera is rigidly attached to body (FPV, not cinematic).
 
 ### 7.3 Terrain Collision (MVP)
 ```typescript

@@ -52,10 +52,29 @@ export class CesiumManager {
 
     // Disable fog (interferes with close-range viewing)
     this.viewer.scene.fog.enabled = false;
+  }
 
-    // Near/far clip for drone-scale (0.1m to 5000m)
-    this.viewer.camera.frustum.near = 0.1;
-    (this.viewer.camera.frustum as Cesium.PerspectiveFrustum).far = 5000;
+  /**
+   * Distance-based globe visibility toggle.
+   * Hides the Cesium globe within `thresholdMeters` of spawn to prevent
+   * visual conflict with Google 3D Tiles (the "second flat map" artifact).
+   */
+  setupGlobeToggle(spawnPosition: Cesium.Cartesian3, thresholdMeters: number = 2000): void {
+    if (!this.viewer) return;
+    const globe = this.viewer.scene.globe;
+
+    // Initially hide globe (we start at spawn where 3D tiles are dense)
+    globe.show = false;
+
+    this.viewer.scene.preRender.addEventListener(() => {
+      const cameraPos = this.viewer!.camera.positionWC;
+      const distance = Cesium.Cartesian3.distance(cameraPos, spawnPosition);
+      // Hysteresis: hide at threshold, show at threshold + 500m
+      const shouldShow = globe.show
+        ? distance > thresholdMeters
+        : distance > thresholdMeters + 500;
+      globe.show = shouldShow;
+    });
   }
 
   getViewer(): Cesium.Viewer {

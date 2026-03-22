@@ -14,20 +14,24 @@ export class MotorModel {
   }
 
   /**
-   * Update motor RPMs from throttle commands [0,1] with first-order spin-up lag.
+   * Update motor RPMs from throttle commands [0,1] with asymmetric spin-up/down lag.
+   * Spin-up uses base motorTimeConstant, spin-down uses motorTimeConstant * motorSpinDownFactor.
    * Returns thrust (N) for each of the 4 motors.
    */
   update(throttleCommands: number[], dt: number): number[] {
-    const { kT, maxThrottleRpm, motorTimeConstant } = this.config;
+    const { kT, maxThrottleRpm, motorTimeConstant, motorSpinDownFactor } = this.config;
     const thrusts: number[] = [];
-    const alpha = 1 - Math.exp(-dt / motorTimeConstant);
 
     for (let i = 0; i < 4; i++) {
       const cmd = Math.max(0, Math.min(1, throttleCommands[i] ?? 0));
       const targetRpm = cmd * maxThrottleRpm;
-
-      // First-order lag filter for motor spin-up/down
       const currentRpm = this.state.rpm[i] ?? 0;
+
+      // Asymmetric time constant: spin-down takes longer (prop inertia)
+      const isSpinningDown = targetRpm < currentRpm;
+      const tau = isSpinningDown ? motorTimeConstant * motorSpinDownFactor : motorTimeConstant;
+      const alpha = 1 - Math.exp(-dt / tau);
+
       const newRpm = currentRpm + alpha * (targetRpm - currentRpm);
       this.state.rpm[i] = newRpm;
 

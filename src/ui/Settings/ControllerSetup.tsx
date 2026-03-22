@@ -3,6 +3,7 @@ import { useStore } from '../../store';
 import { RADIO_PRESETS, matchPreset } from '../../core/input/RadioPresets';
 import type { AxisMapping, AxisChannelConfig } from '../../core/input/AxisMapper';
 import { AxisMapper, DEFAULT_DEADZONE } from '../../core/input/AxisMapper';
+import { colors, fonts, gradients } from '../theme';
 
 interface Props {
   onClose: () => void;
@@ -214,7 +215,7 @@ export function ControllerSetup({ onClose }: Props) {
     <div>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, color: '#e0e0e0', fontWeight: 400 }}>Controller Setup</h2>
+        <h2 style={{ margin: 0, color: colors.on_surface, fontWeight: 400, fontFamily: fonts.display }}>Controller Setup</h2>
         <button onClick={onClose} style={closeButtonStyle}>X</button>
       </div>
 
@@ -222,9 +223,9 @@ export function ControllerSetup({ onClose }: Props) {
       <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={{
           width: 8, height: 8, borderRadius: '50%',
-          background: gamepad ? '#00ff88' : '#ff4444',
+          background: gamepad ? colors.primary : colors.error,
         }} />
-        <span style={{ color: '#e0e0e0', fontSize: '0.85rem' }}>
+        <span style={{ color: colors.on_surface, fontSize: '0.85rem', fontFamily: fonts.body }}>
           {gamepad ? gamepad.id : 'No controller detected — plug in via USB'}
         </span>
       </div>
@@ -242,7 +243,7 @@ export function ControllerSetup({ onClose }: Props) {
                 Select a preset for quick setup, or run manual calibration for precise mapping.
               </p>
               <div style={{ marginBottom: '12px' }}>
-                <label style={{ color: '#e0e0e0', fontSize: '0.85rem', marginRight: 8 }}>Preset:</label>
+                <label style={{ color: colors.on_surface, fontSize: '0.85rem', marginRight: 8, fontFamily: fonts.body }}>Preset:</label>
                 <select
                   value={selectedPreset}
                   onChange={(e) => setSelectedPreset(e.target.value)}
@@ -288,7 +289,7 @@ export function ControllerSetup({ onClose }: Props) {
             )}
           </div>
           {centerCalibrated && (
-            <p style={{ ...hintStyle, color: '#00ff88', marginTop: '8px' }}>
+            <p style={{ ...hintStyle, color: colors.primary, marginTop: '8px' }}>
               Center recorded for {centerOffsets.length} axes
             </p>
           )}
@@ -302,7 +303,7 @@ export function ControllerSetup({ onClose }: Props) {
           <ChannelSubIndicator current={currentChannel} mapping={mapping} />
           {detectionPhase === 'waiting' ? (
             <>
-              <p style={{ color: '#00ff88', fontSize: '1.1rem', textAlign: 'center', margin: '12px 0' }}>
+              <p style={{ color: colors.primary, fontSize: '1.1rem', textAlign: 'center', margin: '12px 0', fontFamily: fonts.display }}>
                 {CHANNEL_INSTRUCTIONS[currentChannel]}
               </p>
               <p style={hintStyle}>Hold the stick in that position...</p>
@@ -312,9 +313,9 @@ export function ControllerSetup({ onClose }: Props) {
             <>
               <div style={{
                 textAlign: 'center', padding: '12px',
-                background: 'rgba(0,255,136,0.1)', borderRadius: 6, margin: '8px 0',
+                background: 'rgba(255, 182, 147, 0.1)', borderRadius: 0, margin: '8px 0',
               }}>
-                <span style={{ color: '#00ff88', fontSize: '1rem' }}>
+                <span style={{ color: colors.primary, fontSize: '1rem', fontFamily: fonts.body }}>
                   {currentChannel.toUpperCase()}: Axis {(mapping[currentChannel] as AxisChannelConfig).axis}
                   {(mapping[currentChannel] as AxisChannelConfig).inverted ? ' (Inverted)' : ' (Normal)'}
                 </span>
@@ -412,15 +413,16 @@ function StepIndicator({ currentStage }: { currentStage: number }) {
               <div style={{
                 width: 24, height: 24, borderRadius: '50%', display: 'flex',
                 alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 600,
-                background: isActive ? '#00ff88' : isCompleted ? 'transparent' : 'transparent',
-                color: isActive ? '#1a1a2e' : isCompleted ? '#00ff88' : '#3a3a4e',
-                border: `2px solid ${isActive ? '#00ff88' : isCompleted ? '#00ff88' : '#3a3a4e'}`,
+                fontFamily: fonts.display,
+                background: isActive ? colors.primary : isCompleted ? 'transparent' : 'transparent',
+                color: isActive ? colors.on_primary : isCompleted ? colors.primary : colors.surface_container_highest,
+                border: `2px solid ${isActive ? colors.primary : isCompleted ? colors.primary : colors.surface_container_highest}`,
               }}>
                 {isCompleted ? '\u2713' : stageNum}
               </div>
               <span style={{
-                fontSize: '0.6rem', marginTop: 2,
-                color: isActive ? '#00ff88' : isCompleted ? '#00ff88' : '#3a3a4e',
+                fontSize: '0.6rem', marginTop: 2, fontFamily: fonts.display,
+                color: isActive ? colors.primary : isCompleted ? colors.primary : colors.surface_container_highest,
               }}>
                 {label}
               </span>
@@ -428,7 +430,7 @@ function StepIndicator({ currentStage }: { currentStage: number }) {
             {i < STAGE_LABELS.length - 1 && (
               <div style={{
                 width: 24, height: 2, marginBottom: 14,
-                background: stageNum < currentStage ? '#00ff88' : '#3a3a4e',
+                background: stageNum < currentStage ? colors.primary : colors.surface_container_highest,
               }} />
             )}
           </div>
@@ -449,9 +451,10 @@ function ChannelSubIndicator({ current, mapping }: { current: Channel; mapping: 
         const isDone = !!mapping[ch];
         return (
           <span key={ch} style={{
-            fontSize: '0.75rem', padding: '2px 8px', borderRadius: 4,
-            background: isCurrent ? '#00ff88' : isDone ? 'rgba(0,255,136,0.15)' : '#2a2a3e',
-            color: isCurrent ? '#1a1a2e' : isDone ? '#00ff88' : '#e0e0e0',
+            fontSize: '0.75rem', padding: '2px 8px', borderRadius: 0,
+            fontFamily: fonts.display,
+            background: isCurrent ? colors.primary : isDone ? 'rgba(255, 182, 147, 0.15)' : colors.surface_container_high,
+            color: isCurrent ? colors.on_primary : isDone ? colors.primary : colors.on_surface,
             fontWeight: isCurrent ? 700 : 400,
           }}>
             {labels[i]}
@@ -470,11 +473,11 @@ function DualStickCrosshair({ leftX, leftY, rightX, rightY, size = 140 }: {
     <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', padding: '8px 0' }}>
       <div style={{ textAlign: 'center' }}>
         <StickBox x={leftX} y={leftY} yIsThrottle={true} xLabel="YAW" yLabel="THR" size={size} />
-        <div style={{ color: '#e0e0e0', fontSize: '0.65rem', opacity: 0.4, marginTop: 2 }}>Left Stick</div>
+        <div style={{ color: colors.on_surface, fontSize: '0.65rem', opacity: 0.4, marginTop: 2, fontFamily: fonts.body }}>Left Stick</div>
       </div>
       <div style={{ textAlign: 'center' }}>
         <StickBox x={rightX} y={rightY} yIsThrottle={false} xLabel="ROLL" yLabel="PITCH" size={size} />
-        <div style={{ color: '#e0e0e0', fontSize: '0.65rem', opacity: 0.4, marginTop: 2 }}>Right Stick</div>
+        <div style={{ color: colors.on_surface, fontSize: '0.65rem', opacity: 0.4, marginTop: 2, fontFamily: fonts.body }}>Right Stick</div>
       </div>
     </div>
   );
@@ -494,39 +497,39 @@ function StickBox({ x, y, yIsThrottle, xLabel, yLabel, size }: {
       {/* Background */}
       <div style={{
         position: 'absolute', top: 10, left: 20, width: size, height: size,
-        background: '#1a1a2e', border: '1px solid #3a3a4e', borderRadius: 8,
+        background: colors.surface, border: '1px solid ' + colors.outline_variant, borderRadius: 0,
       }} />
       {/* Horizontal center line */}
       <div style={{
         position: 'absolute', top: 10 + centerY, left: 20, width: size,
-        height: 1, background: '#3a3a4e',
+        height: 1, background: colors.surface_container_highest,
       }} />
       {/* Vertical center line */}
       <div style={{
         position: 'absolute', left: 20 + size / 2, top: 10, height: size,
-        width: 1, background: '#3a3a4e',
+        width: 1, background: colors.surface_container_highest,
       }} />
       {/* Dot */}
       <div style={{
         position: 'absolute',
         left: 20 + dotX, top: 10 + dotY,
         width: 12, height: 12, borderRadius: '50%',
-        background: '#00ff88',
-        boxShadow: '0 0 8px rgba(0,255,136,0.5)',
+        background: colors.primary,
+        boxShadow: '0 0 8px rgba(255, 182, 147, 0.5)',
         transform: 'translate(-50%, -50%)',
         transition: 'left 0.03s, top 0.03s',
       }} />
       {/* X label (below box) */}
       <span style={{
         position: 'absolute', bottom: -2, left: 20 + size / 2, transform: 'translateX(-50%)',
-        color: '#e0e0e0', fontSize: '0.6rem', opacity: 0.5,
+        color: colors.on_surface, fontSize: '0.6rem', opacity: 0.5, fontFamily: fonts.display,
       }}>
         {xLabel}
       </span>
       {/* Y label (left of box, rotated) */}
       <span style={{
         position: 'absolute', top: 10 + size / 2, left: 4, transform: 'translateY(-50%) rotate(-90deg)',
-        color: '#e0e0e0', fontSize: '0.6rem', opacity: 0.5,
+        color: colors.on_surface, fontSize: '0.6rem', opacity: 0.5, fontFamily: fonts.display,
         transformOrigin: 'center',
       }}>
         {yLabel}
@@ -576,15 +579,15 @@ function AxisBars({ axes, centerOffsets }: { axes: number[]; centerOffsets: numb
         return (
           <div key={i} style={{ flex: 1, textAlign: 'center' }}>
             <div style={{
-              height: 50, background: '#1a1a2e', borderRadius: 3,
+              height: 50, background: colors.surface, borderRadius: 0,
               position: 'relative', overflow: 'hidden',
             }}>
               <div style={{
                 position: 'absolute', bottom: '50%', left: 0, right: 0,
                 height: `${Math.abs(adjusted) * 50}%`,
-                background: '#00ff88',
+                background: colors.primary,
                 transform: adjusted < 0 ? 'scaleY(-1) translateY(100%)' : undefined,
-                transformOrigin: 'bottom', borderRadius: 2,
+                transformOrigin: 'bottom', borderRadius: 0,
               }} />
               {/* Center marker if calibrated */}
               {center !== 0 && (
@@ -594,7 +597,7 @@ function AxisBars({ axes, centerOffsets }: { axes: number[]; centerOffsets: numb
                 }} />
               )}
             </div>
-            <span style={{ color: '#e0e0e0', fontSize: '0.6rem', opacity: 0.5 }}>{i}</span>
+            <span style={{ color: colors.on_surface, fontSize: '0.6rem', opacity: 0.5, fontFamily: fonts.body }}>{i}</span>
           </div>
         );
       })}
@@ -608,8 +611,9 @@ function MappingSummary({ mapping }: { mapping: Partial<AxisMapping> }) {
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px',
-      fontSize: '0.75rem', color: '#e0e0e0', opacity: 0.7,
-      marginTop: '8px', padding: '8px', background: '#1a1a2e', borderRadius: 6,
+      fontSize: '0.75rem', color: colors.on_surface, opacity: 0.7,
+      marginTop: '8px', padding: '8px', background: colors.surface, borderRadius: 0,
+      fontFamily: fonts.body,
     }}>
       {channels.map(ch => {
         const config = mapping[ch] as AxisChannelConfig | undefined;
@@ -628,7 +632,7 @@ function MappingSummary({ mapping }: { mapping: Partial<AxisMapping> }) {
 function StepPanel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      background: '#1a1a2e', borderRadius: 8, padding: '1rem', marginBottom: '0.5rem',
+      background: colors.surface, borderRadius: 0, padding: '1rem', marginBottom: '0.5rem',
     }}>
       {children}
     </div>
@@ -637,7 +641,7 @@ function StepPanel({ children }: { children: React.ReactNode }) {
 
 function StepTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 style={{ color: '#e0e0e0', fontWeight: 500, fontSize: '0.95rem', margin: '0 0 8px', textAlign: 'center' }}>
+    <h3 style={{ color: colors.on_surface, fontWeight: 500, fontSize: '0.95rem', margin: '0 0 8px', textAlign: 'center', fontFamily: fonts.display }}>
       {children}
     </h3>
   );
@@ -645,7 +649,7 @@ function StepTitle({ children }: { children: React.ReactNode }) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h4 style={{ color: '#e0e0e0', fontWeight: 400, fontSize: '0.85rem', margin: '12px 0 6px', opacity: 0.7 }}>
+    <h4 style={{ color: colors.on_surface, fontWeight: 400, fontSize: '0.85rem', margin: '12px 0 6px', opacity: 0.7, fontFamily: fonts.display }}>
       {children}
     </h4>
   );
@@ -657,13 +661,13 @@ function RateSlider({ label, value, min, max, step = 10, unit = '', onChange }: 
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-      <span style={{ color: '#e0e0e0', fontSize: '0.8rem', width: '80px', opacity: 0.7 }}>{label}</span>
+      <span style={{ color: colors.on_surface, fontSize: '0.8rem', width: '80px', opacity: 0.7, fontFamily: fonts.body }}>{label}</span>
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{ flex: 1, accentColor: '#00ff88' }}
+        style={{ flex: 1, accentColor: colors.primary }}
       />
-      <span style={{ color: '#e0e0e0', fontSize: '0.75rem', width: '60px', textAlign: 'right' }}>
+      <span style={{ color: colors.on_surface, fontSize: '0.75rem', width: '60px', textAlign: 'right', fontFamily: fonts.body }}>
         {step < 1 ? value.toFixed(2) : value} {unit}
       </span>
     </div>
@@ -672,25 +676,30 @@ function RateSlider({ label, value, min, max, step = 10, unit = '', onChange }: 
 
 // ── Styles ────────────────────────────────────────────────
 const hintStyle: React.CSSProperties = {
-  color: '#e0e0e0', opacity: 0.5, fontSize: '0.85rem', textAlign: 'center', margin: '4px 0 12px',
+  color: colors.on_surface, opacity: 0.5, fontSize: '0.85rem', textAlign: 'center', margin: '4px 0 12px',
+  fontFamily: fonts.body,
 };
 
 const closeButtonStyle: React.CSSProperties = {
-  background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
-  color: '#e0e0e0', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '0.9rem',
+  background: 'transparent', border: '1px solid ' + colors.outline_variant_strong,
+  color: colors.on_surface, borderRadius: 0, padding: '4px 10px', cursor: 'pointer', fontSize: '0.9rem',
+  fontFamily: fonts.body,
 };
 
 const accentButtonStyle: React.CSSProperties = {
-  padding: '8px 20px', fontSize: '0.9rem', border: 'none', borderRadius: 6,
-  cursor: 'pointer', background: '#00ff88', color: '#1a1a2e', fontWeight: 600,
+  padding: '8px 20px', fontSize: '0.9rem', border: 'none', borderRadius: 0,
+  cursor: 'pointer', background: gradients.cta, color: colors.on_primary, fontWeight: 600,
+  fontFamily: fonts.display,
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
-  padding: '8px 20px', fontSize: '0.9rem', border: 'none', borderRadius: 6,
-  cursor: 'pointer', background: '#3a3a4e', color: '#e0e0e0',
+  padding: '8px 20px', fontSize: '0.9rem', border: 'none', borderRadius: 0,
+  cursor: 'pointer', background: colors.surface_container_highest, color: colors.on_surface,
+  fontFamily: fonts.body,
 };
 
 const selectStyle: React.CSSProperties = {
-  background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #3a3a4e',
-  borderRadius: 4, padding: '6px 12px', fontSize: '0.85rem',
+  background: colors.surface, color: colors.on_surface, border: '1px solid ' + colors.outline_variant,
+  borderRadius: 0, padding: '6px 12px', fontSize: '0.85rem',
+  fontFamily: fonts.body,
 };

@@ -224,6 +224,35 @@ After the final implementation of the task, before ending the chat session, use 
 
 ---
 
+## Phase 9: Architecture Refactoring (Completed)
+**Goal:** Improve physics realism, fix visual artifacts, enforce DESIGN.md compliance, decompose GameLoop.
+
+### Completed:
+- **Design token system** — Created `src/ui/theme.ts` centralizing all DESIGN.md values (colors, fonts, spacing, gradients, glass effects). All UI components rewritten to import from theme.
+- **Google Fonts** — Space Grotesk (display/HUD) + Inter (body) loaded via CDN in `index.html`
+- **Shared MOTOR_LAYOUT** — Single `MotorDef[]` constant in `types.ts` used by both `DronePhysics` (torque) and `FlightController` (mixing)
+- **Configurable FOV** — Default 90° (was 120°), slider 60–140° in Physics Settings, runtime update via `FPVCamera.setFov()`
+- **Quadratic angular drag** — Replaced linear drag with `torque = -k * |omega| * omega` for realistic feel
+- **Asymmetric motor spin** — Spin-down uses 2x time constant for realistic brushless motor behavior
+- **Direction-dependent drag** — Velocity transformed to body frame, per-axis Cd×A with 3x vertical multiplier
+- **MOTOR_LAYOUT-driven torque** — `DronePhysics` computes torques via loop over `MOTOR_LAYOUT` instead of hardcoded formulas
+- **Hardened ground collision** — Zeroes ALL velocity components on ground contact, pre-integration check prevents tunneling
+- **GameLoop decomposition** — Extracted `CrashDetector.ts` and `TelemetryPublisher.ts` from GameLoop
+- **Store-based crash flash** — CrashFlash reads `crashFlashActive` from Zustand store instead of window global
+- **Distance-based globe toggle** — Cesium globe hidden within 2km of spawn (500m hysteresis) to fix "second flat map"
+- **UI visual overhaul** — All components use theme tokens. 0 instances of #00ff88 or non-zero borderRadius remaining.
+- **20 unit tests** — DragModel (5), MotorModel (2), FlightController (3), DronePhysics (7+), PIDController (3)
+
+### New files:
+- `src/ui/theme.ts` — Design token system
+- `src/game/CrashDetector.ts` — Extracted crash detection
+- `src/game/TelemetryPublisher.ts` — Throttled telemetry publishing
+- `src/core/physics/__tests__/DragModel.test.ts` — Drag model tests
+- `src/core/physics/__tests__/MotorModel.test.ts` — Motor model tests
+- `src/core/flight-controller/__tests__/FlightController.test.ts` — Flight controller tests
+
+---
+
 ## Verification Plan (End-to-End)
 
 1. **Phase 2:** `npm run test` — drop test (drone falls), hover test (~50% stable), PID convergence

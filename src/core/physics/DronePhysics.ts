@@ -6,6 +6,7 @@ import type {
   Vector3,
 } from "./types";
 import {
+  MOTOR_LAYOUT,
   quatMultiply,
   quatNormalize,
   quatRotateVector,
@@ -77,34 +78,32 @@ export class DronePhysics {
     // Gravity (world frame, Z is up in ENU)
     const gravity: Vector3 = vec3(0, 0, -this.config.mass * GRAVITY);
 
-    // Translational drag (world frame)
-    const drag = computeTranslationalDrag(state.velocity, this.config);
+    // Translational drag (direction-dependent, body-frame aware)
+    const drag = computeTranslationalDrag(state.velocity, state.quaternion, this.config);
 
     // Net force
     const netForce = v3Add(v3Add(thrustWorldFrame, gravity), drag);
 
-    // ── Compute net torque in body frame ──────────────────
+    // ── Compute net torque in body frame (via MOTOR_LAYOUT) ──
     const d = this.motorArmOffset;
+    let rollTorque = 0;
+    let pitchTorque = 0;
+    let yawTorque = 0;
 
-    // Roll torque: (right motors - left motors) * arm offset → around body Y (forward axis)
-    // Right = M2 + M3, Left = M1 + M4
-    const rollTorque = (t2 + t3 - t1 - t4) * d;
+    for (let i = 0; i < 4; i++) {
+      const motor = MOTOR_LAYOUT[i]!;
+      const thrust = thrusts[i]!;
+      const reaction = reactionTorques[i]!;
 
-    // Pitch torque: (front motors - back motors) * arm offset → around body X (right axis)
-    // Front = M1 + M2, Back = M3 + M4
-    const pitchTorque = (t1 + t2 - t3 - t4) * d;
+      // Roll torque: thrust * posX * d (right motors → positive roll around Y)
+      rollTorque += thrust * motor.posX * d;
+      // Pitch torque: thrust * posY * d (front motors → positive pitch around X)
+      pitchTorque += thrust * motor.posY * d;
+      // Yaw torque: reaction torque * spin direction
+      yawTorque += reaction * motor.spin;
+    }
 
-    // Yaw torque: reaction torques (CCW motors positive, CW negative)
-    // M1(CCW) + M3(CCW) - M2(CW) - M4(CW)
-    const q1 = reactionTorques[0]!;
-    const q2 = reactionTorques[1]!;
-    const q3 = reactionTorques[2]!;
-    const q4 = reactionTorques[3]!;
-    const yawTorque = q1 - q2 + q3 - q4;
-
-    // Body frame: X=right, Y=forward, Z=up
-    // Pitch torque (front/back differential) → around X axis
-    // Roll torque (left/right differential) → around Y axis
+    // Body frame: X=right(pitch axis), Y=forward(roll axis), Z=up(yaw axis)
     const motorTorque: Vector3 = vec3(pitchTorque, rollTorque, yawTorque);
 
     // Angular drag
@@ -159,13 +158,20 @@ export class DronePhysics {
       z: state.quaternion.z + 0.5 * qDot.z * dt,
     });
 
-    // ── Ground clamp (simple, terrain-aware version in Phase 5) ──
+    // ── Hard altitude floor at Z=0 (spawn elevation) ──────
     let finalPosition = newPosition;
     let finalVelocity = newVelocity;
     let finalAngularVelocity = newAngularVelocity;
-    if (newPosition.z < 0) {
+
+    // Pre-integration check: if on ground with downward velocity, kill immediately
+    if (state.position.z <= 0 && newVelocity.z < 0) {
       finalPosition = vec3(newPosition.x, newPosition.y, 0);
-      finalVelocity = vec3(newVelocity.x, newVelocity.y, 0);
+      finalVelocity = V3_ZERO;
+      finalAngularVelocity = V3_ZERO;
+    } else if (newPosition.z < 0) {
+      // Post-integration: clamp position and zero ALL motion (hard stop)
+      finalPosition = vec3(newPosition.x, newPosition.y, 0);
+      finalVelocity = V3_ZERO;
       finalAngularVelocity = V3_ZERO;
     }
 

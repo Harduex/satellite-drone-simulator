@@ -12,8 +12,10 @@ export interface DroneTelemetry {
 }
 
 export interface DroneSlice extends DroneTelemetry {
+  crashFlashActive: boolean;
   updateTelemetry: (telemetry: Partial<DroneTelemetry>) => void;
   resetTelemetry: () => void;
+  triggerCrashFlash: () => void;
 }
 
 const INITIAL_TELEMETRY: DroneTelemetry = {
@@ -29,6 +31,11 @@ const INITIAL_TELEMETRY: DroneTelemetry = {
 
 export const createDroneSlice: StateCreator<DroneSlice> = (set) => ({
   ...INITIAL_TELEMETRY,
+  crashFlashActive: false,
   updateTelemetry: (telemetry) => set(telemetry),
-  resetTelemetry: () => set(INITIAL_TELEMETRY),
+  resetTelemetry: () => set({ ...INITIAL_TELEMETRY, crashFlashActive: false }),
+  triggerCrashFlash: () => {
+    set({ crashFlashActive: true });
+    setTimeout(() => set({ crashFlashActive: false }), 200);
+  },
 });

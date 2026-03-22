@@ -76,7 +76,21 @@ export class SimSession {
       physicsConfig: store.physicsConfig,
       ratesConfig: store.rates,
     });
+
+    // Wire crash callback to Zustand store (no window globals)
+    this.gameLoop.onCrash(() => {
+      useStore.getState().triggerCrashFlash();
+    });
+
     this.gameLoop.start();
+
+    // Set up distance-based globe toggle (hide within 2km for 3D tile clarity)
+    const spawnEcef = Cesium.Cartesian3.fromDegrees(
+      location.lon,
+      location.lat,
+      terrainHeight + DEFAULT_DRONE_CONFIG.spawnAltitude,
+    );
+    this.cesiumManager.setupGlobeToggle(spawnEcef, 2000);
 
     useStore.getState().setPhase("FLYING");
   }

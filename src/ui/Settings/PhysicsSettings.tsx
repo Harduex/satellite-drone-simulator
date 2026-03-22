@@ -1,5 +1,6 @@
 import { useStore } from '../../store';
 import { DEFAULT_DRONE_CONFIG } from '../../core/physics/types';
+import { colors, fontSizes, spacing } from '../theme';
 
 interface Props {
   onClose: () => void;
@@ -8,6 +9,8 @@ interface Props {
 export function PhysicsSettings({ onClose }: Props) {
   const config = useStore((s) => s.physicsConfig);
   const setConfig = useStore((s) => s.setPhysicsConfig);
+  const fov = useStore((s) => s.fov);
+  const setFov = useStore((s) => s.setFov);
 
   const handleReset = () => {
     setConfig(DEFAULT_DRONE_CONFIG);
@@ -15,8 +18,8 @@ export function PhysicsSettings({ onClose }: Props) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, color: '#e0e0e0', fontWeight: 400 }}>Physics Settings</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+        <h2 style={{ margin: 0, color: colors.on_surface, fontWeight: 400 }}>Physics Settings</h2>
         <button onClick={onClose} style={closeButtonStyle}>X</button>
       </div>
 
@@ -55,16 +58,25 @@ export function PhysicsSettings({ onClose }: Props) {
         unit="m"
         onChange={(v) => setConfig({ spawnAltitude: v })}
       />
+      <Slider
+        label="FOV"
+        value={fov}
+        min={60}
+        max={140}
+        step={1}
+        unit="deg"
+        onChange={(v) => setFov(v)}
+      />
 
       <button onClick={handleReset} style={{
-        marginTop: '1rem',
+        marginTop: spacing.md,
         padding: '8px 20px',
-        fontSize: '0.85rem',
-        border: '1px solid rgba(255,255,255,0.2)',
-        borderRadius: '6px',
+        fontSize: fontSizes.body_sm,
+        border: '1px solid ' + colors.outline_variant,
+        borderRadius: 0,
         cursor: 'pointer',
-        background: 'transparent',
-        color: '#e0e0e0',
+        background: colors.surface_container_highest,
+        color: colors.on_surface,
         width: '100%',
       }}>
         Reset to Defaults
@@ -84,7 +96,7 @@ function Slider({ label, value, min, max, step, unit = '', onChange }: {
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-      <span style={{ color: '#e0e0e0', fontSize: '0.8rem', width: '90px', opacity: 0.7 }}>
+      <span style={{ color: colors.on_surface, fontSize: '0.8rem', width: '90px', opacity: 0.7 }}>
         {label}
       </span>
       <input
@@ -94,9 +106,9 @@ function Slider({ label, value, min, max, step, unit = '', onChange }: {
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{ flex: 1, accentColor: '#00ff88' }}
+        style={{ flex: 1, accentColor: colors.primary }}
       />
-      <span style={{ color: '#e0e0e0', fontSize: '0.75rem', width: '60px', textAlign: 'right' }}>
+      <span style={{ color: colors.on_surface, fontSize: '0.75rem', width: '60px', textAlign: 'right' }}>
         {step < 1 ? value.toFixed(step < 0.1 ? 2 : 1) : value} {unit}
       </span>
     </div>
@@ -105,10 +117,10 @@ function Slider({ label, value, min, max, step, unit = '', onChange }: {
 
 const closeButtonStyle: React.CSSProperties = {
   background: 'transparent',
-  border: '1px solid rgba(255,255,255,0.2)',
-  color: '#e0e0e0',
-  borderRadius: '4px',
+  border: '1px solid ' + colors.outline_variant_strong,
+  color: colors.on_surface,
+  borderRadius: 0,
   padding: '4px 10px',
   cursor: 'pointer',
-  fontSize: '0.9rem',
+  fontSize: fontSizes.body_md,
 };

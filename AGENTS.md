@@ -22,9 +22,12 @@ src/
 ├── game/           Integration layer
 │   ├── GameLoop.ts          500Hz physics / 60Hz render orchestrator
 │   ├── SimSession.ts        Session lifecycle, spawn management
-│   └── BatteryModel.ts      Simulated battery drain
+│   ├── BatteryModel.ts      Simulated battery drain
+│   ├── CrashDetector.ts     AGL-based crash detection with callbacks
+│   └── TelemetryPublisher.ts  Throttled telemetry to store (~10Hz)
 ├── store/          Zustand state (session, drone telemetry, settings)
 └── ui/             React UI (location picker, HUD, pause menu, settings)
+    └── theme.ts    Design token system (colors, fonts, spacing, glass effects)
 ```
 
 ### Module Dependency Rules
@@ -43,6 +46,13 @@ src/
 - **Euler integrator at 500Hz** — simple and stable enough for MVP; upgrade to RK4 if instability at high angular rates
 - **Betaflight-comparable PID defaults** — hardcoded gains, tuning UI available in settings
 - **PID runs at physics rate (500Hz), not frame rate** — consistent timestep prevents integral windup from variable frame timing
+- **Shared MOTOR_LAYOUT** — single `MotorDef[]` constant in `types.ts` defines motor positions, spin directions, and mixing signs. Used by both `DronePhysics` (torque) and `FlightController` (mixing) to eliminate duplication.
+- **Quadratic angular drag** — `torque = -k * |omega| * omega` for realistic feel (linear was too mushy at high rates)
+- **Direction-dependent translational drag** — velocity transformed to body frame, per-axis Cd×A with 3x vertical multiplier for downwash resistance
+- **Asymmetric motor spin** — spin-down uses 2x time constant (`motorSpinDownFactor`) for realistic brushless motor + prop inertia
+- **Distance-based globe toggle** — Cesium globe hidden within 2km of spawn (with 500m hysteresis) to prevent the "second flat map" artifact
+- **Design token system** — `src/ui/theme.ts` centralizes all DESIGN.md values (colors, fonts, spacing, glass effects). No hardcoded colors in components.
+- **Store-based crash flash** — crash events flow through Zustand store, not window globals. `game/` layer never imports `ui/`.
 
 ## Development
 
@@ -152,7 +162,7 @@ When fixing or implementing physics-related features, verify the following:
 - **Flight controller axis mapping** — Roll PID reads `angularVelocity.y`, Pitch PID reads `angularVelocity.x`, Yaw PID reads `angularVelocity.z`.
 - **Sign negation** — All target rates are negated in `FlightController.update()` to match right-hand rule: stick-right → negative omega.y (roll right), stick-forward → negative omega.x (pitch down/fly forward), stick-yaw-right → negative omega.z (yaw clockwise from above).
 - **PID runs at physics rate** — `FlightController.update()` must be called inside the 500Hz substep loop in `GameLoop.tick()` with `PHYSICS_DT`, never with variable `wallDt`.
-- **Motor mixing signs match layout** — M1(front-left CCW) = `throttle - roll + pitch + yaw`, M2(front-right CW) = `throttle + roll + pitch - yaw`, M3(back-right CCW) = `throttle + roll - pitch + yaw`, M4(back-left CW) = `throttle - roll - pitch - yaw`.
+- **Motor mixing signs match MOTOR_LAYOUT** — defined once in `src/core/physics/types.ts` as `MOTOR_LAYOUT` constant. M1(front-left CCW) = `throttle + mixRoll*roll + mixPitch*pitch + mixYaw*yaw`. Both `FlightController` and `DronePhysics` reference the same layout.
 - **Keyboard inputs ramp smoothly** — all stick axes use `rampAxis()` with configurable acceleration/decay rates, not binary on/off values.
 - **Hover at ~35% throttle** — with `DEFAULT_DRONE_CONFIG`, the drone should hold altitude at approximately 35% throttle. If hover drifts significantly, check kT, mass, and maxRPM.
 

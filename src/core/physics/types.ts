@@ -130,6 +130,40 @@ export interface MotorCommands {
   m4: number; // [0, 1] back-left CW
 }
 
+// ── Motor Layout (X config, single source of truth) ─────
+export interface MotorDef {
+  label: string;
+  /** Position sign: X (right+) */
+  posX: -1 | 1;
+  /** Position sign: Y (forward+) */
+  posY: -1 | 1;
+  /** Spin direction: +1 = CCW, -1 = CW */
+  spin: 1 | -1;
+  /** Mixing: how roll PID correction adds to this motor */
+  mixRoll: -1 | 1;
+  /** Mixing: how pitch PID correction adds to this motor */
+  mixPitch: -1 | 1;
+  /** Mixing: how yaw PID correction adds to this motor */
+  mixYaw: -1 | 1;
+}
+
+/**
+ * Canonical X-config motor layout.
+ * Referenced by DronePhysics (torque) and FlightController (mixing).
+ *
+ * Top view (front = +Y):
+ *   M1(CCW) --- M2(CW)    front
+ *      \       /
+ *       \     /
+ *   M4(CW) --- M3(CCW)    back
+ */
+export const MOTOR_LAYOUT: readonly [MotorDef, MotorDef, MotorDef, MotorDef] = [
+  { label: 'M1', posX: -1, posY:  1, spin:  1, mixRoll: -1, mixPitch:  1, mixYaw:  1 },
+  { label: 'M2', posX:  1, posY:  1, spin: -1, mixRoll:  1, mixPitch:  1, mixYaw: -1 },
+  { label: 'M3', posX:  1, posY: -1, spin:  1, mixRoll:  1, mixPitch: -1, mixYaw:  1 },
+  { label: 'M4', posX: -1, posY: -1, spin: -1, mixRoll: -1, mixPitch: -1, mixYaw: -1 },
+] as const;
+
 // ── Stick Inputs ─────────────────────────────────────────
 export interface StickInputs {
   throttle: number; // [0, 1]
@@ -146,9 +180,11 @@ export interface PhysicsConfig {
   kT: number; // thrust coefficient (N per RPM²)
   kQ: number; // torque coefficient
   motorTimeConstant: number; // s
+  motorSpinDownFactor: number; // multiplier on motorTimeConstant for spin-down (>1 = slower)
   maxThrottleRpm: number;
   dragCoefficient: number;
   referenceArea: number; // m²
+  verticalDragMultiplier: number; // multiplier on Cd*A for vertical axis drag
   spawnAltitude: number; // m AGL
 }
 
@@ -164,9 +200,11 @@ export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
   // kQ maintains same kQ/kT ratio as original (≈0.01314, ~13mm torque arm)
   kQ: 2.5e-10,
   motorTimeConstant: 0.05,
+  motorSpinDownFactor: 2.0,
   maxThrottleRpm: 24000,
   dragCoefficient: 0.3,
   referenceArea: 0.04,
+  verticalDragMultiplier: 3.0,
   spawnAltitude: 10.0,
 };
 
