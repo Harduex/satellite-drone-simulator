@@ -30,6 +30,7 @@ export function LocationPicker({ onFlyHere }: Props) {
   const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [settingsPanel, setSettingsPanel] = useState<'none' | 'controller' | 'physics'>('none');
+  const [launching, setLaunching] = useState(false);
 
   useEffect(() => {
     ensureAutocompleteStyles();
@@ -55,7 +56,8 @@ export function LocationPicker({ onFlyHere }: Props) {
   }, []);
 
   const handleFlyHere = () => {
-    if (!selectedLocation) return;
+    if (!selectedLocation || launching) return;
+    setLaunching(true);
     onFlyHere({
       lon: selectedLocation.lng,
       lat: selectedLocation.lat,
@@ -206,7 +208,7 @@ export function LocationPicker({ onFlyHere }: Props) {
         )}
         <button
           onClick={handleFlyHere}
-          disabled={!selectedLocation}
+          disabled={!selectedLocation || launching}
           style={{
             padding: '14px 48px',
             fontSize: '1.1rem',
@@ -214,14 +216,15 @@ export function LocationPicker({ onFlyHere }: Props) {
             fontWeight: 600,
             border: 'none',
             borderRadius: 0,
-            cursor: selectedLocation ? 'pointer' : 'not-allowed',
-            background: selectedLocation ? gradients.cta : 'rgba(255, 182, 147, 0.3)',
+            cursor: selectedLocation && !launching ? 'pointer' : 'not-allowed',
+            background: launching ? 'rgba(255, 182, 147, 0.5)' : selectedLocation ? gradients.cta : 'rgba(255, 182, 147, 0.3)',
             color: selectedLocation ? colors.on_primary : colors.on_surface_muted,
-            boxShadow: selectedLocation ? '0 0 20px rgba(255, 182, 147, 0.3)' : 'none',
+            boxShadow: selectedLocation && !launching ? '0 0 20px rgba(255, 182, 147, 0.3)' : 'none',
             transition: 'all 0.2s',
+            opacity: launching ? 0.7 : 1,
           }}
         >
-          Fly Here
+          {launching ? 'Loading...' : 'Fly Here'}
         </button>
       </div>
 

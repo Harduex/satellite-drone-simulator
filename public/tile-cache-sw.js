@@ -4,7 +4,7 @@
 
 const CACHE_NAME = "tile-cache-v1";
 const META_CACHE_NAME = "tile-cache-meta-v1";
-const MAX_CACHE_SIZE_BYTES = 500 * 1024 * 1024; // 500MB
+const DEFAULT_MAX_CACHE_SIZE_BYTES = 500 * 1024 * 1024; // 500MB default
 const EVICTION_TARGET_RATIO = 0.8; // evict down to 80% capacity
 const DEFAULT_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const EVICTION_BATCH_SIZE = 20;
@@ -22,6 +22,7 @@ const CACHEABLE_HOSTS = [
 
 // Read config from registration message
 let indefiniteCache = false;
+let maxCacheSizeBytes = DEFAULT_MAX_CACHE_SIZE_BYTES;
 
 // Running byte counter — avoids full cache enumeration on every eviction check.
 // Lazily initialized from the actual cache on first eviction threshold check.
@@ -32,6 +33,9 @@ let evictionInProgress = false;
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "CONFIG") {
     indefiniteCache = Boolean(event.data.indefiniteCache);
+    if (event.data.maxCacheSizeMB > 0) {
+      maxCacheSizeBytes = event.data.maxCacheSizeMB * 1024 * 1024;
+    }
   }
 });
 
@@ -108,7 +112,7 @@ async function fetchAndCache(request, cache, metaCache) {
     estimatedTotalBytes += size;
 
     // Threshold-based eviction (not probabilistic)
-    if (estimatedTotalBytes > MAX_CACHE_SIZE_BYTES) {
+    if (estimatedTotalBytes > maxCacheSizeBytes) {
       evictIfNeeded(cache, metaCache).catch(() => {});
     }
   }
@@ -156,7 +160,7 @@ async function evictIfNeeded(cache, metaCache) {
     await initBytesFromCache(metaCache);
 
     // Re-check after initialization
-    if (estimatedTotalBytes <= MAX_CACHE_SIZE_BYTES) return;
+    if (estimatedTotalBytes <= maxCacheSizeBytes) return;
 
     const keys = await cache.keys();
     const entries = [];
@@ -180,7 +184,7 @@ async function evictIfNeeded(cache, metaCache) {
     entries.sort((a, b) => a.timestamp - b.timestamp);
 
     // Evict until we're at target capacity
-    const targetBytes = MAX_CACHE_SIZE_BYTES * EVICTION_TARGET_RATIO;
+    const targetBytes = maxCacheSizeBytes * EVICTION_TARGET_RATIO;
     let bytesFreed = 0;
     const toEvict = [];
     for (const entry of entries) {

@@ -41,9 +41,12 @@ export class TileLoader {
     const tileset = await Cesium.Cesium3DTileset.fromUrl(
       `https://tile.googleapis.com/v1/3dtiles/root.json?key=${apiKey}`,
     );
-    // Increase in-session tile cache to 1GB for smoother revisits
-    // cacheBytes is the newer API name (replaces maximumMemoryUsage in Cesium 1.107+)
+    // Increase in-session tile cache to 1GB for smoother revisits.
+    // cacheBytes is the newer API name (replaces maximumMemoryUsage in Cesium 1.107+).
+    // maximumCacheOverflowBytes gives Cesium a soft buffer above cacheBytes before
+    // it aggressively evicts tiles — reduces LOD thrashing when switching locations.
     (tileset as unknown as Record<string, number>).cacheBytes = 1024 * 1024 * 1024;
+    (tileset as unknown as Record<string, number>).maximumCacheOverflowBytes = 512 * 1024 * 1024;
     tileset.maximumScreenSpaceError = 12;
     tileset.skipLevelOfDetail = true;
     tileset.preloadFlightDestinations = true;

@@ -41,8 +41,11 @@ export async function registerTileCacheSW(): Promise<void> {
 function sendConfig(sw: ServiceWorker): void {
   const indefiniteCache =
     import.meta.env.VITE_TILE_CACHE_INDEFINITE === "true";
+  const maxCacheSizeMB =
+    parseInt(import.meta.env.VITE_TILE_CACHE_MAX_MB || "0", 10) || 0;
   sw.postMessage({
     type: "CONFIG",
     indefiniteCache,
+    maxCacheSizeMB,
   });
 }
