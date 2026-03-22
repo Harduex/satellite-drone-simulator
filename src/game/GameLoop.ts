@@ -42,6 +42,7 @@ export class GameLoop {
   private enuFrame: Cesium.Matrix4;
   private viewer: Cesium.Viewer;
   private terrainSampler: TerrainSampler;
+  private preUpdateListener: Cesium.Event.RemoveCallback | null = null;
   private preRenderListener: Cesium.Event.RemoveCallback | null = null;
   private sceneExclusions: object[];
 
@@ -114,7 +115,15 @@ export class GameLoop {
     this.gamepadManager.startPolling();
     this.keyboardInput.start();
 
-    // Hook into Cesium's preRender event for synchronized updates
+    // Keep camera orientation in sync before Cesium tile traversal so
+    // photoreal 3D refinement tracks movement reliably.
+    this.preUpdateListener = this.viewer.scene.preUpdate.addEventListener(
+      () => {
+        this.fpvCamera.sync(this.droneState, this.enuFrame);
+      },
+    );
+
+    // Hook into Cesium's preRender event for synchronized updates.
     this.preRenderListener = this.viewer.scene.preRender.addEventListener(
       () => {
         this.tick(performance.now());
@@ -124,6 +133,10 @@ export class GameLoop {
 
   stop(): void {
     this.running = false;
+    if (this.preUpdateListener) {
+      this.preUpdateListener();
+      this.preUpdateListener = null;
+    }
     if (this.preRenderListener) {
       this.preRenderListener();
       this.preRenderListener = null;
