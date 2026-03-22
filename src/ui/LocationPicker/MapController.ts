@@ -12,6 +12,8 @@ export class MapController {
     container: HTMLElement,
     apiKey: string,
     searchInput: HTMLInputElement,
+    initialCenter?: { lat: number; lng: number },
+    initialSelection?: { lat: number; lng: number; name: string },
   ): Promise<void> {
     setOptions({ key: apiKey, v: "weekly" });
 
@@ -23,7 +25,7 @@ export class MapController {
     ]);
 
     this.map = new google.maps.Map(container, {
-      center: { lat: 48.8584, lng: 2.2945 }, // Eiffel Tower default
+      center: initialCenter ?? { lat: 48.8584, lng: 2.2945 }, // Eiffel Tower default
       zoom: 15,
       mapTypeId: "satellite",
       disableDefaultUI: true,
@@ -32,6 +34,12 @@ export class MapController {
       minZoom: 3,
       maxZoom: 21,
     });
+
+    if (initialSelection) {
+      this.setMarker(initialSelection.lat, initialSelection.lng);
+      this.flyTo(initialSelection.lat, initialSelection.lng, 16);
+      this.onLocationSelect?.(initialSelection);
+    }
 
     // Click to select spawn point
     this.map!.addListener("click", (e: google.maps.MapMouseEvent) => {

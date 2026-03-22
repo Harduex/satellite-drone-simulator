@@ -17,7 +17,8 @@ export function SimView({ session, isPaused }: Props) {
       {isPaused && (
         <PauseMenu
           onResume={() => session.resume()}
-          onChangeLocation={() => session.endSession()}
+          onSaveCurrentAsDefault={() => session.saveCurrentLocationAsDefault()}
+          onChangeLocation={() => session.changeLocationFromPause()}
         />
       )}
     </div>

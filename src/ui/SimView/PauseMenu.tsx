@@ -5,12 +5,15 @@ import { colors, fonts, fontSizes, gradients, spacing, glass } from '../theme';
 
 interface Props {
   onResume: () => void;
+  onSaveCurrentAsDefault: () => void;
   onChangeLocation: () => void;
 }
 
 type SettingsTab = 'controller' | 'physics';
 
-export function PauseMenu({ onResume, onChangeLocation }: Props) {
+export function PauseMenu(
+  { onResume, onSaveCurrentAsDefault, onChangeLocation }: Props,
+) {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('controller');
 
@@ -80,6 +83,9 @@ export function PauseMenu({ onResume, onChangeLocation }: Props) {
         </button>
         <button onClick={() => setShowSettings(true)} style={ghostButtonStyle}>
           Settings
+        </button>
+        <button onClick={onSaveCurrentAsDefault} style={ghostButtonStyle}>
+          Save Current As Default
         </button>
         <button onClick={onChangeLocation} style={ghostButtonStyle}>
           Change Location

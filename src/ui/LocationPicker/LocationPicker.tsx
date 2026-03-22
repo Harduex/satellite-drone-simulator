@@ -3,6 +3,7 @@ import { MapController } from './MapController';
 import { ControllerSetup } from '../Settings/ControllerSetup';
 import { PhysicsSettings } from '../Settings/PhysicsSettings';
 import { colors, fonts, fontSizes, gradients, spacing, glass } from '../theme';
+import { useStore } from '../../store';
 
 // Ensure Google Places autocomplete dropdown renders above everything
 const GLOBAL_STYLE_ID = 'fpvsim-pac-style';
@@ -22,6 +23,9 @@ export function LocationPicker({ onFlyHere }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapControllerRef = useRef<MapController | null>(null);
+  const defaultLocation = useStore((s) => s.defaultLocation);
+  const pickerInitialLocation = useStore((s) => s.pickerInitialLocation);
+  const clearPickerInitialLocation = useStore((s) => s.clearPickerInitialLocation);
   const [selectedLocation, setSelectedLocation] = useState<{
     lat: number;
     lng: number;
@@ -41,13 +45,31 @@ export function LocationPicker({ onFlyHere }: Props) {
     }
 
     const controller = new MapController();
+    const fallbackCenter = { lat: 48.8584, lng: 2.2945 };
+    const seededLocation = pickerInitialLocation ?? defaultLocation;
+    const initialCenter = seededLocation
+      ? { lat: seededLocation.lat, lng: seededLocation.lng }
+      : fallbackCenter;
+
     controller.onLocationSelect = (loc) => {
       setSelectedLocation(loc);
     };
-    controller.init(mapContainerRef.current, apiKey, searchInputRef.current).catch((e) => {
-      setMapError(`Failed to load Google Maps: ${String(e)}`);
-    });
+    controller
+      .init(
+        mapContainerRef.current,
+        apiKey,
+        searchInputRef.current,
+        initialCenter,
+        seededLocation ?? undefined,
+      )
+      .catch((e) => {
+        setMapError(`Failed to load Google Maps: ${String(e)}`);
+      });
     mapControllerRef.current = controller;
+
+    if (pickerInitialLocation) {
+      clearPickerInitialLocation();
+    }
 
     return () => {
       controller.destroy();

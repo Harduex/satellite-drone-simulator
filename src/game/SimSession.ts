@@ -5,6 +5,7 @@ import { TileLoader } from "../world/TileLoader";
 import { TerrainSampler } from "../world/TerrainSampler";
 import { GameLoop } from "./GameLoop";
 import { useStore } from "../store";
+import type { SavedLocation } from "../store/settingsSlice";
 
 export interface SpawnOrigin {
   longitude: number;
@@ -189,6 +190,52 @@ export class SimSession {
 
   reset(): void {
     this.gameLoop?.reset();
+  }
+
+  private getCurrentLocationForPicker(): SavedLocation | null {
+    if (this.gameLoop && this.spawnOrigin) {
+      try {
+        const droneState = this.gameLoop.getDroneState();
+        const ecef = enuToEcef(droneState.position, this.gameLoop.getEnuFrame());
+        const cartographic = Cesium.Cartographic.fromCartesian(ecef);
+        const lat = Cesium.Math.toDegrees(cartographic.latitude);
+        const lng = Cesium.Math.toDegrees(cartographic.longitude);
+
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          return {
+            lat,
+            lng,
+            name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+          };
+        }
+      } catch (err) {
+        console.warn("Failed to convert paused drone position to lat/lng", err);
+      }
+    }
+
+    if (!this.spawnOrigin) return null;
+    return {
+      lat: this.spawnOrigin.latitude,
+      lng: this.spawnOrigin.longitude,
+      name: this.spawnOrigin.name,
+    };
+  }
+
+  saveCurrentLocationAsDefault(): void {
+    const currentLocation = this.getCurrentLocationForPicker();
+    if (!currentLocation) return;
+
+    const store = useStore.getState();
+    store.setDefaultLocation(currentLocation);
+    store.setPickerInitialLocation(currentLocation);
+  }
+
+  changeLocationFromPause(): void {
+    const currentLocation = this.getCurrentLocationForPicker();
+    if (currentLocation) {
+      useStore.getState().setPickerInitialLocation(currentLocation);
+    }
+    this.endSession();
   }
 
   pause(): void {

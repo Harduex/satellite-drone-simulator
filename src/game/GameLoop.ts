@@ -217,6 +217,10 @@ export class GameLoop {
     return this.droneState;
   }
 
+  getEnuFrame(): Cesium.Matrix4 {
+    return this.enuFrame;
+  }
+
   isPaused(): boolean {
     return !this.running;
   }
