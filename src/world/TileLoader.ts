@@ -33,26 +33,30 @@ export class TileLoader {
     );
   }
 
-  /** Load Google Photorealistic 3D Tiles */
+  /** Load Google Photorealistic 3D Tiles (reuses existing tileset if present) */
   async loadGoogleTiles(
     viewer: Cesium.Viewer,
     apiKey: string,
   ): Promise<Cesium.Cesium3DTileset> {
+    if (this.tileset) {
+      return this.tileset;
+    }
     const tileset = await Cesium.Cesium3DTileset.fromUrl(
       `https://tile.googleapis.com/v1/3dtiles/root.json?key=${apiKey}`,
     );
-    // Increase in-session tile cache to 1GB for smoother revisits.
+    // In-session tile cache — tileset is reused across sessions so the cache persists.
     // cacheBytes is the newer API name (replaces maximumMemoryUsage in Cesium 1.107+).
     // maximumCacheOverflowBytes gives Cesium a soft buffer above cacheBytes before
     // it aggressively evicts tiles — reduces LOD thrashing when switching locations.
-    (tileset as unknown as Record<string, number>).cacheBytes = 1024 * 1024 * 1024;
-    (tileset as unknown as Record<string, number>).maximumCacheOverflowBytes = 512 * 1024 * 1024;
+    (tileset as unknown as Record<string, number>).cacheBytes = 768 * 1024 * 1024;
+    (tileset as unknown as Record<string, number>).maximumCacheOverflowBytes = 256 * 1024 * 1024;
     tileset.maximumScreenSpaceError = 12;
     tileset.skipLevelOfDetail = true;
     tileset.preloadFlightDestinations = true;
-    tileset.preferLeaves = true;
-    (tileset as unknown as Record<string, number>).skipLevels = 1;
-    (tileset as unknown as Record<string, boolean>).immediatelyLoadDesiredLevelOfDetail = true;
+    (tileset as unknown as Record<string, boolean>).loadSiblings = true;
+    tileset.foveatedScreenSpaceError = true;
+    tileset.foveatedConeSize = 0.15;
+    (tileset as unknown as Record<string, number>).foveatedMinimumScreenSpaceError = 12;
     viewer.scene.primitives.add(tileset);
     this.tileset = tileset;
     return tileset;

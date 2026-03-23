@@ -45,12 +45,14 @@ export class CesiumManager {
     controller.enableLook = false;
 
     // Performance tuning (PRD §7.4)
-    // Increase parallel tile requests
-    (Cesium.RequestScheduler as unknown as Record<
+    // Increase parallel tile requests for Google's tile server
+    const scheduler = Cesium.RequestScheduler as unknown as Record<
       string,
       Record<string, number>
-    >)
-      .requestsByServer = { "tile.googleapis.com:443": 12 };
+    >;
+    if (scheduler.requestsByServer) {
+      scheduler.requestsByServer["tile.googleapis.com:443"] = 12;
+    }
 
     // Daytime sky tuning for FPV: vivid blue, natural gradient toward horizon.
     // skyAtmosphere handles all sky colour — skyBox provides the deep-space
