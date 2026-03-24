@@ -47,17 +47,20 @@ export class SimSession {
     this.cesiumManager.showContainer();
 
     // Position camera temporarily so globe terrain loads around the spawn point.
-    // Use roughTerrainHeight just to get the camera in the right ballpark.
+    // Use a generous altitude buffer (500m) above the rough estimate to absorb
+    // geoid-ellipsoid offset (up to ~100m) — the Google Elevation API returns
+    // orthometric heights but Cesium.Cartesian3.fromDegrees expects WGS84.
     const store = useStore.getState();
     const spawnAlt = store.physicsConfig.spawnAltitude;
     viewer.camera.setView({
       destination: Cesium.Cartesian3.fromDegrees(
         location.lon,
         location.lat,
-        roughTerrainHeight + spawnAlt + 50,
+        roughTerrainHeight + 500,
       ),
       orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 },
     });
+    this.tileLoader.prepareForNewLocation(viewer);
     await this.tileLoader.waitForViewRefinement(viewer);
 
     // After tiles/globe have loaded, query WGS84 ellipsoidal height from the globe.
@@ -107,7 +110,7 @@ export class SimSession {
         roll: 0,
       },
     });
-    await this.tileLoader.waitForViewRefinement(viewer, 2500);
+    await this.tileLoader.waitForViewRefinement(viewer, 4000);
 
     // Start game loop with terrain sampler for real-time ground collision
     const sceneExclusions: object[] = [];
@@ -251,6 +254,7 @@ export class SimSession {
   endSession(): void {
     this.gameLoop?.stop();
     this.gameLoop = null;
+    this.cesiumManager.teardownGlobeToggle();
     this.cesiumManager.hideContainer();
     this.spawnOrigin = null;
     useStore.getState().resetSession();

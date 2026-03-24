@@ -3,7 +3,7 @@ import type { Vector3 } from "../core/physics/types";
 import { enuToEcef } from "./CoordUtils";
 
 const MAX_REASONABLE_SURFACE_OFFSET_METERS = 10000;
-const MIN_SAFE_SPAWN_AGL_METERS = 8;
+const MIN_SAFE_SPAWN_AGL_METERS = 25;
 const SPAWN_SAMPLE_OFFSETS: readonly [number, number][] = [
   [90, 0],
   [-90, 0],
@@ -98,24 +98,43 @@ export class TerrainSampler {
     return Cesium.Cartographic.fromCartesian(ecef);
   }
 
-  private sampleNearbySpawnSurface(): { x: number; y: number; z: number } | null {
-    let bestSurface: { x: number; y: number; z: number } | null = null;
+  private sampleNearbySpawnSurface(): {
+    x: number; y: number; z: number; hasSceneSample: boolean;
+  } | null {
+    let bestSurface: { x: number; y: number; z: number; fromScene: boolean } | null = null;
 
     for (const [east, north] of SPAWN_SAMPLE_OFFSETS) {
       const carto = this.sampleCartographicAtOffset(east, north);
-      const sampledGroundHeight =
-        this.sampleHeightFromScene(carto) ?? this.sampleHeightFromGlobe(carto);
 
-      if (sampledGroundHeight === null) {
+      // Prefer scene.sampleHeight (includes 3D tile geometry like buildings)
+      const sceneHeight = this.sampleHeightFromScene(carto);
+      if (sceneHeight !== null) {
+        if (!bestSurface || sceneHeight < bestSurface.z) {
+          bestSurface = { x: east, y: north, z: sceneHeight, fromScene: true };
+        }
         continue;
       }
 
-      if (!bestSurface || sampledGroundHeight < bestSurface.z) {
-        bestSurface = { x: east, y: north, z: sampledGroundHeight };
+      // Globe fallback (terrain only, no buildings)
+      const globeHeight = this.sampleHeightFromGlobe(carto);
+      if (globeHeight !== null) {
+        if (!bestSurface || globeHeight < bestSurface.z) {
+          bestSurface = { x: east, y: north, z: globeHeight, fromScene: false };
+        }
       }
     }
 
-    return bestSurface;
+    if (!bestSurface) return null;
+
+    // hasSceneSample is true only when the chosen best surface itself
+    // came from a scene sample — prevents accepting a globe-only low point
+    // while scene data exists for other offsets (which could be building tops).
+    return {
+      x: bestSurface.x,
+      y: bestSurface.y,
+      z: bestSurface.z,
+      hasSceneSample: bestSurface.fromScene,
+    };
   }
 
   /**
@@ -151,17 +170,26 @@ export class TerrainSampler {
       MIN_SAFE_SPAWN_AGL_METERS,
     );
 
+    let bestGlobeFallback: { x: number; y: number; z: number } | null = null;
+
     // Try multiple times as tiles load in
     for (let attempt = 0; attempt < 30; attempt++) {
       try {
-        const bestSurface = this.sampleNearbySpawnSurface();
-        if (bestSurface) {
-          this.cachedGroundHeight = bestSurface.z;
-          return {
-            x: bestSurface.x,
-            y: bestSurface.y,
-            z: bestSurface.z + safeSpawnAltitude,
-          };
+        const result = this.sampleNearbySpawnSurface();
+        if (result) {
+          if (result.hasSceneSample) {
+            // Scene-backed result: 3D tile geometry is available — accept it
+            this.cachedGroundHeight = result.z;
+            return {
+              x: result.x,
+              y: result.y,
+              z: result.z + safeSpawnAltitude,
+            };
+          }
+          // Globe-only result: save as fallback, keep trying for scene data
+          if (!bestGlobeFallback) {
+            bestGlobeFallback = { x: result.x, y: result.y, z: result.z };
+          }
         }
       } catch {
         // tiles not ready yet
@@ -171,6 +199,16 @@ export class TerrainSampler {
         this.scene.requestRender();
         requestAnimationFrame(() => resolve());
       });
+    }
+
+    // Exhausted attempts — use best globe fallback if available
+    if (bestGlobeFallback) {
+      this.cachedGroundHeight = bestGlobeFallback.z;
+      return {
+        x: bestGlobeFallback.x,
+        y: bestGlobeFallback.y,
+        z: bestGlobeFallback.z + safeSpawnAltitude,
+      };
     }
 
     const fallbackGroundHeight = this.sampleHeightFromGlobe(

@@ -52,11 +52,10 @@ export class TileLoader {
     (tileset as unknown as Record<string, number>).maximumCacheOverflowBytes = 256 * 1024 * 1024;
     tileset.maximumScreenSpaceError = 12;
     tileset.skipLevelOfDetail = true;
-    tileset.preloadFlightDestinations = true;
     (tileset as unknown as Record<string, boolean>).loadSiblings = true;
     tileset.foveatedScreenSpaceError = true;
     tileset.foveatedConeSize = 0.15;
-    (tileset as unknown as Record<string, number>).foveatedMinimumScreenSpaceError = 12;
+    (tileset as unknown as Record<string, number>).foveatedMinimumScreenSpaceError = 4;
     viewer.scene.primitives.add(tileset);
     this.tileset = tileset;
     return tileset;
@@ -64,6 +63,13 @@ export class TileLoader {
 
   getTileset(): Cesium.Cesium3DTileset | null {
     return this.tileset;
+  }
+
+  /** Flush GPU-cached tiles from the previous location so the new view can refine quickly. */
+  prepareForNewLocation(viewer: Cesium.Viewer): void {
+    if (!this.tileset) return;
+    this.tileset.trimLoadedTiles();
+    viewer.scene.requestRender();
   }
 
   async waitForViewRefinement(
@@ -78,6 +84,9 @@ export class TileLoader {
     await new Promise<void>((resolve) => {
       let settled = false;
       let settledFrames = 0;
+      let sawActivity = false;
+      const startTime = performance.now();
+      const MIN_WAIT_MS = 400;
 
       const finish = () => {
         if (settled) {
@@ -93,13 +102,14 @@ export class TileLoader {
       };
 
       const noteProgress = (remainingTiles = 0) => {
-        if (remainingTiles === 0) {
+        if (remainingTiles > 0) {
+          sawActivity = true;
+          settledFrames = 0;
+        } else if (sawActivity && (performance.now() - startTime) >= MIN_WAIT_MS) {
           settledFrames += 1;
           if (settledFrames >= 3) {
             finish();
           }
-        } else {
-          settledFrames = 0;
         }
       };
 
@@ -111,12 +121,12 @@ export class TileLoader {
 
       const removeInitialLoadedListener = tileset.initialTilesLoaded.addEventListener(
         () => {
-          noteProgress(0);
+          if (sawActivity) noteProgress(0);
         },
       );
 
       const removeAllLoadedListener = tileset.allTilesLoaded.addEventListener(() => {
-        noteProgress(0);
+        if (sawActivity) noteProgress(0);
       });
 
       const pump = () => {
@@ -130,7 +140,6 @@ export class TileLoader {
 
       const timeoutId = window.setTimeout(finish, timeoutMs);
       pump();
-      noteProgress(getRuntimeStats(tileset).numberOfPendingRequests);
     });
   }
 }

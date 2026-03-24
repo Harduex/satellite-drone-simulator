@@ -1,5 +1,8 @@
 # AGENTS.md
 
+## Important Rules
+- When reporting information to me, be extremely concise. Sacrifice grammar for the sake of concision and clarity.
+
 ## Project Overview
 
 Browser-based FPV drone simulator. Fly any real-world location using Google Photorealistic 3D Tiles via CesiumJS, with a custom 500Hz quadrotor physics engine and real radio controller input via the Web Gamepad API. Search for a location, click "Fly Here", and fly in first-person view with realistic inertia, drag, and motor response.

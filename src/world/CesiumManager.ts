@@ -105,6 +105,17 @@ export class CesiumManager {
     this.viewer.scene.logarithmicDepthBuffer = true;
   }
 
+  /** Remove the globe-toggle preRender listener (e.g. on session end). */
+  teardownGlobeToggle(): void {
+    if (this.globeToggleCleanup) {
+      this.globeToggleCleanup();
+      this.globeToggleCleanup = null;
+    }
+    if (this.viewer) {
+      this.viewer.scene.globe.show = true;
+    }
+  }
+
   /**
    * Distance-based globe visibility toggle.
    * Hides the Cesium globe within `thresholdMeters` of spawn to prevent
