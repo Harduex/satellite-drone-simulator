@@ -254,6 +254,7 @@ export interface PhysicsConfig {
   referenceArea: number; // m²
   verticalDragMultiplier: number; // multiplier on Cd*A for vertical axis drag
   spawnAltitude: number; // m AGL
+  thrustLinearization?: boolean; // apply sqrt to throttle commands for linear thrust feel
 }
 
 export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
@@ -267,13 +268,14 @@ export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
   kT: 1.9e-8,
   // kQ maintains same kQ/kT ratio as original (≈0.01314, ~13mm torque arm)
   kQ: 2.5e-10,
-  motorTimeConstant: 0.05,
-  motorSpinDownFactor: 2.0,
+  motorTimeConstant: 0.018,
+  motorSpinDownFactor: 1.3,
   maxThrottleRpm: 24000,
   dragCoefficient: 0.3,
   referenceArea: 0.04,
   verticalDragMultiplier: 3.0,
   spawnAltitude: 2.0,
+  thrustLinearization: true,
 };
 
 export interface RatesConfig {
@@ -284,8 +286,8 @@ export interface RatesConfig {
 }
 
 export const DEFAULT_RATES: RatesConfig = {
-  rollRate: 700,
-  pitchRate: 700,
-  yawRate: 400,
-  expo: 0.65,
+  rollRate: 800,
+  pitchRate: 800,
+  yawRate: 650,
+  expo: 0.60,
 };

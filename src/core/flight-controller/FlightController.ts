@@ -10,9 +10,9 @@ import { applyExpo } from "./FlightModes";
 
 // Betaflight-comparable PID gains (scaled for our units: rad/s error → motor command [0,1])
 const DEFAULT_PID = {
-  roll: { kP: 0.045, kI: 0.06, kD: 0.025 },
-  pitch: { kP: 0.045, kI: 0.06, kD: 0.025 },
-  yaw: { kP: 0.065, kI: 0.08, kD: 0.0 },
+  roll: { kP: 0.065, kI: 0.035, kD: 0.030, kFF: 0.015 },
+  pitch: { kP: 0.065, kI: 0.035, kD: 0.030, kFF: 0.015 },
+  yaw: { kP: 0.090, kI: 0.045, kD: 0.010, kFF: 0.020 },
 };
 
 const DEG_TO_RAD = Math.PI / 180;
@@ -60,18 +60,37 @@ export class FlightController {
     const pitchError = targetPitchRate - droneState.angularVelocity.x;
     const yawError = targetYawRate - droneState.angularVelocity.z;
 
-    const rollCmd = this.rollPID.update(rollError, dt);
-    const pitchCmd = this.pitchPID.update(pitchError, dt);
-    const yawCmd = this.yawPID.update(yawError, dt);
+    const rollCmd = this.rollPID.update(rollError, dt, targetRollRate);
+    const pitchCmd = this.pitchPID.update(pitchError, dt, targetPitchRate);
+    const yawCmd = this.yawPID.update(yawError, dt, targetYawRate);
 
     // Motor mixing via shared MOTOR_LAYOUT (single source of truth)
     const throttle = stickInputs.throttle;
     const [ml1, ml2, ml3, ml4] = MOTOR_LAYOUT;
 
-    const m1 = clamp01(throttle + ml1.mixRoll * rollCmd + ml1.mixPitch * pitchCmd + ml1.mixYaw * yawCmd);
-    const m2 = clamp01(throttle + ml2.mixRoll * rollCmd + ml2.mixPitch * pitchCmd + ml2.mixYaw * yawCmd);
-    const m3 = clamp01(throttle + ml3.mixRoll * rollCmd + ml3.mixPitch * pitchCmd + ml3.mixYaw * yawCmd);
-    const m4 = clamp01(throttle + ml4.mixRoll * rollCmd + ml4.mixPitch * pitchCmd + ml4.mixYaw * yawCmd);
+    // Airmode mixer: compute raw values, then shift to preserve differential
+    let m1 = throttle + ml1.mixRoll * rollCmd + ml1.mixPitch * pitchCmd + ml1.mixYaw * yawCmd;
+    let m2 = throttle + ml2.mixRoll * rollCmd + ml2.mixPitch * pitchCmd + ml2.mixYaw * yawCmd;
+    let m3 = throttle + ml3.mixRoll * rollCmd + ml3.mixPitch * pitchCmd + ml3.mixYaw * yawCmd;
+    let m4 = throttle + ml4.mixRoll * rollCmd + ml4.mixPitch * pitchCmd + ml4.mixYaw * yawCmd;
+
+    const minMotor = Math.min(m1, m2, m3, m4);
+    if (minMotor < 0) {
+      const shift = -minMotor;
+      m1 += shift; m2 += shift; m3 += shift; m4 += shift;
+    }
+
+    const maxMotor = Math.max(m1, m2, m3, m4);
+    if (maxMotor > 1) {
+      const shift = maxMotor - 1;
+      m1 -= shift; m2 -= shift; m3 -= shift; m4 -= shift;
+    }
+
+    // Safety clamp (rarely activates with proper airmode logic)
+    m1 = Math.max(0, Math.min(1, m1));
+    m2 = Math.max(0, Math.min(1, m2));
+    m3 = Math.max(0, Math.min(1, m3));
+    m4 = Math.max(0, Math.min(1, m4));
 
     return { m1, m2, m3, m4 };
   }
@@ -87,6 +106,3 @@ export class FlightController {
   }
 }
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}

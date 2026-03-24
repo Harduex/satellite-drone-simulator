@@ -9,24 +9,25 @@ describe("MotorModel", () => {
     it("spins up faster than it spins down over same duration", () => {
       const model = new MotorModel(DEFAULT_DRONE_CONFIG);
 
-      // Spin up from 0 to full throttle for 100ms (50 steps at 500Hz)
-      for (let i = 0; i < 50; i++) {
+      // Spin up from 0 to full throttle for 30ms (15 steps at 500Hz)
+      // Short duration makes the asymmetry between spin-up (18ms tau) and
+      // spin-down (23.4ms tau) visible before both processes complete.
+      for (let i = 0; i < 15; i++) {
         model.update([1, 0, 0, 0], DT);
       }
       const rpmAfterSpinUp = model.state.rpm[0]!;
 
-      // Now spin down from current RPM for same 100ms
-      for (let i = 0; i < 50; i++) {
+      // Now spin down from current RPM for same 30ms
+      for (let i = 0; i < 15; i++) {
         model.update([0, 0, 0, 0], DT);
       }
       const rpmAfterSpinDown = model.state.rpm[0]!;
 
       // After spin-down, motor should still retain significant RPM
-      // because spin-down is 2x slower (motorSpinDownFactor = 2.0)
+      // because spin-down is slower (motorSpinDownFactor = 1.3)
       expect(rpmAfterSpinDown).toBeGreaterThan(0);
-      // Specifically, it should retain more than half its peak RPM
-      // because less time constant means less decay
-      expect(rpmAfterSpinDown / rpmAfterSpinUp).toBeGreaterThan(0.3);
+      // Should retain more than 20% of peak — spin-down tau is 1.3x spin-up tau
+      expect(rpmAfterSpinDown / rpmAfterSpinUp).toBeGreaterThan(0.2);
     });
 
     it("motor commands are clamped to [0, 1]", () => {

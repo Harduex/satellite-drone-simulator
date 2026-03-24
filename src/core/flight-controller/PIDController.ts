@@ -2,17 +2,20 @@ export class PIDController {
   private kP: number;
   private kI: number;
   private kD: number;
+  private kFF: number;
   private iLimit: number;
   private outputLimit: number;
   private integral = 0;
   private prevError = 0;
   private prevDerivative = 0;
+  private prevSetpoint = 0;
   private dFilterAlpha: number;
 
   constructor(params: {
     kP: number;
     kI: number;
     kD: number;
+    kFF?: number;
     iLimit?: number;
     outputLimit?: number;
     dFilterAlpha?: number;
@@ -20,12 +23,13 @@ export class PIDController {
     this.kP = params.kP;
     this.kI = params.kI;
     this.kD = params.kD;
+    this.kFF = params.kFF ?? 0;
     this.iLimit = params.iLimit ?? 0.3;
     this.outputLimit = params.outputLimit ?? 1.0;
     this.dFilterAlpha = params.dFilterAlpha ?? 0.8;
   }
 
-  update(error: number, dt: number): number {
+  update(error: number, dt: number, setpoint?: number): number {
     if (dt <= 0) return 0;
 
     // Proportional
@@ -45,11 +49,18 @@ export class PIDController {
       (1 - this.dFilterAlpha) * rawDerivative;
     const dTerm = this.kD * filteredDerivative;
 
+    // Feed-forward: kFF * d(setpoint)/dt
+    let ffTerm = 0;
+    if (setpoint !== undefined && this.kFF !== 0) {
+      ffTerm = this.kFF * (setpoint - this.prevSetpoint) / dt;
+      this.prevSetpoint = setpoint;
+    }
+
     this.prevError = error;
     this.prevDerivative = filteredDerivative;
 
     // Sum and clamp output
-    const output = pTerm + iTerm + dTerm;
+    const output = pTerm + iTerm + dTerm + ffTerm;
     return Math.max(-this.outputLimit, Math.min(this.outputLimit, output));
   }
 
@@ -57,5 +68,6 @@ export class PIDController {
     this.integral = 0;
     this.prevError = 0;
     this.prevDerivative = 0;
+    this.prevSetpoint = 0;
   }
 }

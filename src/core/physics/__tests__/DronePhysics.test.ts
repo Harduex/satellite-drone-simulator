@@ -95,13 +95,18 @@ describe("DronePhysics", () => {
 
       // Calculate hover throttle:
       // At hover, total thrust = m * g
-      // T_per_motor = m * g / 4 = 0.55 * 9.81 / 4 ≈ 1.349 N
-      // T = kT * rpm²  →  rpm = sqrt(T / kT) = sqrt(1.349 / 8.5e-6) ≈ 398.3
-      // throttle = rpm / maxRpm = 398.3 / 24000 ≈ 0.0166
-      // This is very low because kT * maxRpm² = 8.5e-6 * 24000² ≈ 4896 N per motor
+      // T_per_motor = m * g / 4
+      // T = kT * rpm²  →  rpm = sqrt(T / kT)
+      // With thrust linearization (sqrt applied to cmd before computing RPM):
+      //   targetRpm = sqrt(cmd) * maxRpm → cmd = (rpm / maxRpm)²
       const hoverThrustPerMotor = (config.mass * 9.81) / 4;
       const hoverRpm = Math.sqrt(hoverThrustPerMotor / config.kT);
-      const hoverThrottle = hoverRpm / config.maxThrottleRpm;
+      const rawThrottle = hoverRpm / config.maxThrottleRpm;
+      // Invert sqrt linearization: if MotorModel does sqrt(cmd)*maxRpm,
+      // we need cmd such that sqrt(cmd)*maxRpm = hoverRpm → cmd = rawThrottle²
+      const hoverThrottle = config.thrustLinearization !== false
+        ? rawThrottle * rawThrottle
+        : rawThrottle;
 
       let state = createDefaultDroneState(10);
       const hoverMotors: MotorCommands = {

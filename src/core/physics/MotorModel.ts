@@ -27,7 +27,12 @@ export class MotorModel {
 
     for (let i = 0; i < 4; i++) {
       const cmd = Math.max(0, Math.min(1, throttleCommands[i] ?? 0));
-      const targetRpm = cmd * maxThrottleRpm;
+
+      // Thrust linearization: T = kT * RPM² is quadratic in cmd.
+      // Applying sqrt makes thrust linear in stick position.
+      const linearizedCmd = this.config.thrustLinearization !== false
+        ? Math.sqrt(cmd) : cmd;
+      const targetRpm = linearizedCmd * maxThrottleRpm;
       const currentRpm = this.state.rpm[i] ?? 0;
 
       // Asymmetric time constant: spin-down takes longer (prop inertia)

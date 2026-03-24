@@ -2,6 +2,7 @@
 
 ## Important Rules
 - When reporting information to me, be extremely concise. Sacrifice grammar for the sake of concision and clarity.
+- When your context hits over 75%, use your compact tool to compact the context.
 
 ## Project Overview
 

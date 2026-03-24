@@ -11,7 +11,7 @@ import {
 const AIR_DENSITY = 1.225; // kg/m³ at sea level
 
 // Quadratic angular drag coefficient (tuned for 5" quad at typical rates)
-const ANGULAR_DRAG_COEFF = 0.00015;
+const ANGULAR_DRAG_COEFF = 0.00006;
 
 // Scratch objects for zero-alloc Into variants
 const _conjQuat: Quaternion = { w: 1, x: 0, y: 0, z: 0 };
