@@ -50,11 +50,11 @@ export class TileLoader {
     // it aggressively evicts tiles — reduces LOD thrashing when switching locations.
     (tileset as unknown as Record<string, number>).cacheBytes = 768 * 1024 * 1024;
     (tileset as unknown as Record<string, number>).maximumCacheOverflowBytes = 256 * 1024 * 1024;
-    tileset.maximumScreenSpaceError = 12;
+    tileset.maximumScreenSpaceError = 8;
     tileset.skipLevelOfDetail = true;
     (tileset as unknown as Record<string, boolean>).loadSiblings = true;
     tileset.foveatedScreenSpaceError = true;
-    tileset.foveatedConeSize = 0.15;
+    tileset.foveatedConeSize = 0.3;
     (tileset as unknown as Record<string, number>).foveatedMinimumScreenSpaceError = 4;
     viewer.scene.primitives.add(tileset);
     this.tileset = tileset;
@@ -65,10 +65,11 @@ export class TileLoader {
     return this.tileset;
   }
 
-  /** Flush GPU-cached tiles from the previous location so the new view can refine quickly. */
+  /** Kick tile traversal for the new camera position. */
   prepareForNewLocation(viewer: Cesium.Viewer): void {
     if (!this.tileset) return;
-    this.tileset.trimLoadedTiles();
+    // Let Cesium's cacheBytes (768MB) + maximumCacheOverflowBytes (256MB) handle
+    // natural LRU eviction — no need to aggressively flush all GPU-cached tiles.
     viewer.scene.requestRender();
   }
 
@@ -86,7 +87,7 @@ export class TileLoader {
       let settledFrames = 0;
       let sawActivity = false;
       const startTime = performance.now();
-      const MIN_WAIT_MS = 400;
+      const MIN_WAIT_MS = 800;
 
       const finish = () => {
         if (settled) {
@@ -107,7 +108,7 @@ export class TileLoader {
           settledFrames = 0;
         } else if (sawActivity && (performance.now() - startTime) >= MIN_WAIT_MS) {
           settledFrames += 1;
-          if (settledFrames >= 3) {
+          if (settledFrames >= 5) {
             finish();
           }
         }

@@ -110,7 +110,7 @@ export class SimSession {
         roll: 0,
       },
     });
-    await this.tileLoader.waitForViewRefinement(viewer, 4000);
+    await this.tileLoader.waitForViewRefinement(viewer);
 
     // Start game loop with terrain sampler for real-time ground collision
     const sceneExclusions: object[] = [];

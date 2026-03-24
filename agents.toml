@@ -17,6 +17,11 @@ name = "playwright"
 command = "npx"
 args = ["@playwright/mcp@latest"]
 
+[[mcp]]
+name = "chrome-devtools"
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+
 [[skills]]
 name = "improve-codebase-architecture"
 source = "mattpocock/skills"

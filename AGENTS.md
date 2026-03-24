@@ -40,7 +40,7 @@
 * **Installed:** `dotagents` (manager), `grill-me` (stress-test), `playwright` (MCP server for E2E).
 
 ## Testing Protocol (Mandatory Agent Self-Test)
-Playwright testing on `http://localhost:5173` required after implementation:
+Chrome DevTools / Playwright testing on `http://localhost:5173` required after implementation:
 1.  **Loads:** No fatal errors.
 2.  **Search:** Autocomplete → "Fly Here" activates.
 3.  **Sim:** HUD visible, no crash/promise rejections.
