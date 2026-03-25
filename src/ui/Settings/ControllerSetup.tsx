@@ -5,6 +5,7 @@ import type { AxisMapping, AxisChannelConfig } from '../../core/input/AxisMapper
 import { DEFAULT_DEADZONE } from '../../core/input/AxisMapper';
 import { AxisMapper } from '../../core/input/AxisMapper';
 import { colors, fonts, gradients } from '../theme';
+import { Slider, SettingsPanelHeader } from './shared';
 
 /** Map axes for VISUAL display — reads correct axis per channel but does NOT
  *  apply inversion. Inversion is only needed for flight controller sign convention.
@@ -238,10 +239,7 @@ export function ControllerSetup({ onClose }: Props) {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, color: colors.on_surface, fontWeight: 400, fontFamily: fonts.display }}>Controller Setup</h2>
-        <button onClick={onClose} style={closeButtonStyle}>X</button>
-      </div>
+      <SettingsPanelHeader title="Controller Setup" onClose={onClose} />
 
       {/* Gamepad status */}
       <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -391,22 +389,23 @@ export function ControllerSetup({ onClose }: Props) {
           {/* Deadzone sliders */}
           <SectionLabel>Deadzones</SectionLabel>
           {(['throttle', 'yaw', 'pitch', 'roll'] as Channel[]).map(ch => (
-            <RateSlider
+            <Slider
               key={ch}
               label={ch.charAt(0).toUpperCase() + ch.slice(1)}
               value={(mapping[ch] as AxisChannelConfig)?.deadzone ?? DEFAULT_DEADZONE}
               min={0}
               max={0.30}
               step={0.01}
+              labelWidth={80}
               onChange={(v) => handleDeadzoneChange(ch, v)}
             />
           ))}
           {/* Rate sliders */}
           <SectionLabel>Rates</SectionLabel>
-          <RateSlider label="Roll Rate" value={rates.rollRate} min={100} max={900} unit="deg/s" onChange={(v) => setRates({ rollRate: v })} />
-          <RateSlider label="Pitch Rate" value={rates.pitchRate} min={100} max={900} unit="deg/s" onChange={(v) => setRates({ pitchRate: v })} />
-          <RateSlider label="Yaw Rate" value={rates.yawRate} min={100} max={900} unit="deg/s" onChange={(v) => setRates({ yawRate: v })} />
-          <RateSlider label="Expo" value={rates.expo} min={0} max={1} step={0.05} onChange={(v) => setRates({ expo: v })} />
+          <Slider label="Roll Rate" value={rates.rollRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ rollRate: v })} />
+          <Slider label="Pitch Rate" value={rates.pitchRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ pitchRate: v })} />
+          <Slider label="Yaw Rate" value={rates.yawRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ yawRate: v })} />
+          <Slider label="Expo" value={rates.expo} min={0} max={1} step={0.05} labelWidth={80} onChange={(v) => setRates({ expo: v })} />
           <button onClick={handleSave} style={{ ...accentButtonStyle, width: '100%', marginTop: '12px' }}>
             Save & Close
           </button>
@@ -676,34 +675,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RateSlider({ label, value, min, max, step = 10, unit = '', onChange }: {
-  label: string; value: number; min: number; max: number;
-  step?: number; unit?: string; onChange: (v: number) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-      <span style={{ color: colors.on_surface, fontSize: '0.8rem', width: '80px', opacity: 0.7, fontFamily: fonts.body }}>{label}</span>
-      <input
-        type="range" min={min} max={max} step={step} value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        style={{ flex: 1, accentColor: colors.primary }}
-      />
-      <span style={{ color: colors.on_surface, fontSize: '0.75rem', width: '60px', textAlign: 'right', fontFamily: fonts.body }}>
-        {step < 1 ? value.toFixed(2) : value} {unit}
-      </span>
-    </div>
-  );
-}
-
 // ── Styles ────────────────────────────────────────────────
 const hintStyle: React.CSSProperties = {
   color: colors.on_surface, opacity: 0.5, fontSize: '0.85rem', textAlign: 'center', margin: '4px 0 12px',
-  fontFamily: fonts.body,
-};
-
-const closeButtonStyle: React.CSSProperties = {
-  background: 'transparent', border: '1px solid ' + colors.outline_variant_strong,
-  color: colors.on_surface, borderRadius: 0, padding: '4px 10px', cursor: 'pointer', fontSize: '0.9rem',
   fontFamily: fonts.body,
 };
 

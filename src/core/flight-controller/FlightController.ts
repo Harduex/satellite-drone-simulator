@@ -75,7 +75,10 @@ export class FlightController {
 
     // Motor mixing via shared MOTOR_LAYOUT (single source of truth)
     const throttle = stickInputs.throttle;
-    const [ml1, ml2, ml3, ml4] = MOTOR_LAYOUT;
+    const ml1 = MOTOR_LAYOUT[0];
+    const ml2 = MOTOR_LAYOUT[1];
+    const ml3 = MOTOR_LAYOUT[2];
+    const ml4 = MOTOR_LAYOUT[3];
 
     // Airmode mixer: compute raw values, then shift to preserve differential
     let m1 = throttle + ml1.mixRoll * rollCmd + ml1.mixPitch * pitchCmd + ml1.mixYaw * yawCmd;

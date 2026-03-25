@@ -12,6 +12,8 @@ export class KeyboardInput {
   private rollLevel = 0;
   private pitchLevel = 0;
   private yawLevel = 0;
+  /** Shared mutable output — callers must consume before next read() call. */
+  private readonly _stickOut: StickInputs = { throttle: 0, roll: 0, pitch: 0, yaw: 0 };
 
   constructor() {
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -77,12 +79,11 @@ export class KeyboardInput {
       dt,
     );
 
-    return {
-      throttle: this.throttleLevel,
-      roll: this.rollLevel,
-      pitch: this.pitchLevel,
-      yaw: this.yawLevel,
-    };
+    this._stickOut.throttle = this.throttleLevel;
+    this._stickOut.roll = this.rollLevel;
+    this._stickOut.pitch = this.pitchLevel;
+    this._stickOut.yaw = this.yawLevel;
+    return this._stickOut;
   }
 
   isActive(): boolean {

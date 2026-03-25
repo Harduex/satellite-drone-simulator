@@ -82,6 +82,9 @@ export class GameLoop {
     this.droneRenderer = new DroneRenderer();
     this.crashDetector = new CrashDetector(this.spawnAltitude);
     this.telemetryPublisher = new TelemetryPublisher();
+    this.telemetryPublisher.setOnPublish((data) => {
+      useStore.getState().updateTelemetry(data);
+    });
 
     this.droneState = createDefaultDroneState(this.spawnPosition);
     this.droneStateBuffer = createDefaultDroneState(this.spawnPosition);

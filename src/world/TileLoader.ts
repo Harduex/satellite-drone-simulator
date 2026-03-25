@@ -22,6 +22,7 @@ function getRuntimeStats(
 
 export class TileLoader {
   private tileset: Cesium.Cesium3DTileset | null = null;
+  private viewer: Cesium.Viewer | null = null;
 
   hasRenderableTilesInView(): boolean {
     const tileset = this.tileset;
@@ -44,6 +45,8 @@ export class TileLoader {
     viewer: Cesium.Viewer,
     apiKey: string,
   ): Promise<Cesium.Cesium3DTileset> {
+    this.viewer = viewer;
+
     if (this.tileset) {
       return this.tileset;
     }
@@ -74,19 +77,17 @@ export class TileLoader {
   }
 
   /** Kick tile traversal for the new camera position. */
-  prepareForNewLocation(viewer: Cesium.Viewer): void {
-    if (!this.tileset) return;
+  prepareForNewLocation(): void {
+    if (!this.tileset || !this.viewer) return;
     // Let Cesium's cacheBytes (768MB) + maximumCacheOverflowBytes (256MB) handle
     // natural LRU eviction — no need to aggressively flush all GPU-cached tiles.
-    viewer.scene.requestRender();
+    this.viewer.scene.requestRender();
   }
 
-  async waitForViewRefinement(
-    viewer: Cesium.Viewer,
-    timeoutMs: number = 4000,
-  ): Promise<void> {
+  async waitForViewRefinement(timeoutMs: number = 4000): Promise<void> {
     const tileset = this.tileset;
-    if (!tileset) {
+    const viewer = this.viewer;
+    if (!tileset || !viewer) {
       return;
     }
 

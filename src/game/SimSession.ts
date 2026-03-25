@@ -64,8 +64,8 @@ export class SimSession {
       ),
       orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 },
     });
-    this.tileLoader.prepareForNewLocation(viewer);
-    await this.tileLoader.waitForViewRefinement(viewer);
+    this.tileLoader.prepareForNewLocation();
+    await this.tileLoader.waitForViewRefinement();
 
     // After tiles/globe have loaded, query WGS84 ellipsoidal height from the globe.
     // This is consistent with what TerrainSampler.toEnuHeight() uses internally,
@@ -114,7 +114,7 @@ export class SimSession {
         roll: 0,
       },
     });
-    await this.tileLoader.waitForViewRefinement(viewer);
+    await this.tileLoader.waitForViewRefinement();
 
     // Start game loop with terrain sampler for real-time ground collision
     const sceneExclusions: object[] = [];
