@@ -1,6 +1,7 @@
 import type { PhysicsConfig, Quaternion, Vector3 } from "./types";
 import {
   v3Magnitude,
+  v3MagnitudeSq,
   v3Scale,
   v3ScaleInto,
   quatRotateVector,
@@ -29,8 +30,8 @@ export function computeTranslationalDrag(
   bodyQuaternion: Quaternion,
   config: PhysicsConfig,
 ): Vector3 {
-  const speed = v3Magnitude(velocity);
-  if (speed < 1e-6) return { x: 0, y: 0, z: 0 };
+  const speedSq = v3MagnitudeSq(velocity);
+  if (speedSq < 1e-12) return { x: 0, y: 0, z: 0 };
 
   // Transform velocity into body frame
   const bodyVel = quatRotateVector(quatConjugate(bodyQuaternion), velocity);
@@ -57,8 +58,8 @@ export function computeTranslationalDragInto(
   config: PhysicsConfig,
   out: Vector3,
 ): Vector3 {
-  const speed = v3Magnitude(velocity);
-  if (speed < 1e-6) { out.x = 0; out.y = 0; out.z = 0; return out; }
+  const speedSq = v3MagnitudeSq(velocity);
+  if (speedSq < 1e-12) { out.x = 0; out.y = 0; out.z = 0; return out; }
 
   // Conjugate into scratch
   _conjQuat.w = bodyQuaternion.w;

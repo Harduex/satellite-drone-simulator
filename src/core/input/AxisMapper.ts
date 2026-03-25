@@ -17,7 +17,14 @@ export interface AxisMapping {
 const STORAGE_KEY = "fpvsim_controller_config";
 export const DEFAULT_DEADZONE = 0.05;
 
-function normalizeChannel(ch: AxisChannelConfig) {
+interface NormalizedChannel {
+  axis: number;
+  inverted: boolean;
+  deadzone: number;
+  centerOffset: number;
+}
+
+function normalizeChannel(ch: AxisChannelConfig): NormalizedChannel {
   return {
     axis: ch.axis,
     inverted: ch.inverted,
@@ -27,34 +34,34 @@ function normalizeChannel(ch: AxisChannelConfig) {
 }
 
 export class AxisMapper {
-  private mapping: AxisMapping;
+  private tCh: NormalizedChannel;
+  private rCh: NormalizedChannel;
+  private pCh: NormalizedChannel;
+  private yCh: NormalizedChannel;
+  private _stickOut: StickInputs = { throttle: 0, roll: 0, pitch: 0, yaw: 0 };
 
   constructor(mapping: AxisMapping) {
-    this.mapping = mapping;
+    this.tCh = normalizeChannel(mapping.throttle);
+    this.rCh = normalizeChannel(mapping.roll);
+    this.pCh = normalizeChannel(mapping.pitch);
+    this.yCh = normalizeChannel(mapping.yaw);
   }
 
-  /** Map raw gamepad axes to normalized stick inputs */
-  map(rawAxes: number[]): StickInputs {
-    const m = this.mapping;
-    const tCh = normalizeChannel(m.throttle);
-    const rCh = normalizeChannel(m.roll);
-    const pCh = normalizeChannel(m.pitch);
-    const yCh = normalizeChannel(m.yaw);
+  /** Map raw gamepad axes to normalized stick inputs (shared mutable buffer) */
+  map(rawAxes: ArrayLike<number>): StickInputs {
+    const rawThrottle = this.readAxis(rawAxes, this.tCh.axis, this.tCh.inverted, this.tCh.centerOffset);
+    const rawRoll = this.readAxis(rawAxes, this.rCh.axis, this.rCh.inverted, this.rCh.centerOffset);
+    const rawPitch = this.readAxis(rawAxes, this.pCh.axis, this.pCh.inverted, this.pCh.centerOffset);
+    const rawYaw = this.readAxis(rawAxes, this.yCh.axis, this.yCh.inverted, this.yCh.centerOffset);
 
-    const rawThrottle = this.readAxis(rawAxes, tCh.axis, tCh.inverted, tCh.centerOffset);
-    const rawRoll = this.readAxis(rawAxes, rCh.axis, rCh.inverted, rCh.centerOffset);
-    const rawPitch = this.readAxis(rawAxes, pCh.axis, pCh.inverted, pCh.centerOffset);
-    const rawYaw = this.readAxis(rawAxes, yCh.axis, yCh.inverted, yCh.centerOffset);
-
-    return {
-      throttle: Math.max(0, Math.min(1, (applyDeadband(rawThrottle, tCh.deadzone) + 1) / 2)),
-      roll: applyDeadband(rawRoll, rCh.deadzone),
-      pitch: applyDeadband(rawPitch, pCh.deadzone),
-      yaw: applyDeadband(rawYaw, yCh.deadzone),
-    };
+    this._stickOut.throttle = Math.max(0, Math.min(1, (applyDeadband(rawThrottle, this.tCh.deadzone) + 1) / 2));
+    this._stickOut.roll = applyDeadband(rawRoll, this.rCh.deadzone);
+    this._stickOut.pitch = applyDeadband(rawPitch, this.pCh.deadzone);
+    this._stickOut.yaw = applyDeadband(rawYaw, this.yCh.deadzone);
+    return this._stickOut;
   }
 
-  private readAxis(axes: number[], index: number, inverted: boolean, centerOffset: number): number {
+  private readAxis(axes: ArrayLike<number>, index: number, inverted: boolean, centerOffset: number): number {
     const raw = (axes[index] ?? 0) - centerOffset;
     return inverted ? -raw : raw;
   }

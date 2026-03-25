@@ -32,6 +32,7 @@ VITE_GOOGLE_MAPS_API_KEY=your_key_here
    - Maps JavaScript API
    - Places API
    - Map Tiles API
+   - Elevation API
 3. Create an API key and add it to `.env`
 
 ## How to Use

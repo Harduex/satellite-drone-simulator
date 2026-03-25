@@ -11,6 +11,10 @@ export class MotorModel {
   // Callers must consume values before the next call (same physics step).
   private thrustBuffer: number[] = [0, 0, 0, 0];
   private reactionTorqueBuffer: number[] = [0, 0, 0, 0];
+  // Cached Math.exp alpha values — only two possible results per config
+  private cachedAlphaSpinUp = 0;
+  private cachedAlphaSpinDown = 0;
+  private cachedDt = 0;
 
   constructor(config: PhysicsConfig) {
     this.config = config;
@@ -25,6 +29,13 @@ export class MotorModel {
   update(throttleCommands: number[], dt: number): number[] {
     const { kT, maxThrottleRpm, motorTimeConstant, motorSpinDownFactor } = this.config;
 
+    // Cache exp() alpha values — dt is always PHYSICS_DT, tau has only 2 possible values
+    if (dt !== this.cachedDt) {
+      this.cachedDt = dt;
+      this.cachedAlphaSpinUp = 1 - Math.exp(-dt / motorTimeConstant);
+      this.cachedAlphaSpinDown = 1 - Math.exp(-dt / (motorTimeConstant * motorSpinDownFactor));
+    }
+
     for (let i = 0; i < 4; i++) {
       const cmd = Math.max(0, Math.min(1, throttleCommands[i] ?? 0));
 
@@ -35,10 +46,8 @@ export class MotorModel {
       const targetRpm = linearizedCmd * maxThrottleRpm;
       const currentRpm = this.state.rpm[i] ?? 0;
 
-      // Asymmetric time constant: spin-down takes longer (prop inertia)
       const isSpinningDown = targetRpm < currentRpm;
-      const tau = isSpinningDown ? motorTimeConstant * motorSpinDownFactor : motorTimeConstant;
-      const alpha = 1 - Math.exp(-dt / tau);
+      const alpha = isSpinningDown ? this.cachedAlphaSpinDown : this.cachedAlphaSpinUp;
 
       const newRpm = currentRpm + alpha * (targetRpm - currentRpm);
       this.state.rpm[i] = newRpm;

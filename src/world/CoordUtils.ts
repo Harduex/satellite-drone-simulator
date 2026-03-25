@@ -6,7 +6,6 @@ import { quatRotateVectorInto } from "../core/physics/types";
 // WARNING: Functions using these return shared mutable buffers.
 // Callers must consume returned values before the next call.
 const _scratchCartesian = new Cesium.Cartesian3();
-const _scratchMatrix3 = new Cesium.Matrix3();
 const _scratchLocalCartesian = new Cesium.Cartesian3();
 const _scratchResult = new Cesium.Cartesian3();
 const _scratchEnuForward = new Cesium.Cartesian3();
@@ -22,6 +21,10 @@ const _bodyUpResult: Vector3 = { x: 0, y: 0, z: 0 };
 
 // Reusable return object for bodyQuatToEcefOrientation
 const _orientationResult = { direction: _scratchEcefDir, up: _scratchEcefUp };
+
+// Cached ENU rotation matrix — invalidated when enuFrame reference changes
+let _cachedEnuFrame: Cesium.Matrix4 | null = null;
+const _cachedRotation = new Cesium.Matrix3();
 
 /** Create an ENU (East-North-Up) reference frame at a WGS84 position */
 export function createENUFrame(
@@ -89,8 +92,11 @@ export function bodyQuatToEcefOrientation(
   // Body up direction (Z axis in body frame) — zero-alloc
   quatRotateVectorInto(bodyQuat, _bodyUpInput, _bodyUpResult);
 
-  // Extract rotation part of ENU frame (3x3 rotation matrix)
-  const rotation = Cesium.Matrix4.getMatrix3(enuFrame, _scratchMatrix3);
+  // Extract rotation part of ENU frame (cached — enuFrame doesn't change within a session)
+  if (enuFrame !== _cachedEnuFrame) {
+    Cesium.Matrix4.getMatrix3(enuFrame, _cachedRotation);
+    _cachedEnuFrame = enuFrame;
+  }
 
   // Transform ENU vectors to ECEF — reuse scratch Cartesian3s
   _scratchEnuForward.x = _bodyForwardResult.x;
@@ -100,8 +106,8 @@ export function bodyQuatToEcefOrientation(
   _scratchEnuUp.y = _bodyUpResult.y;
   _scratchEnuUp.z = _bodyUpResult.z;
 
-  Cesium.Matrix3.multiplyByVector(rotation, _scratchEnuForward, _scratchEcefDir);
-  Cesium.Matrix3.multiplyByVector(rotation, _scratchEnuUp, _scratchEcefUp);
+  Cesium.Matrix3.multiplyByVector(_cachedRotation, _scratchEnuForward, _scratchEcefDir);
+  Cesium.Matrix3.multiplyByVector(_cachedRotation, _scratchEnuUp, _scratchEcefUp);
 
   return _orientationResult;
 }

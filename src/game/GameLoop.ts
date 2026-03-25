@@ -7,7 +7,6 @@ import { FPVCamera, DEFAULT_CAMERA_CONFIG } from "../camera/FPVCamera";
 import { DroneRenderer } from "../world/DroneRenderer";
 import { CrashDetector } from "./CrashDetector";
 import { TelemetryPublisher } from "./TelemetryPublisher";
-import { enuToEcef } from "../world/CoordUtils";
 import { TerrainSampler } from "../world/TerrainSampler";
 import { useStore } from "../store";
 import type {
@@ -21,7 +20,7 @@ import { vec3 } from "../core/physics/types";
 import { createDefaultDroneState } from "../core/physics/types";
 
 const MAX_PHYSICS_SUBSTEPS = 10;
-const MAX_WALL_DT = 0.05; // 50ms cap
+const MAX_WALL_DT = MAX_PHYSICS_SUBSTEPS / 500; // 0.02s — matches physics budget exactly
 
 export class GameLoop {
   private running = false;
@@ -31,6 +30,7 @@ export class GameLoop {
   private lastMotorCommands = { m1: 0, m2: 0, m3: 0, m4: 0 };
 
   private droneState: DroneState;
+  private droneStateBuffer: DroneState;
   private physics: DronePhysics;
   private flightController: FlightController;
   private gamepadManager: GamepadManager;
@@ -66,7 +66,6 @@ export class GameLoop {
 
     this.physics = new DronePhysics(params.physicsConfig);
     this.flightController = new FlightController(
-      params.physicsConfig,
       params.ratesConfig,
     );
     this.gamepadManager = new GamepadManager();
@@ -85,6 +84,7 @@ export class GameLoop {
     this.telemetryPublisher = new TelemetryPublisher();
 
     this.droneState = createDefaultDroneState(this.spawnPosition);
+    this.droneStateBuffer = createDefaultDroneState(this.spawnPosition);
   }
 
   /** Register a callback for crash events */
@@ -181,17 +181,23 @@ export class GameLoop {
     while (
       this.physicsAccumulator >= this.PHYSICS_DT && steps < MAX_PHYSICS_SUBSTEPS
     ) {
-      this.lastMotorCommands = this.flightController.update(
+      this.flightController.updateInto(
         stickInputs,
         this.droneState,
         this.PHYSICS_DT,
+        this.lastMotorCommands,
       );
-      this.droneState = this.physics.step(
+      this.physics.stepInto(
         this.droneState,
         this.lastMotorCommands,
         this.PHYSICS_DT,
         groundHeight,
+        this.droneStateBuffer,
       );
+      // Swap references (zero allocation ping-pong)
+      const tmp = this.droneState;
+      this.droneState = this.droneStateBuffer;
+      this.droneStateBuffer = tmp;
       this.physicsAccumulator -= this.PHYSICS_DT;
       steps++;
     }
@@ -202,9 +208,8 @@ export class GameLoop {
     // 4. Sync camera to physics state
     this.fpvCamera.sync(this.droneState, this.enuFrame);
 
-    // 5. Update drone renderer position
-    const ecefPosition = enuToEcef(this.droneState.position, this.enuFrame);
-    this.droneRenderer.update(ecefPosition);
+    // 5. Update drone renderer position (reuse ECEF from camera sync)
+    this.droneRenderer.update(this.fpvCamera.getLastEcefPosition());
 
     // 6. Publish telemetry (throttled to ~10Hz)
     const published = this.telemetryPublisher.maybePublish(

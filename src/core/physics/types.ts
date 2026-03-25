@@ -39,6 +39,10 @@ export function v3Magnitude(v: Vector3): number {
   return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
+export function v3MagnitudeSq(v: Vector3): number {
+  return v.x * v.x + v.y * v.y + v.z * v.z;
+}
+
 export function v3Normalize(v: Vector3): Vector3 {
   const m = v3Magnitude(v);
   if (m < 1e-12) return V3_ZERO;
@@ -180,13 +184,13 @@ export function createDefaultDroneState(spawnPosition: number | Vector3): DroneS
   const position =
     typeof spawnPosition === "number"
       ? vec3(0, 0, spawnPosition)
-      : spawnPosition;
+      : { x: spawnPosition.x, y: spawnPosition.y, z: spawnPosition.z };
 
   return {
     position,
-    velocity: V3_ZERO,
-    quaternion: Q_IDENTITY,
-    angularVelocity: V3_ZERO,
+    velocity: { x: 0, y: 0, z: 0 },
+    quaternion: { w: 1, x: 0, y: 0, z: 0 },
+    angularVelocity: { x: 0, y: 0, z: 0 },
   };
 }
 

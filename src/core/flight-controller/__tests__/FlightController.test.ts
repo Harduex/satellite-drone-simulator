@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FlightController } from "../FlightController";
 import {
-  DEFAULT_DRONE_CONFIG,
   DEFAULT_RATES,
   createDefaultDroneState,
   MOTOR_LAYOUT,
@@ -12,7 +11,7 @@ const DT = 0.002; // 500Hz
 describe("FlightController", () => {
   describe("motor mixing uses MOTOR_LAYOUT", () => {
     it("pure throttle produces roughly equal motor commands", () => {
-      const fc = new FlightController(DEFAULT_DRONE_CONFIG, DEFAULT_RATES);
+      const fc = new FlightController(DEFAULT_RATES);
       const state = createDefaultDroneState(10);
       const sticks = { throttle: 0.5, roll: 0, pitch: 0, yaw: 0 };
 
@@ -27,7 +26,7 @@ describe("FlightController", () => {
     });
 
     it("roll input makes right motors higher than left", () => {
-      const fc = new FlightController(DEFAULT_DRONE_CONFIG, DEFAULT_RATES);
+      const fc = new FlightController(DEFAULT_RATES);
       const state = createDefaultDroneState(10);
       const sticks = { throttle: 0.5, roll: 0.5, pitch: 0, yaw: 0 };
 

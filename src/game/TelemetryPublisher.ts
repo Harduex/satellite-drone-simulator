@@ -22,9 +22,6 @@ export class TelemetryPublisher {
 
     const speed = v3Magnitude(droneState.velocity);
     useStore.getState().updateTelemetry({
-      positionX: droneState.position.x,
-      positionY: droneState.position.y,
-      positionZ: droneState.position.z,
       speed,
       altitudeAGL: Math.max(0, droneState.position.z - groundHeight),
       throttle,

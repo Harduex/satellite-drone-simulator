@@ -82,6 +82,15 @@ export class DronePhysics {
    * @param groundHeight Dynamic ground floor in ENU Z coords (from terrain sampler)
    */
   step(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number = 0): DroneState {
+    return this.stepInto(state, motors, dt, groundHeight, {
+      position: { x: 0, y: 0, z: 0 },
+      velocity: { x: 0, y: 0, z: 0 },
+      quaternion: { w: 1, x: 0, y: 0, z: 0 },
+      angularVelocity: { x: 0, y: 0, z: 0 },
+    });
+  }
+
+  stepInto(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number, out: DroneState): DroneState {
     this.throttleBuffer[0] = motors.m1;
     this.throttleBuffer[1] = motors.m2;
     this.throttleBuffer[2] = motors.m3;
@@ -194,13 +203,13 @@ export class DronePhysics {
       favX = 0; favY = 0; favZ = 0;
     }
 
-    // Return new state — the only allocation in the entire step()
-    return {
-      position: { x: fpX, y: fpY, z: fpZ },
-      velocity: { x: fvX, y: fvY, z: fvZ },
-      quaternion: { w: _newQuat.w, x: _newQuat.x, y: _newQuat.y, z: _newQuat.z },
-      angularVelocity: { x: favX, y: favY, z: favZ },
-    };
+    // Write final values into pre-allocated output — zero allocation
+    out.position.x = fpX; out.position.y = fpY; out.position.z = fpZ;
+    out.velocity.x = fvX; out.velocity.y = fvY; out.velocity.z = fvZ;
+    out.quaternion.w = _newQuat.w; out.quaternion.x = _newQuat.x;
+    out.quaternion.y = _newQuat.y; out.quaternion.z = _newQuat.z;
+    out.angularVelocity.x = favX; out.angularVelocity.y = favY; out.angularVelocity.z = favZ;
+    return out;
   }
 
   getMotorModel(): MotorModel {

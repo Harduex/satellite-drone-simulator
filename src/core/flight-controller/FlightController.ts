@@ -27,7 +27,7 @@ export class FlightController {
   private pitchPID: PIDController;
   private yawPID: PIDController;
 
-  constructor(_physicsConfig: unknown, ratesConfig: RatesConfig) {
+  constructor(ratesConfig: RatesConfig) {
     this.ratesConfig = ratesConfig;
     this.rollPID = new PIDController(DEFAULT_PID.roll);
     this.pitchPID = new PIDController(DEFAULT_PID.pitch);
@@ -38,6 +38,15 @@ export class FlightController {
     stickInputs: StickInputs,
     droneState: DroneState,
     dt: number,
+  ): MotorCommands {
+    return this.updateInto(stickInputs, droneState, dt, { m1: 0, m2: 0, m3: 0, m4: 0 });
+  }
+
+  updateInto(
+    stickInputs: StickInputs,
+    droneState: DroneState,
+    dt: number,
+    out: MotorCommands,
   ): MotorCommands {
     const { rollRate, pitchRate, yawRate, expo } = this.ratesConfig;
 
@@ -86,13 +95,12 @@ export class FlightController {
       m1 -= shift; m2 -= shift; m3 -= shift; m4 -= shift;
     }
 
-    // Safety clamp (rarely activates with proper airmode logic)
-    m1 = Math.max(0, Math.min(1, m1));
-    m2 = Math.max(0, Math.min(1, m2));
-    m3 = Math.max(0, Math.min(1, m3));
-    m4 = Math.max(0, Math.min(1, m4));
+    out.m1 = Math.max(0, Math.min(1, m1));
+    out.m2 = Math.max(0, Math.min(1, m2));
+    out.m3 = Math.max(0, Math.min(1, m3));
+    out.m4 = Math.max(0, Math.min(1, m4));
 
-    return { m1, m2, m3, m4 };
+    return out;
   }
 
   updateRates(rates: RatesConfig): void {

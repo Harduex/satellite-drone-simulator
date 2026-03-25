@@ -19,6 +19,7 @@ export class SimSession {
   private tileLoader: TileLoader;
   private gameLoop: GameLoop | null = null;
   private spawnOrigin: SpawnOrigin | null = null;
+  private isStarting = false;
 
   constructor(cesiumManager: CesiumManager) {
     this.cesiumManager = cesiumManager;
@@ -28,6 +29,9 @@ export class SimSession {
   async startSession(
     location: { lon: number; lat: number; name: string },
   ): Promise<void> {
+    if (this.isStarting) return;
+    this.isStarting = true;
+    try {
     const viewer = this.cesiumManager.getViewer();
 
     // Load Google 3D Tiles
@@ -71,7 +75,7 @@ export class SimSession {
     const wgs84H = viewer.scene.globe.getHeight(anchorCarto);
     const terrainHeight =
       wgs84H !== undefined && Number.isFinite(wgs84H) ? wgs84H : roughTerrainHeight;
-    console.log(
+    if (import.meta.env.DEV) console.log(
       `Terrain height resolved: rough=${roughTerrainHeight.toFixed(1)}m, WGS84=${terrainHeight.toFixed(1)}m`,
     );
 
@@ -84,7 +88,7 @@ export class SimSession {
     // Find a nearby flyable start point so landmarks and rooftops don't force
     // the drone onto unstable high-detail geometry.
     const spawnPoint = await terrainSampler.findSpawnPoint(spawnAlt);
-    console.log(
+    if (import.meta.env.DEV) console.log(
       `Spawn point resolved to ENU (${spawnPoint.x.toFixed(1)}, ${spawnPoint.y.toFixed(1)}, ${spawnPoint.z.toFixed(1)})`,
     );
 
@@ -145,6 +149,9 @@ export class SimSession {
     );
 
     useStore.getState().setPhase("FLYING");
+    } finally {
+      this.isStarting = false;
+    }
   }
 
   private async resolveTerrainHeight(
@@ -160,7 +167,7 @@ export class SimSession {
     const cartographic = Cesium.Cartographic.fromDegrees(lon, lat);
     const globeHeight = viewer.scene.globe.getHeight(cartographic);
     if (globeHeight !== undefined && Number.isFinite(globeHeight)) {
-      console.warn(
+      if (import.meta.env.DEV) console.warn(
         `Using Cesium globe height fallback at spawn: ${globeHeight.toFixed(1)}m`,
       );
       return globeHeight;
@@ -182,11 +189,11 @@ export class SimSession {
       });
       if (result.results?.[0]) {
         const elevation = result.results[0].elevation;
-        console.log(`Ground elevation at spawn: ${elevation.toFixed(1)}m`);
+        if (import.meta.env.DEV) console.log(`Ground elevation at spawn: ${elevation.toFixed(1)}m`);
         return elevation;
       }
     } catch (e) {
-      console.warn("Elevation service failed:", e);
+      if (import.meta.env.DEV) console.warn("Elevation service failed:", e);
     }
     return null;
   }
@@ -212,7 +219,7 @@ export class SimSession {
           };
         }
       } catch (err) {
-        console.warn("Failed to convert paused drone position to lat/lng", err);
+        if (import.meta.env.DEV) console.warn("Failed to convert paused drone position to lat/lng", err);
       }
     }
 
@@ -255,6 +262,7 @@ export class SimSession {
   endSession(): void {
     this.gameLoop?.stop();
     this.gameLoop = null;
+    this.isStarting = false;
     this.cesiumManager.teardownGlobeToggle();
     this.cesiumManager.hideContainer();
     this.spawnOrigin = null;

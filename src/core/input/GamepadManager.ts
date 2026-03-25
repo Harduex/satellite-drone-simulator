@@ -42,8 +42,7 @@ export class GamepadManager {
       if (!this.axisMapper) return null;
     }
 
-    const rawAxes = Array.from(gp.axes);
-    return this.axisMapper.map(rawAxes);
+    return this.axisMapper.map(gp.axes);
   }
 
   getConnectedGamepad(): Gamepad | null {

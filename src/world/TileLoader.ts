@@ -6,12 +6,18 @@ interface RuntimeTilesetStats {
   visited: number;
 }
 
+interface Cesium3DTilesetExtended extends Cesium.Cesium3DTileset {
+  statistics: RuntimeTilesetStats;
+  cacheBytes: number;
+  maximumCacheOverflowBytes: number;
+  loadSiblings: boolean;
+  foveatedMinimumScreenSpaceError: number;
+}
+
 function getRuntimeStats(
   tileset: Cesium.Cesium3DTileset,
 ): RuntimeTilesetStats {
-  return (tileset as Cesium.Cesium3DTileset & {
-    statistics: RuntimeTilesetStats;
-  }).statistics;
+  return (tileset as Cesium3DTilesetExtended).statistics;
 }
 
 export class TileLoader {
@@ -48,14 +54,15 @@ export class TileLoader {
     // cacheBytes is the newer API name (replaces maximumMemoryUsage in Cesium 1.107+).
     // maximumCacheOverflowBytes gives Cesium a soft buffer above cacheBytes before
     // it aggressively evicts tiles — reduces LOD thrashing when switching locations.
-    (tileset as unknown as Record<string, number>).cacheBytes = 768 * 1024 * 1024;
-    (tileset as unknown as Record<string, number>).maximumCacheOverflowBytes = 256 * 1024 * 1024;
+    const ext = tileset as Cesium3DTilesetExtended;
+    ext.cacheBytes = 768 * 1024 * 1024;
+    ext.maximumCacheOverflowBytes = 256 * 1024 * 1024;
     tileset.maximumScreenSpaceError = 8;
     tileset.skipLevelOfDetail = true;
-    (tileset as unknown as Record<string, boolean>).loadSiblings = true;
+    ext.loadSiblings = true;
     tileset.foveatedScreenSpaceError = true;
     tileset.foveatedConeSize = 0.3;
-    (tileset as unknown as Record<string, number>).foveatedMinimumScreenSpaceError = 4;
+    ext.foveatedMinimumScreenSpaceError = 4;
     viewer.scene.primitives.add(tileset);
     this.tileset = tileset;
     return tileset;

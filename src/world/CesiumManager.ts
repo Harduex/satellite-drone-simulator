@@ -14,6 +14,7 @@ const CLOUD_LAYOUT = [
 export class CesiumManager {
   private viewer: Cesium.Viewer | null = null;
   private globeToggleCleanup: Cesium.Event.RemoveCallback | null = null;
+  private cloudDriftCleanup: Cesium.Event.RemoveCallback | null = null;
   private cloudCollection: Cesium.CloudCollection | null = null;
   private cloudDriftStart = performance.now();
   private cloudDriftScratch = new Cesium.Cartesian3();
@@ -111,6 +112,10 @@ export class CesiumManager {
       this.globeToggleCleanup();
       this.globeToggleCleanup = null;
     }
+    if (this.cloudDriftCleanup) {
+      this.cloudDriftCleanup();
+      this.cloudDriftCleanup = null;
+    }
     if (this.viewer) {
       this.viewer.scene.globe.show = true;
     }
@@ -143,7 +148,11 @@ export class CesiumManager {
       } else {
         globe.show = !tilesReady || distance > thresholdMeters + 500;
       }
+    });
 
+    // Cloud drift runs as a separate, lightweight listener
+    this.cloudDriftCleanup?.();
+    this.cloudDriftCleanup = this.viewer.scene.preRender.addEventListener(() => {
       if (this.cloudCollection) {
         const drift = (performance.now() - this.cloudDriftStart) * 0.00002;
         this.cloudDriftScratch.x = drift;
@@ -214,6 +223,8 @@ export class CesiumManager {
   destroy(): void {
     this.globeToggleCleanup?.();
     this.globeToggleCleanup = null;
+    this.cloudDriftCleanup?.();
+    this.cloudDriftCleanup = null;
     this.viewer?.destroy();
     this.viewer = null;
     this.cloudCollection = null;

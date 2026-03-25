@@ -1,6 +1,5 @@
 export enum FlightMode {
   ACRO = "ACRO",
-  ANGLE = "ANGLE",
 }
 
 /** Apply expo curve to a stick input [-1, 1] */
