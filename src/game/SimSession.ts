@@ -247,6 +247,7 @@ export class SimSession {
   }
 
   resume(): void {
+    this.gameLoop?.applyStoreSettings();
     this.gameLoop?.start();
     useStore.getState().setPhase("FLYING");
   }

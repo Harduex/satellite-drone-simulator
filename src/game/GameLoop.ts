@@ -92,6 +92,15 @@ export class GameLoop {
     this.crashDetector.setOnCrash(callback);
   }
 
+  /** Push current store settings into all live subsystems (call on resume) */
+  applyStoreSettings(): void {
+    const store = useStore.getState();
+    this.physics.updateConfig(store.physicsConfig);
+    this.flightController.updateRates(store.rates);
+    this.fpvCamera.setFov(store.fov);
+    this.fpvCamera.setTiltDegrees(store.cameraTilt);
+  }
+
   start(): void {
     this.running = true;
     this.lastTimestamp = performance.now();

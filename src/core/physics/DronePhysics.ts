@@ -207,6 +207,10 @@ export class DronePhysics {
     return this.motorModel;
   }
 
+  updateConfig(partial: Partial<PhysicsConfig>): void {
+    Object.assign(this.config, partial);
+  }
+
   reset(): void {
     this.motorModel.reset();
   }
