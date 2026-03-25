@@ -1,0 +1,363 @@
+.gamepadStatus {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.statusLabel {
+  color: var(--color-on-surface);
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+}
+
+/* Step progress indicator */
+.stepIndicatorRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 1rem;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+}
+
+.stepColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 50px;
+}
+
+.stepCircle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+
+.stepLabel {
+  font-size: 0.6rem;
+  margin-top: 2px;
+  font-family: var(--font-display);
+}
+
+.stepConnector {
+  width: 24px;
+  height: 2px;
+  margin-bottom: 14px;
+}
+
+/* Channel sub-indicator */
+.channelSubRow {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.channelTag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 0;
+  font-family: var(--font-display);
+}
+
+/* Stick box */
+.stickBoxWrapper {
+  position: relative;
+  margin: 0 auto;
+}
+
+.stickBoxBg {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 0;
+}
+
+.stickBoxHLine {
+  position: absolute;
+  left: 20px;
+  height: 1px;
+  background: var(--color-surface-container-highest);
+}
+
+.stickBoxVLine {
+  position: absolute;
+  top: 10px;
+  width: 1px;
+  background: var(--color-surface-container-highest);
+}
+
+.stickBoxDot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 8px rgba(255, 182, 147, 0.5);
+  will-change: transform;
+}
+
+.stickBoxAxisLabel {
+  position: absolute;
+  color: var(--color-on-surface);
+  font-size: 0.6rem;
+  opacity: 0.5;
+  font-family: var(--font-display);
+}
+
+.stickBoxXLabel {
+  composes: stickBoxAxisLabel;
+  bottom: -2px;
+  transform: translateX(-50%);
+}
+
+.stickBoxYLabel {
+  composes: stickBoxAxisLabel;
+  left: 4px;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center;
+}
+
+/* Dual-stick crosshair layout */
+.dualStickRow {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.stickColumn {
+  text-align: center;
+}
+
+.stickColumnLabel {
+  color: var(--color-on-surface);
+  font-size: 0.65rem;
+  opacity: 0.4;
+  margin-top: 2px;
+  font-family: var(--font-body);
+}
+
+/* Axis bars */
+.axisBarsRow {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.axisBarCol {
+  flex: 1;
+  text-align: center;
+}
+
+.axisBarTrack {
+  height: 50px;
+  background: var(--color-surface);
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.axisBarFill {
+  position: absolute;
+  bottom: 50%;
+  left: 0;
+  right: 0;
+  background: var(--color-primary);
+  transform-origin: bottom;
+  border-radius: 0;
+}
+
+.axisBarCenter {
+  position: absolute;
+  bottom: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #ff884488;
+}
+
+.axisBarLabel {
+  color: var(--color-on-surface);
+  font-size: 0.6rem;
+  opacity: 0.5;
+  font-family: var(--font-body);
+}
+
+/* Mapping summary */
+.mappingSummary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  font-size: 0.75rem;
+  color: var(--color-on-surface);
+  opacity: 0.7;
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--color-surface);
+  border-radius: 0;
+  font-family: var(--font-body);
+}
+
+.mappingChannelLabel {
+  font-weight: 600;
+}
+
+/* Step panel */
+.stepPanel {
+  background: var(--color-surface);
+  border-radius: 0;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Step title */
+.stepTitle {
+  color: var(--color-on-surface);
+  font-weight: 500;
+  font-size: 0.95rem;
+  margin: 0 0 8px;
+  text-align: center;
+  font-family: var(--font-display);
+}
+
+/* Section label */
+.sectionLabel {
+  color: var(--color-on-surface);
+  font-weight: 400;
+  font-size: 0.85rem;
+  margin: 12px 0 6px;
+  opacity: 0.7;
+  font-family: var(--font-display);
+}
+
+/* Hint text */
+.hint {
+  color: var(--color-on-surface);
+  opacity: 0.5;
+  font-size: 0.85rem;
+  text-align: center;
+  margin: 4px 0 12px;
+  font-family: var(--font-body);
+}
+
+/* Button styles */
+.accentButton {
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  background: var(--gradient-cta);
+  color: var(--color-on-primary);
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+
+.secondaryButton {
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  background: var(--color-surface-container-highest);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+}
+
+.selectInput {
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 0;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+}
+
+/* Preset label */
+.presetLabel {
+  color: var(--color-on-surface);
+  font-size: 0.85rem;
+  margin-right: 8px;
+  font-family: var(--font-body);
+}
+
+/* Channel instruction */
+.channelInstruction {
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  text-align: center;
+  margin: 12px 0;
+  font-family: var(--font-display);
+}
+
+/* Detection result box */
+.detectionResult {
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 182, 147, 0.1);
+  border-radius: 0;
+  margin: 8px 0;
+}
+
+.detectionResultText {
+  color: var(--color-primary);
+  font-size: 1rem;
+  font-family: var(--font-body);
+}
+
+/* Center buttons row */
+.buttonRow {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.buttonRowMt {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.presetRow {
+  margin-bottom: 12px;
+}
+
+.hintPrimary {
+  composes: hint;
+  color: var(--color-primary);
+  margin-top: 8px;
+}
+
+.rawPreviewMargin {
+  margin-top: 12px;
+}
+
+.saveButton {
+  composes: accentButton;
+  width: 100%;
+  margin-top: 12px;
+}

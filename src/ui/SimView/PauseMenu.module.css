@@ -1,0 +1,89 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  z-index: 20;
+}
+
+.menuGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pausedTitle {
+  color: var(--color-on-surface);
+  font-weight: 300;
+  margin-bottom: 8px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.resumeButton {
+  padding: 12px 40px;
+  font-size: var(--fs-display-sm);
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  background: var(--gradient-cta);
+  color: var(--color-on-primary);
+  font-weight: 600;
+  width: 200px;
+}
+
+.ghostButton {
+  padding: 12px 40px;
+  font-size: var(--fs-display-sm);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 0;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-on-surface);
+  font-weight: 600;
+  width: 200px;
+}
+
+.settingsPanel {
+  background: var(--color-surface-container-low);
+  border-radius: 0;
+  padding: var(--space-xl);
+  max-width: 560px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.tabBar {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.tab {
+  padding: 8px 20px;
+  font-size: var(--fs-body-md);
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  background: transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab.active {
+  border-bottom: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.tab:not(.active) {
+  border-bottom: 2px solid transparent;
+  color: var(--color-on-surface-variant);
+  font-weight: 400;
+}

@@ -1,0 +1,51 @@
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.sliderLabel {
+  color: var(--color-on-surface);
+  font-size: var(--fs-body-sm);
+  opacity: 0.7;
+  font-family: var(--font-body);
+}
+
+.sliderInput {
+  flex: 1;
+  accent-color: var(--color-primary);
+}
+
+.sliderValue {
+  color: var(--color-on-surface);
+  font-size: 0.75rem;
+  width: 60px;
+  text-align: right;
+  font-family: var(--font-body);
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.panelTitle {
+  margin: 0;
+  color: var(--color-on-surface);
+  font-weight: 400;
+  font-family: var(--font-display);
+}
+
+.closeButton {
+  background: transparent;
+  border: 1px solid var(--color-outline-variant-strong);
+  color: var(--color-on-surface);
+  border-radius: 0;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: var(--fs-body-md);
+  font-family: var(--font-body);
+}

@@ -5,8 +5,8 @@ import {
   computeAngularDrag,
   computeAngularDragInto,
 } from "../DragModel";
-import { DEFAULT_DRONE_CONFIG, Q_IDENTITY, quatFromEuler, vec3, v3Magnitude } from "../types";
-import type { Vector3, Quaternion } from "../types";
+import { DEFAULT_DRONE_CONFIG, Q_IDENTITY, quatFromEuler, vec3 } from "../types";
+import type { Vector3 } from "../types";
 
 describe("DragModel Into parity", () => {
   describe("computeTranslationalDragInto", () => {

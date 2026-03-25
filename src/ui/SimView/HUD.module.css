@@ -1,0 +1,97 @@
+.root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  font-family: var(--hud-font);
+}
+
+.locationName {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  color: var(--color-on-surface);
+  text-shadow: var(--hud-text-shadow);
+  font-size: var(--fs-label-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--hud-font);
+}
+
+.throttleGroup {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.throttleTrack {
+  width: 12px;
+  height: 120px;
+  background: rgba(14, 14, 15, 0.5);
+  border-radius: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.throttleFill {
+  width: 100%;
+  border-radius: 0;
+  transition: height 0.05s;
+}
+
+.throttleLabel {
+  color: var(--color-on-surface);
+  text-shadow: var(--hud-text-shadow);
+  font-size: var(--fs-label-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--hud-font);
+  font-feature-settings: var(--hud-font-features);
+}
+
+.telemetryCenter {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: var(--color-on-surface);
+  text-shadow: var(--hud-text-shadow);
+  font-size: var(--fs-body-sm);
+}
+
+.speedValue {
+  font-size: var(--fs-display-md);
+  font-weight: 600;
+  font-family: var(--hud-font);
+  font-feature-settings: var(--hud-font-features);
+}
+
+.altValue {
+  font-size: var(--fs-display-sm);
+  opacity: 0.8;
+  font-family: var(--hud-font);
+  font-feature-settings: var(--hud-font-features);
+}
+
+.unitLabel {
+  font-size: var(--fs-label-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--hud-font);
+}
+
+.controlsHint {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--color-on-surface);
+  text-shadow: var(--hud-text-shadow);
+  font-size: 0.65rem;
+  opacity: 0.3;
+}

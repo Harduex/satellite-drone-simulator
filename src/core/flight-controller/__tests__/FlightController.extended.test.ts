@@ -4,9 +4,8 @@ import { applyExpo } from "../FlightModes";
 import {
   DEFAULT_RATES,
   createDefaultDroneState,
-  MOTOR_LAYOUT,
 } from "../../physics/types";
-import type { MotorCommands, RatesConfig, StickInputs, DroneState } from "../../physics/types";
+import type { MotorCommands, StickInputs } from "../../physics/types";
 
 const DT = 0.002; // 500Hz
 
@@ -174,7 +173,7 @@ describe("FlightController extended", () => {
       for (let i = 0; i < 50; i++) {
         fc.update(sticks, state, DT);
       }
-      const motorsWithIntegrator = fc.update(sticks, state, DT);
+      fc.update(sticks, state, DT);
 
       fc.reset();
       const fc2 = new FlightController(DEFAULT_RATES);

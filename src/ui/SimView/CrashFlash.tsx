@@ -1,5 +1,5 @@
 import { useStore } from '../../store';
-import { colors } from '../theme';
+import styles from './CrashFlash.module.css';
 
 /** Red flash overlay for crash feedback. Driven by Zustand store. */
 export function CrashFlash() {
@@ -7,13 +7,5 @@ export function CrashFlash() {
 
   if (!visible) return null;
 
-  return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: colors.crash_flash,
-      zIndex: 15,
-      pointerEvents: 'none',
-    }} />
-  );
+  return <div className={styles.overlay} />;
 }

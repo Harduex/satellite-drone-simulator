@@ -15,7 +15,7 @@
 * `camera/`: Physics → Cesium sync.
 * `game/`: Integrator (500Hz sim, 60Hz render). Imports core/world/camera/store.
 * `store/`: Zustand state. Imports core/types only.
-* `ui/`: React + store. `theme.ts` for design tokens. No core/Cesium imports.
+* `ui/`: React + store. `theme.css` for CSS custom properties. `theme.ts` for JS-only tokens (`colors`, `gradients`). No core/Cesium imports.
 
 ## Tech Decisions & Physics Invariants
 

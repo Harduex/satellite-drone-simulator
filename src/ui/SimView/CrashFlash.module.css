@@ -1,0 +1,7 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-crash-flash);
+  z-index: 15;
+  pointer-events: none;
+}

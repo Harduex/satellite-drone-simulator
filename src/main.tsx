@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
+import './ui/theme.css';
 
 // TODO: remove after first load — one-time cleanup of old tile-cache SW
 if ('serviceWorker' in navigator) {

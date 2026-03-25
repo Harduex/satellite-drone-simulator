@@ -1,4 +1,4 @@
-import { colors, fonts, fontSizes } from '../theme';
+import css from './shared.module.css';
 
 // ── Shared Slider ────────────────────────────────────────
 export function Slider({ label, value, min, max, step = 1, unit = '', labelWidth = 90, onChange }: {
@@ -16,22 +16,16 @@ export function Slider({ label, value, min, max, step = 1, unit = '', labelWidth
     : String(value);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
-      <span style={{
-        color: colors.on_surface, fontSize: fontSizes.body_sm, width: labelWidth,
-        opacity: 0.7, fontFamily: fonts.body,
-      }}>
+    <div className={css.sliderRow}>
+      <span className={css.sliderLabel} style={{ width: labelWidth }}>
         {label}
       </span>
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{ flex: 1, accentColor: colors.primary }}
+        className={css.sliderInput}
       />
-      <span style={{
-        color: colors.on_surface, fontSize: '0.75rem', width: '60px',
-        textAlign: 'right', fontFamily: fonts.body,
-      }}>
+      <span className={css.sliderValue}>
         {displayValue} {unit}
       </span>
     </div>
@@ -41,21 +35,9 @@ export function Slider({ label, value, min, max, step = 1, unit = '', labelWidth
 // ── Shared Panel Header ──────────────────────────────────
 export function SettingsPanelHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-      <h2 style={{ margin: 0, color: colors.on_surface, fontWeight: 400, fontFamily: fonts.display }}>{title}</h2>
-      <button onClick={onClose} style={closeButtonStyle}>X</button>
+    <div className={css.panelHeader}>
+      <h2 className={css.panelTitle}>{title}</h2>
+      <button onClick={onClose} className={css.closeButton}>X</button>
     </div>
   );
 }
-
-// ── Shared Button Styles ─────────────────────────────────
-export const closeButtonStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: '1px solid ' + colors.outline_variant_strong,
-  color: colors.on_surface,
-  borderRadius: 0,
-  padding: '4px 10px',
-  cursor: 'pointer',
-  fontSize: fontSizes.body_md,
-  fontFamily: fonts.body,
-};

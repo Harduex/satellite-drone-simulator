@@ -4,8 +4,9 @@ import { RADIO_PRESETS, matchPreset } from '../../core/input/RadioPresets';
 import type { AxisMapping, AxisChannelConfig } from '../../core/input/AxisMapper';
 import { DEFAULT_DEADZONE } from '../../core/input/AxisMapper';
 import { AxisMapper } from '../../core/input/AxisMapper';
-import { colors, fonts, gradients } from '../theme';
+import { colors } from '../theme';
 import { Slider, SettingsPanelHeader } from './shared';
+import css from './ControllerSetup.module.css';
 
 /** Map axes for VISUAL display — reads correct axis per channel but does NOT
  *  apply inversion. Inversion is only needed for flight controller sign convention.
@@ -242,12 +243,12 @@ export function ControllerSetup({ onClose }: Props) {
       <SettingsPanelHeader title="Controller Setup" onClose={onClose} />
 
       {/* Gamepad status */}
-      <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: gamepad ? colors.primary : colors.error,
-        }} />
-        <span style={{ color: colors.on_surface, fontSize: '0.85rem', fontFamily: fonts.body }}>
+      <div className={css.gamepadStatus}>
+        <div
+          className={css.statusDot}
+          style={{ background: gamepad ? colors.primary : colors.error }}
+        />
+        <span className={css.statusLabel}>
           {gamepad ? gamepad.id : 'No controller detected — plug in via USB'}
         </span>
       </div>
@@ -257,105 +258,102 @@ export function ControllerSetup({ onClose }: Props) {
 
       {/* ── Step 1: Detect ── */}
       {step === 'detect' && (
-        <StepPanel>
-          <StepTitle>Connect Controller</StepTitle>
+        <div className={css.stepPanel}>
+          <h3 className={css.stepTitle}>Connect Controller</h3>
           {gamepad ? (
             <>
-              <p style={hintStyle}>
+              <p className={css.hint}>
                 Select a preset for quick setup, or run manual calibration for precise mapping.
               </p>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ color: colors.on_surface, fontSize: '0.85rem', marginRight: 8, fontFamily: fonts.body }}>Preset:</label>
+              <div className={css.presetRow}>
+                <label className={css.presetLabel}>Preset:</label>
                 <select
                   value={selectedPreset}
                   onChange={(e) => setSelectedPreset(e.target.value)}
-                  style={selectStyle}
+                  className={css.selectInput}
                 >
                   {Object.keys(RADIO_PRESETS).map(name => (
                     <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                <button onClick={handleUsePreset} style={accentButtonStyle}>
+              <div className={css.buttonRow}>
+                <button onClick={handleUsePreset} className={css.accentButton}>
                   Use Preset & Verify
                 </button>
-                <button onClick={() => setStep('center')} style={secondaryButtonStyle}>
+                <button onClick={() => setStep('center')} className={css.secondaryButton}>
                   Manual Calibration
                 </button>
               </div>
             </>
           ) : (
-            <p style={hintStyle}>Waiting for controller connection...</p>
+            <p className={css.hint}>Waiting for controller connection...</p>
           )}
-        </StepPanel>
+        </div>
       )}
 
       {/* ── Step 2: Center Calibration ── */}
       {step === 'center' && (
-        <StepPanel>
-          <StepTitle>Center Calibration</StepTitle>
-          <p style={hintStyle}>
+        <div className={css.stepPanel}>
+          <h3 className={css.stepTitle}>Center Calibration</h3>
+          <p className={css.hint}>
             Release all sticks (hands off). Click the button to record center position.
           </p>
           {/* Raw axis bars */}
           {gamepad && <AxisBars axes={liveAxes} centerOffsets={centerOffsets} />}
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
-            <button onClick={handleCalibrateCenter} style={accentButtonStyle}>
+          <div className={css.buttonRowMt}>
+            <button onClick={handleCalibrateCenter} className={css.accentButton}>
               {centerCalibrated ? 'Re-Calibrate Center' : 'Calibrate Center'}
             </button>
             {centerCalibrated && (
-              <button onClick={() => { setStep('map-throttle'); setDetectionPhase('waiting'); }} style={accentButtonStyle}>
+              <button onClick={() => { setStep('map-throttle'); setDetectionPhase('waiting'); }} className={css.accentButton}>
                 Next
               </button>
             )}
           </div>
           {centerCalibrated && (
-            <p style={{ ...hintStyle, color: colors.primary, marginTop: '8px' }}>
+            <p className={css.hintPrimary}>
               Center recorded for {centerOffsets.length} axes
             </p>
           )}
-        </StepPanel>
+        </div>
       )}
 
       {/* ── Steps 3a-3d: Axis Mapping ── */}
       {currentChannel && (
-        <StepPanel>
-          <StepTitle>Map Axes</StepTitle>
+        <div className={css.stepPanel}>
+          <h3 className={css.stepTitle}>Map Axes</h3>
           <ChannelSubIndicator current={currentChannel} mapping={mapping} />
           {detectionPhase === 'waiting' ? (
             <>
-              <p style={{ color: colors.primary, fontSize: '1.1rem', textAlign: 'center', margin: '12px 0', fontFamily: fonts.display }}>
+              <p className={css.channelInstruction}>
                 {CHANNEL_INSTRUCTIONS[currentChannel]}
               </p>
-              <p style={hintStyle}>Hold the stick in that position...</p>
+              <p className={css.hint}>Hold the stick in that position...</p>
               {gamepad && <AxisBars axes={liveAxes} centerOffsets={centerOffsets} />}
             </>
           ) : (
             <>
-              <div style={{
-                textAlign: 'center', padding: '12px',
-                background: 'rgba(255, 182, 147, 0.1)', borderRadius: 0, margin: '8px 0',
-              }}>
-                <span style={{ color: colors.primary, fontSize: '1rem', fontFamily: fonts.body }}>
+              <div className={css.detectionResult}>
+                <span className={css.detectionResultText}>
                   {currentChannel.toUpperCase()}: Axis {(mapping[currentChannel] as AxisChannelConfig).axis}
                   {(mapping[currentChannel] as AxisChannelConfig).inverted ? ' (Inverted)' : ' (Normal)'}
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                <button onClick={handleNextChannel} style={accentButtonStyle}>Next</button>
-                <button onClick={handleRedoChannel} style={secondaryButtonStyle}>Redo</button>
+              <div className={css.buttonRow}>
+                <button onClick={handleNextChannel} className={css.accentButton}>Next</button>
+                <button onClick={handleRedoChannel} className={css.secondaryButton}>Redo</button>
               </div>
             </>
           )}
-        </StepPanel>
+        </div>
       )}
 
       {/* ── Step 4: Verify ── */}
       {step === 'verify' && (
-        <StepPanel>
-          <StepTitle>Verify Mapping</StepTitle>
-          <p style={hintStyle}>Move all sticks to verify correct response.</p>
+        <div className={css.stepPanel}>
+          <h3 className={css.stepTitle}>Verify Mapping</h3>
+          <p className={css.hint}>Move all sticks to verify correct response.</p>
           {mappedInputs && (
             <DualStickCrosshair
               leftX={mappedInputs.yaw}
@@ -366,17 +364,17 @@ export function ControllerSetup({ onClose }: Props) {
             />
           )}
           <MappingSummary mapping={mapping} />
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
-            <button onClick={() => setStep('deadzones')} style={accentButtonStyle}>Looks Good</button>
-            <button onClick={handleStartOver} style={secondaryButtonStyle}>Start Over</button>
+          <div className={css.buttonRowMt}>
+            <button onClick={() => setStep('deadzones')} className={css.accentButton}>Looks Good</button>
+            <button onClick={handleStartOver} className={css.secondaryButton}>Start Over</button>
           </div>
-        </StepPanel>
+        </div>
       )}
 
       {/* ── Step 5: Deadzones & Rates ── */}
       {step === 'deadzones' && (
-        <StepPanel>
-          <StepTitle>Deadzones & Rates</StepTitle>
+        <div className={css.stepPanel}>
+          <h3 className={css.stepTitle}>Deadzones & Rates</h3>
           {mappedInputs && (
             <DualStickCrosshair
               leftX={mappedInputs.yaw}
@@ -387,7 +385,7 @@ export function ControllerSetup({ onClose }: Props) {
             />
           )}
           {/* Deadzone sliders */}
-          <SectionLabel>Deadzones</SectionLabel>
+          <h4 className={css.sectionLabel}>Deadzones</h4>
           {(['throttle', 'yaw', 'pitch', 'roll'] as Channel[]).map(ch => (
             <Slider
               key={ch}
@@ -401,20 +399,20 @@ export function ControllerSetup({ onClose }: Props) {
             />
           ))}
           {/* Rate sliders */}
-          <SectionLabel>Rates</SectionLabel>
+          <h4 className={css.sectionLabel}>Rates</h4>
           <Slider label="Roll Rate" value={rates.rollRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ rollRate: v })} />
           <Slider label="Pitch Rate" value={rates.pitchRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ pitchRate: v })} />
           <Slider label="Yaw Rate" value={rates.yawRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ yawRate: v })} />
           <Slider label="Expo" value={rates.expo} min={0} max={1} step={0.05} labelWidth={80} onChange={(v) => setRates({ expo: v })} />
-          <button onClick={handleSave} style={{ ...accentButtonStyle, width: '100%', marginTop: '12px' }}>
+          <button onClick={handleSave} className={css.saveButton}>
             Save & Close
           </button>
-        </StepPanel>
+        </div>
       )}
 
       {/* Dual-stick crosshair shown on detect/center/map steps as raw preview */}
       {(step === 'detect' || step === 'center' || step.startsWith('map-')) && gamepad && (
-        <div style={{ marginTop: '12px' }}>
+        <div className={css.rawPreviewMargin}>
           <RawStickPreview axes={liveAxes} mapping={mapping} selectedPreset={selectedPreset} />
         </div>
       )}
@@ -425,36 +423,40 @@ export function ControllerSetup({ onClose }: Props) {
 // ── Step Progress Indicator ───────────────────────────────
 function StepIndicator({ currentStage }: { currentStage: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: '1rem' }}>
+    <div className={css.stepIndicatorRow}>
       {STAGE_LABELS.map((label, i) => {
         const stageNum = i + 1;
         const isActive = stageNum === currentStage;
         const isCompleted = stageNum < currentStage;
         return (
-          <div key={label} style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 50 }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: '50%', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 600,
-                fontFamily: fonts.display,
-                background: isActive ? colors.primary : isCompleted ? 'transparent' : 'transparent',
-                color: isActive ? colors.on_primary : isCompleted ? colors.primary : colors.surface_container_highest,
-                border: `2px solid ${isActive ? colors.primary : isCompleted ? colors.primary : colors.surface_container_highest}`,
-              }}>
+          <div key={label} className={css.stepItem}>
+            <div className={css.stepColumn}>
+              <div
+                className={css.stepCircle}
+                style={{
+                  background: isActive ? colors.primary : 'transparent',
+                  color: isActive ? colors.on_primary : isCompleted ? colors.primary : colors.surface_container_highest,
+                  border: `2px solid ${isActive ? colors.primary : isCompleted ? colors.primary : colors.surface_container_highest}`,
+                }}
+              >
                 {isCompleted ? '\u2713' : stageNum}
               </div>
-              <span style={{
-                fontSize: '0.6rem', marginTop: 2, fontFamily: fonts.display,
-                color: isActive ? colors.primary : isCompleted ? colors.primary : colors.surface_container_highest,
-              }}>
+              <span
+                className={css.stepLabel}
+                style={{
+                  color: isActive ? colors.primary : isCompleted ? colors.primary : colors.surface_container_highest,
+                }}
+              >
                 {label}
               </span>
             </div>
             {i < STAGE_LABELS.length - 1 && (
-              <div style={{
-                width: 24, height: 2, marginBottom: 14,
-                background: stageNum < currentStage ? colors.primary : colors.surface_container_highest,
-              }} />
+              <div
+                className={css.stepConnector}
+                style={{
+                  background: stageNum < currentStage ? colors.primary : colors.surface_container_highest,
+                }}
+              />
             )}
           </div>
         );
@@ -468,18 +470,20 @@ function ChannelSubIndicator({ current, mapping }: { current: Channel; mapping: 
   const channels: Channel[] = ['throttle', 'yaw', 'pitch', 'roll'];
   const labels = ['THR', 'YAW', 'PIT', 'ROL'];
   return (
-    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginBottom: '8px' }}>
+    <div className={css.channelSubRow}>
       {channels.map((ch, i) => {
         const isCurrent = ch === current;
         const isDone = !!mapping[ch];
         return (
-          <span key={ch} style={{
-            fontSize: '0.75rem', padding: '2px 8px', borderRadius: 0,
-            fontFamily: fonts.display,
-            background: isCurrent ? colors.primary : isDone ? 'rgba(255, 182, 147, 0.15)' : colors.surface_container_high,
-            color: isCurrent ? colors.on_primary : isDone ? colors.primary : colors.on_surface,
-            fontWeight: isCurrent ? 700 : 400,
-          }}>
+          <span
+            key={ch}
+            className={css.channelTag}
+            style={{
+              background: isCurrent ? colors.primary : isDone ? 'rgba(255, 182, 147, 0.15)' : colors.surface_container_high,
+              color: isCurrent ? colors.on_primary : isDone ? colors.primary : colors.on_surface,
+              fontWeight: isCurrent ? 700 : 400,
+            }}
+          >
             {labels[i]}
           </span>
         );
@@ -493,14 +497,14 @@ function DualStickCrosshair({ leftX, leftY, rightX, rightY, size = 140 }: {
   leftX: number; leftY: number; rightX: number; rightY: number; size?: number;
 }) {
   return (
-    <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', padding: '8px 0' }}>
-      <div style={{ textAlign: 'center' }}>
+    <div className={css.dualStickRow}>
+      <div className={css.stickColumn}>
         <StickBox x={leftX} y={leftY} yIsThrottle={true} xLabel="YAW" yLabel="THR" size={size} />
-        <div style={{ color: colors.on_surface, fontSize: '0.65rem', opacity: 0.4, marginTop: 2, fontFamily: fonts.body }}>Left Stick</div>
+        <div className={css.stickColumnLabel}>Left Stick</div>
       </div>
-      <div style={{ textAlign: 'center' }}>
+      <div className={css.stickColumn}>
         <StickBox x={rightX} y={rightY} yIsThrottle={false} xLabel="ROLL" yLabel="PITCH" size={size} />
-        <div style={{ color: colors.on_surface, fontSize: '0.65rem', opacity: 0.4, marginTop: 2, fontFamily: fonts.body }}>Right Stick</div>
+        <div className={css.stickColumnLabel}>Right Stick</div>
       </div>
     </div>
   );
@@ -516,45 +520,24 @@ function StickBox({ x, y, yIsThrottle, xLabel, yLabel, size }: {
   const centerY = yIsThrottle ? size : size / 2;
 
   return (
-    <div style={{ position: 'relative', width: size + 20, height: size + 20, margin: '0 auto' }}>
+    <div className={css.stickBoxWrapper} style={{ width: size + 20, height: size + 20 }}>
       {/* Background */}
-      <div style={{
-        position: 'absolute', top: 10, left: 20, width: size, height: size,
-        background: colors.surface, border: '1px solid ' + colors.outline_variant, borderRadius: 0,
-      }} />
+      <div className={css.stickBoxBg} style={{ width: size, height: size }} />
       {/* Horizontal center line */}
-      <div style={{
-        position: 'absolute', top: 10 + centerY, left: 20, width: size,
-        height: 1, background: colors.surface_container_highest,
-      }} />
+      <div className={css.stickBoxHLine} style={{ top: 10 + centerY, width: size }} />
       {/* Vertical center line */}
-      <div style={{
-        position: 'absolute', left: 20 + size / 2, top: 10, height: size,
-        width: 1, background: colors.surface_container_highest,
-      }} />
+      <div className={css.stickBoxVLine} style={{ left: 20 + size / 2, height: size }} />
       {/* Dot — uses transform for GPU-composited positioning */}
-      <div style={{
-        position: 'absolute',
-        left: 0, top: 0,
-        width: 12, height: 12, borderRadius: '50%',
-        background: colors.primary,
-        boxShadow: '0 0 8px rgba(255, 182, 147, 0.5)',
-        transform: `translate(${20 + dotX - 6}px, ${10 + dotY - 6}px)`,
-        willChange: 'transform',
-      }} />
+      <div
+        className={css.stickBoxDot}
+        style={{ transform: `translate(${20 + dotX - 6}px, ${10 + dotY - 6}px)` }}
+      />
       {/* X label (below box) */}
-      <span style={{
-        position: 'absolute', bottom: -2, left: 20 + size / 2, transform: 'translateX(-50%)',
-        color: colors.on_surface, fontSize: '0.6rem', opacity: 0.5, fontFamily: fonts.display,
-      }}>
+      <span className={css.stickBoxXLabel} style={{ left: 20 + size / 2 }}>
         {xLabel}
       </span>
       {/* Y label (left of box, rotated) */}
-      <span style={{
-        position: 'absolute', top: 10 + size / 2, left: 4, transform: 'translateY(-50%) rotate(-90deg)',
-        color: colors.on_surface, fontSize: '0.6rem', opacity: 0.5, fontFamily: fonts.display,
-        transformOrigin: 'center',
-      }}>
+      <span className={css.stickBoxYLabel} style={{ top: 10 + size / 2 }}>
         {yLabel}
       </span>
     </div>
@@ -592,32 +575,24 @@ function RawStickPreview({ axes, mapping, selectedPreset }: {
 // ── Axis Bars Visualizer ──────────────────────────────────
 function AxisBars({ axes, centerOffsets }: { axes: number[]; centerOffsets: number[] }) {
   return (
-    <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+    <div className={css.axisBarsRow}>
       {axes.map((val, i) => {
         const center = centerOffsets[i] ?? 0;
         const adjusted = val - center;
         return (
-          <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{
-              height: 50, background: colors.surface, borderRadius: 0,
-              position: 'relative', overflow: 'hidden',
-            }}>
-              <div style={{
-                position: 'absolute', bottom: '50%', left: 0, right: 0,
-                height: `${Math.abs(adjusted) * 50}%`,
-                background: colors.primary,
-                transform: adjusted < 0 ? 'scaleY(-1) translateY(100%)' : undefined,
-                transformOrigin: 'bottom', borderRadius: 0,
-              }} />
+          <div key={i} className={css.axisBarCol}>
+            <div className={css.axisBarTrack}>
+              <div
+                className={css.axisBarFill}
+                style={{
+                  height: `${Math.abs(adjusted) * 50}%`,
+                  transform: adjusted < 0 ? 'scaleY(-1) translateY(100%)' : undefined,
+                }}
+              />
               {/* Center marker if calibrated */}
-              {center !== 0 && (
-                <div style={{
-                  position: 'absolute', bottom: '50%', left: 0, right: 0,
-                  height: 1, background: '#ff884488',
-                }} />
-              )}
+              {center !== 0 && <div className={css.axisBarCenter} />}
             </div>
-            <span style={{ color: colors.on_surface, fontSize: '0.6rem', opacity: 0.5, fontFamily: fonts.body }}>{i}</span>
+            <span className={css.axisBarLabel}>{i}</span>
           </div>
         );
       })}
@@ -629,17 +604,12 @@ function AxisBars({ axes, centerOffsets }: { axes: number[]; centerOffsets: numb
 function MappingSummary({ mapping }: { mapping: Partial<AxisMapping> }) {
   const channels: Channel[] = ['throttle', 'yaw', 'pitch', 'roll'];
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px',
-      fontSize: '0.75rem', color: colors.on_surface, opacity: 0.7,
-      marginTop: '8px', padding: '8px', background: colors.surface, borderRadius: 0,
-      fontFamily: fonts.body,
-    }}>
+    <div className={css.mappingSummary}>
       {channels.map(ch => {
         const config = mapping[ch] as AxisChannelConfig | undefined;
         return (
           <div key={ch}>
-            <span style={{ fontWeight: 600 }}>{ch.toUpperCase()}</span>: Axis {config?.axis ?? '?'}
+            <span className={css.mappingChannelLabel}>{ch.toUpperCase()}</span>: Axis {config?.axis ?? '?'}
             {config?.inverted ? ' (Inv)' : ''}
           </div>
         );
@@ -647,54 +617,3 @@ function MappingSummary({ mapping }: { mapping: Partial<AxisMapping> }) {
     </div>
   );
 }
-
-// ── Reusable Sub-Components ───────────────────────────────
-function StepPanel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      background: colors.surface, borderRadius: 0, padding: '1rem', marginBottom: '0.5rem',
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function StepTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 style={{ color: colors.on_surface, fontWeight: 500, fontSize: '0.95rem', margin: '0 0 8px', textAlign: 'center', fontFamily: fonts.display }}>
-      {children}
-    </h3>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h4 style={{ color: colors.on_surface, fontWeight: 400, fontSize: '0.85rem', margin: '12px 0 6px', opacity: 0.7, fontFamily: fonts.display }}>
-      {children}
-    </h4>
-  );
-}
-
-// ── Styles ────────────────────────────────────────────────
-const hintStyle: React.CSSProperties = {
-  color: colors.on_surface, opacity: 0.5, fontSize: '0.85rem', textAlign: 'center', margin: '4px 0 12px',
-  fontFamily: fonts.body,
-};
-
-const accentButtonStyle: React.CSSProperties = {
-  padding: '8px 20px', fontSize: '0.9rem', border: 'none', borderRadius: 0,
-  cursor: 'pointer', background: gradients.cta, color: colors.on_primary, fontWeight: 600,
-  fontFamily: fonts.display,
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  padding: '8px 20px', fontSize: '0.9rem', border: 'none', borderRadius: 0,
-  cursor: 'pointer', background: colors.surface_container_highest, color: colors.on_surface,
-  fontFamily: fonts.body,
-};
-
-const selectStyle: React.CSSProperties = {
-  background: colors.surface, color: colors.on_surface, border: '1px solid ' + colors.outline_variant,
-  borderRadius: 0, padding: '6px 12px', fontSize: '0.85rem',
-  fontFamily: fonts.body,
-};
