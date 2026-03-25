@@ -1,4 +1,5 @@
 import * as Cesium from "cesium";
+import { initTerrainProvider } from "./TerrainProviderFactory";
 
 const CLOUD_LAYOUT = [
   { east: -3600, north: 3400, up: 900, width: 2400, height: 860, depth: 520, brightness: 0.97, slice: 0.5 },
@@ -20,6 +21,11 @@ export class CesiumManager {
   private cloudDriftScratch = new Cesium.Cartesian3();
 
   init(containerId: string): void {
+    // Google 2D Satellite as globe base layer (requires Map Tiles API enabled)
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
+    if (apiKey) {
+      Cesium.GoogleMaps.defaultApiKey = apiKey;
+    }
 
     this.viewer = new Cesium.Viewer(containerId, {
       animation: false,
@@ -35,6 +41,11 @@ export class CesiumManager {
       scene3DOnly: true,
       requestRenderMode: false,
       skyBox: false, // disable space/stars — drone sims always fly in daylight
+      baseLayer: apiKey
+        ? Cesium.ImageryLayer.fromProviderAsync(
+            Cesium.Google2DImageryProvider.fromUrl({ mapType: "satellite" }) as Promise<Cesium.ImageryProvider>,
+          )
+        : undefined,
     });
 
     // Disable all default camera controls — we drive the camera from physics
@@ -56,31 +67,39 @@ export class CesiumManager {
     }
 
     // Daytime sky tuning for FPV: vivid blue, natural gradient toward horizon.
-    // skyAtmosphere handles all sky colour — skyBox provides the deep-space
-    // background visible only at very high altitude or at night.
     if (this.viewer.scene.skyAtmosphere) {
       this.viewer.scene.skyAtmosphere.show = true;
       this.viewer.scene.skyAtmosphere.perFragmentAtmosphere = true;
       this.viewer.scene.skyAtmosphere.hueShift = 0.0;
-      this.viewer.scene.skyAtmosphere.saturationShift = 0.15;
-      this.viewer.scene.skyAtmosphere.brightnessShift = 0.10;
+      this.viewer.scene.skyAtmosphere.saturationShift = 0.18;
+      this.viewer.scene.skyAtmosphere.brightnessShift = 0.12;
     }
     // Show sun so skyAtmosphere renders a directional gradient and the ground
     // receives natural lighting → realistic horizon colour at dawn/dusk.
     if (this.viewer.scene.sun) this.viewer.scene.sun.show = true;
     if (this.viewer.scene.moon) this.viewer.scene.moon.show = false;
-    // Black background — the skyBox + skyAtmosphere cover the full sky dome at
-    // FPV altitude, so the background colour is never visible in normal flight.
     this.viewer.scene.backgroundColor = new Cesium.Color(0.53, 0.81, 0.98, 1.0);
-    this.viewer.scene.globe.showGroundAtmosphere = true;
-    // Dynamic lighting from the sun makes the ground-atmosphere haze shift with
-    // the sun angle, producing natural dawn/mid-day/dusk horizon tones.
-    this.viewer.scene.globe.dynamicAtmosphereLighting = true;
-    this.viewer.scene.globe.dynamicAtmosphereLightingFromSun = true;
-    this.viewer.scene.globe.atmosphereHueShift = 0.0;
-    this.viewer.scene.globe.atmosphereSaturationShift = 0.1;
-    this.viewer.scene.globe.atmosphereBrightnessShift = 0.05;
-    this.viewer.scene.globe.baseColor = new Cesium.Color(0.74, 0.86, 0.97, 1.0);
+
+    const globe = this.viewer.scene.globe;
+    globe.showGroundAtmosphere = true;
+    globe.dynamicAtmosphereLighting = true;
+    globe.dynamicAtmosphereLightingFromSun = true;
+    globe.atmosphereHueShift = 0.0;
+    globe.atmosphereSaturationShift = 0.12;
+    globe.atmosphereBrightnessShift = 0.05;
+    globe.baseColor = new Cesium.Color(0.74, 0.86, 0.97, 1.0);
+
+    // Globe terrain lighting — adds sun-based hillshading on terrain with vertex normals
+    globe.enableLighting = true;
+    globe.lambertDiffuseMultiplier = 0.9;
+
+    // Boost base imagery layer visuals (Google 2D Satellite or default)
+    const baseLayer = this.viewer.imageryLayers.get(0);
+    if (baseLayer) {
+      baseLayer.contrast = 1.1;
+      baseLayer.saturation = 1.05;
+      baseLayer.gamma = 0.95;
+    }
 
     this.cloudCollection = this.viewer.scene.primitives.add(
       new Cesium.CloudCollection({ noiseDetail: 16 }),
@@ -97,13 +116,15 @@ export class CesiumManager {
     this.viewer.clock.shouldAnimate = false;
 
     // Subtle aerial-perspective fog for depth realism.
-    // Very low density — barely perceptible at 1 km, gentle haze at 5 km+.
     this.viewer.scene.fog.enabled = true;
-    this.viewer.scene.fog.density = 0.00006;
+    this.viewer.scene.fog.density = 0.00008;
     this.viewer.scene.fog.minimumBrightness = 0.9;
 
     // Enable logarithmic depth buffer for drone-scale close-range rendering
     this.viewer.scene.logarithmicDepthBuffer = true;
+
+    // Fire-and-forget terrain init (ArcGIS → Terrarium fallback)
+    initTerrainProvider(this.viewer);
   }
 
   /** Remove the globe-toggle preRender listener (e.g. on session end). */

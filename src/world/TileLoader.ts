@@ -64,6 +64,7 @@ export class TileLoader {
     tileset.foveatedConeSize = 0.3;
     ext.foveatedMinimumScreenSpaceError = 4;
     viewer.scene.primitives.add(tileset);
+    tileset.customShader = createTileColorGradingShader();
     this.tileset = tileset;
     return tileset;
   }
@@ -150,4 +151,35 @@ export class TileLoader {
       pump();
     });
   }
+}
+
+/** Color-grading shader for Google 3D Tiles — fixes washed-out/flat appearance. */
+function createTileColorGradingShader(): Cesium.CustomShader {
+  return new Cesium.CustomShader({
+    mode: Cesium.CustomShaderMode.MODIFY_MATERIAL,
+    uniforms: {
+      u_saturation: { type: Cesium.UniformType.FLOAT, value: 1.2 },
+      u_contrast: { type: Cesium.UniformType.FLOAT, value: 1.08 },
+      u_aoStrength: { type: Cesium.UniformType.FLOAT, value: 0.4 },
+      u_warmShift: { type: Cesium.UniformType.FLOAT, value: 0.03 },
+    },
+    fragmentShaderText: `
+      void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+        // Saturation boost
+        float luma = dot(material.diffuse, vec3(0.2126, 0.7152, 0.0722));
+        material.diffuse = mix(vec3(luma), material.diffuse, u_saturation);
+
+        // Contrast boost (pivot at mid-gray)
+        material.diffuse = mix(vec3(0.5), material.diffuse, u_contrast);
+
+        // Warm color shift (subtle)
+        material.diffuse *= vec3(1.0 + u_warmShift, 1.0, 1.0 - u_warmShift);
+
+        // Fake hemisphere AO from surface normal
+        float ao = 0.5 + 0.5 * dot(fsInput.attributes.normalEC, vec3(0.0, 0.0, 1.0));
+        ao = pow(ao, u_aoStrength);
+        material.occlusion *= ao;
+      }
+    `,
+  });
 }
