@@ -165,7 +165,9 @@ export class CesiumManager {
       if (globe.show) {
         globe.show = !(tilesReady && distance <= thresholdMeters);
       } else {
-        globe.show = !tilesReady || distance > thresholdMeters + 500;
+        // Looking at sky or a brief streaming gap must not bring a second
+        // terrain surface back into the photorealistic flight area.
+        globe.show = distance > thresholdMeters + 500;
       }
     });
 
