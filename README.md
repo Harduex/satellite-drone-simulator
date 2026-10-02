@@ -154,6 +154,10 @@ Saved custom settings are preserved. Physics Settings → Reset to Defaults appl
 the baseline physics and camera setup. These defaults are a representative
 starting point, not a calibration against recorded real-world flight data.
 
+Physics Settings → God mode disables automatic crash respawns and crash flashes.
+Ground contact remains active, allowing takeoff after impact. The choice is saved
+locally; Reset to Defaults restores normal crash respawns.
+
 ## License
 
 ISC

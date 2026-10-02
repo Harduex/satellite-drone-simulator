@@ -17,6 +17,7 @@ export interface SettingsSlice {
   flightMode: FlightMode;
   fov: number;
   cameraTilt: number;
+  godMode: boolean;
   defaultLocation: SavedLocation | null;
   pickerInitialLocation: SavedLocation | null;
   setAxisMapping: (mapping: AxisMapping) => void;
@@ -25,6 +26,7 @@ export interface SettingsSlice {
   setFlightMode: (mode: FlightMode) => void;
   setFov: (fov: number) => void;
   setCameraTilt: (tilt: number) => void;
+  setGodMode: (enabled: boolean) => void;
   setDefaultLocation: (location: SavedLocation) => void;
   setPickerInitialLocation: (location: SavedLocation | null) => void;
   clearPickerInitialLocation: () => void;
@@ -37,6 +39,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   flightMode: FlightMode.ACRO,
   fov: SettingsPersistence.readFov(),
   cameraTilt: SettingsPersistence.readCameraTilt(),
+  godMode: SettingsPersistence.readGodMode(),
   defaultLocation: SettingsPersistence.readDefaultLocation(),
   pickerInitialLocation: null,
   setAxisMapping: (mapping) => set({ axisMapping: mapping }),
@@ -62,6 +65,10 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
     const clamped = Math.max(0, Math.min(45, tilt));
     SettingsPersistence.writeCameraTilt(clamped);
     set({ cameraTilt: clamped });
+  },
+  setGodMode: (enabled) => {
+    SettingsPersistence.writeGodMode(enabled);
+    set({ godMode: enabled });
   },
   setDefaultLocation: (location) => {
     if (!SettingsPersistence.isFiniteLatLng(location.lat, location.lng)) return;

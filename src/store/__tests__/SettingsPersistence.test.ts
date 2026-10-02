@@ -4,6 +4,22 @@ import { describe, it, expect } from "vitest";
 import { SettingsPersistence, mergeNumericPartial } from "../SettingsPersistence";
 import { DEFAULT_DRONE_CONFIG, DEFAULT_RATES } from "../../core/physics/droneConfig";
 
+describe("God mode persistence", () => {
+  it("defaults to normal crash respawns and rejects invalid stored values", () => {
+    localStorage.clear();
+    expect(SettingsPersistence.readGodMode()).toBe(false);
+    localStorage.setItem("fpvsim_god_mode", "yes");
+    expect(SettingsPersistence.readGodMode()).toBe(false);
+  });
+
+  it("roundtrips both modes", () => {
+    SettingsPersistence.writeGodMode(true);
+    expect(SettingsPersistence.readGodMode()).toBe(true);
+    SettingsPersistence.writeGodMode(false);
+    expect(SettingsPersistence.readGodMode()).toBe(false);
+  });
+});
+
 describe("mergeNumericPartial", () => {
   it("returns defaults when persisted is null/undefined", () => {
     expect(mergeNumericPartial(null, { a: 1, b: 2 })).toEqual({ a: 1, b: 2 });

@@ -7,6 +7,7 @@ const PHYSICS_CONFIG_STORAGE_KEY = "fpvsim_physics_config";
 const RATES_STORAGE_KEY = "fpvsim_rates";
 const FOV_STORAGE_KEY = "fpvsim_fov";
 const CAMERA_TILT_STORAGE_KEY = "fpvsim_camera_tilt";
+const GOD_MODE_STORAGE_KEY = "fpvsim_god_mode";
 export const DEFAULT_FOV = 110;
 export const DEFAULT_CAMERA_TILT = 25;
 
@@ -54,6 +55,19 @@ export function mergeNumericPartial<T>(persisted: unknown, defaults: T): T {
 /** Storage adapter for settings persistence. Extracted for testability. */
 export const SettingsPersistence = {
   isFiniteLatLng,
+
+  readGodMode(): boolean {
+    try {
+      return typeof localStorage !== "undefined" && localStorage.getItem(GOD_MODE_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  },
+
+  writeGodMode(enabled: boolean): void {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(GOD_MODE_STORAGE_KEY, String(enabled));
+  },
 
   readDefaultLocation(): SavedLocation | null {
     try {

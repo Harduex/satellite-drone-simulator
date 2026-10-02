@@ -14,16 +14,38 @@ export function PhysicsSettings({ onClose }: Props) {
   const setFov = useStore((s) => s.setFov);
   const cameraTilt = useStore((s) => s.cameraTilt);
   const setCameraTilt = useStore((s) => s.setCameraTilt);
+  const godMode = useStore((s) => s.godMode);
+  const setGodMode = useStore((s) => s.setGodMode);
 
   const handleReset = () => {
     setConfig(DEFAULT_DRONE_CONFIG);
     setFov(DEFAULT_FOV);
     setCameraTilt(DEFAULT_CAMERA_TILT);
+    setGodMode(false);
   };
 
   return (
     <div>
       <SettingsPanelHeader title="Physics Settings" onClose={onClose} />
+
+      <label className={css.godMode}>
+        <span className={css.godModeCopy}>
+          <span>God mode</span>
+          <span id="god-mode-description" className={css.godModeHint}>
+            No crash respawn. Ground contact stays on.
+          </span>
+        </span>
+        <input
+          className={css.godModeInput}
+          type="checkbox"
+          role="switch"
+          aria-label="God mode"
+          aria-describedby="god-mode-description"
+          checked={godMode}
+          onChange={(e) => setGodMode(e.target.checked)}
+        />
+        <span className={css.godModeTrack} aria-hidden="true" />
+      </label>
 
       <Slider label="Mass" value={config.mass} min={0.2} max={1.5} step={0.01} unit="kg" onChange={(v) => setConfig({ mass: v })} />
       <Slider label="Drag Coeff." value={config.dragCoefficient} min={0.1} max={1.0} step={0.01} onChange={(v) => setConfig({ dragCoefficient: v })} />

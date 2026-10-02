@@ -217,6 +217,10 @@ export class GameLoop {
 
     // 7. Crash detection (only on telemetry frames to avoid spam)
     if (published) {
+      if (useStore.getState().godMode) {
+        this.crashDetector.reset();
+        return;
+      }
       const crashed = this.crashDetector.check(this.droneState, groundHeight);
       if (crashed) {
         this.reset();
