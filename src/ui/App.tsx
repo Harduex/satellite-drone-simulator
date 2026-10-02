@@ -44,7 +44,7 @@ function AppContent() {
       {phase === 'PICKER' && (
         <LocationPicker
           onFlyHere={(location) => {
-            simSession.startSession(location);
+            return simSession.startSession(location);
           }}
         />
       )}
@@ -60,5 +60,6 @@ function AppContent() {
 
 function checkApiKeys(): boolean {
   const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
-  return Boolean(googleKey);
+  const ionToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN as string;
+  return Boolean(googleKey?.trim() && ionToken?.trim());
 }

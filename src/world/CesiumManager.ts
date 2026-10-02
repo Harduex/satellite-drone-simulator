@@ -21,11 +21,11 @@ export class CesiumManager {
   private cloudDriftScratch = new Cesium.Cartesian3();
 
   init(containerId: string): void {
-    // Google 2D Satellite as globe base layer (requires Map Tiles API enabled)
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
-    if (apiKey) {
-      Cesium.GoogleMaps.defaultApiKey = apiKey;
+    const ionToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN?.trim();
+    if (!ionToken) {
+      throw new Error("Set VITE_CESIUM_ION_ACCESS_TOKEN in .env and restart the dev server.");
     }
+    Cesium.Ion.defaultAccessToken = ionToken;
 
     this.viewer = new Cesium.Viewer(containerId, {
       animation: false,
@@ -41,11 +41,6 @@ export class CesiumManager {
       scene3DOnly: true,
       requestRenderMode: false,
       skyBox: false, // disable space/stars — drone sims always fly in daylight
-      baseLayer: apiKey
-        ? Cesium.ImageryLayer.fromProviderAsync(
-            Cesium.Google2DImageryProvider.fromUrl({ mapType: "satellite" }) as Promise<Cesium.ImageryProvider>,
-          )
-        : undefined,
     });
 
     // Disable all default camera controls — we drive the camera from physics
@@ -55,16 +50,6 @@ export class CesiumManager {
     controller.enableZoom = false;
     controller.enableTilt = false;
     controller.enableLook = false;
-
-    // Performance tuning (PRD §7.4)
-    // Increase parallel tile requests for Google's tile server
-    const scheduler = Cesium.RequestScheduler as unknown as Record<
-      string,
-      Record<string, number>
-    >;
-    if (scheduler.requestsByServer) {
-      scheduler.requestsByServer["tile.googleapis.com:443"] = 12;
-    }
 
     // Daytime sky tuning for FPV: vivid blue, natural gradient toward horizon.
     if (this.viewer.scene.skyAtmosphere) {
@@ -93,7 +78,7 @@ export class CesiumManager {
     globe.enableLighting = true;
     globe.lambertDiffuseMultiplier = 0.9;
 
-    // Boost base imagery layer visuals (Google 2D Satellite or default)
+    // Boost base imagery layer visuals
     const baseLayer = this.viewer.imageryLayers.get(0);
     if (baseLayer) {
       baseLayer.contrast = 1.1;

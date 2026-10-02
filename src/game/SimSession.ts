@@ -34,11 +34,7 @@ export class SimSession {
     try {
     const viewer = this.cesiumManager.getViewer();
 
-    // Load Google 3D Tiles
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
-    if (apiKey) {
-      await this.tileLoader.loadGoogleTiles(viewer, apiKey);
-    }
+    await this.tileLoader.loadPhotorealisticTiles(viewer);
 
     // Get rough elevation for initial camera placement (may be orthometric from Google API)
     const roughTerrainHeight = await this.resolveTerrainHeight(

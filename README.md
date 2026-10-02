@@ -24,16 +24,31 @@ Create a `.env` file with:
 
 ```
 VITE_GOOGLE_MAPS_API_KEY=your_key_here
+VITE_CESIUM_ION_ACCESS_TOKEN=your_token_here
 ```
 
 ### Google Maps Platform
+
 1. Go to [console.cloud.google.com](https://console.cloud.google.com)
 2. Enable these APIs:
    - Maps JavaScript API
    - Places API
-   - Map Tiles API
    - Elevation API
 3. Create an API key and add it to `.env`
+
+The Google key is used for the location picker, Places search, and Elevation.
+Google Map Tiles API is not required.
+
+### Cesium ion
+
+1. Sign in to [Cesium ion](https://ion.cesium.com/).
+2. Add **Google Photorealistic 3D Tiles** from the Asset Depot to **My Assets**.
+3. Create an access token with access to that asset and **Cesium World Imagery**
+   (the globe's default base imagery). Add it as `VITE_CESIUM_ION_ACCESS_TOKEN`.
+4. Restart the dev server after changing `.env`.
+
+The 3D world loads through Cesium ion using `createGooglePhotorealistic3DTileset`.
+Never commit real keys or tokens.
 
 ## How to Use
 
@@ -46,17 +61,18 @@ VITE_GOOGLE_MAPS_API_KEY=your_key_here
 
 ### Keyboard
 
-| Key | Action |
-|-----|--------|
-| W / S | Throttle up / down |
-| A / D | Yaw left / right |
-| Arrow Up / Down | Pitch forward / back |
-| Arrow Left / Right | Roll left / right |
-| ESC | Pause / Resume |
+| Key                | Action               |
+| ------------------ | -------------------- |
+| W / S              | Throttle up / down   |
+| A / D              | Yaw left / right     |
+| Arrow Up / Down    | Pitch forward / back |
+| Arrow Left / Right | Roll left / right    |
+| ESC                | Pause / Resume       |
 
 ### Radio Controller (USB)
 
 Plug in your FPV radio via USB-C in Joystick mode. Supported radios with auto-detected presets:
+
 - RadioMaster (Boxer, TX16S, Pocket, Zorro)
 - Jumper (T-Pro, T-Lite)
 - TBS Tango 2

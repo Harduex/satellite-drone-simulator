@@ -17,7 +17,7 @@ function ensureAutocompleteStyles() {
 }
 
 interface Props {
-  onFlyHere: (location: { lon: number; lat: number; name: string }) => void;
+  onFlyHere: (location: { lon: number; lat: number; name: string }) => Promise<void>;
 }
 
 export function LocationPicker({ onFlyHere }: Props) {
@@ -36,6 +36,7 @@ export function LocationPicker({ onFlyHere }: Props) {
   const [locatingUser, setLocatingUser] = useState(false);
   const [settingsPanel, setSettingsPanel] = useState<'none' | 'controller' | 'physics'>('none');
   const [launching, setLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
 
   useEffect(() => {
     ensureAutocompleteStyles();
@@ -78,14 +79,21 @@ export function LocationPicker({ onFlyHere }: Props) {
     };
   }, []);
 
-  const handleFlyHere = () => {
+  const handleFlyHere = async () => {
     if (!selectedLocation || launching) return;
     setLaunching(true);
-    onFlyHere({
-      lon: selectedLocation.lng,
-      lat: selectedLocation.lat,
-      name: selectedLocation.name,
-    });
+    setLaunchError(null);
+    try {
+      await onFlyHere({
+        lon: selectedLocation.lng,
+        lat: selectedLocation.lat,
+        name: selectedLocation.name,
+      });
+    } catch {
+      setLaunchError('Unable to start flight. Check your Cesium ion token and access to Google Photorealistic 3D Tiles, then retry.');
+    } finally {
+      setLaunching(false);
+    }
   };
 
   const handleMyLocation = () => {
@@ -153,6 +161,7 @@ export function LocationPicker({ onFlyHere }: Props) {
 
       {/* Fly Here button */}
       <div className={css.flyHereGroup}>
+        {launchError && <p role="alert" className={css.errorMessage}>{launchError}</p>}
         {selectedLocation && (
           <span className={css.locationTag}>
             {selectedLocation.name}

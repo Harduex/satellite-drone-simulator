@@ -41,17 +41,18 @@ export class TileLoader {
   }
 
   /** Load Google Photorealistic 3D Tiles (reuses existing tileset if present) */
-  async loadGoogleTiles(
+  async loadPhotorealisticTiles(
     viewer: Cesium.Viewer,
-    apiKey: string,
   ): Promise<Cesium.Cesium3DTileset> {
     this.viewer = viewer;
 
     if (this.tileset) {
       return this.tileset;
     }
-    const tileset = await Cesium.Cesium3DTileset.fromUrl(
-      `https://tile.googleapis.com/v1/3dtiles/root.json?key=${apiKey}`,
+    const tileset = await Cesium.createGooglePhotorealistic3DTileset(
+      { onlyUsingWithGoogleGeocoder: true },
+      // The helper enables camera collisions by default; physics handles them here.
+      { enableCollision: false },
     );
     // In-session tile cache — tileset is reused across sessions so the cache persists.
     // cacheBytes is the newer API name (replaces maximumMemoryUsage in Cesium 1.107+).

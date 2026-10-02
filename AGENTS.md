@@ -30,7 +30,7 @@
 
 ## Dev & Setup
 * **Commands:** `npm run dev|build|test|test:watch|preview`
-* **Env:** `.env` requires `VITE_GOOGLE_MAPS_API_KEY` (Maps JS, Places, Map Tiles, Elevation).
+* **Env:** `.env` requires `VITE_GOOGLE_MAPS_API_KEY` (Maps JS, Places, Elevation) and `VITE_CESIUM_ION_ACCESS_TOKEN` (Google Photorealistic 3D Tiles, Cesium World Imagery).
 
 ## Controls
 * **Keys:** W/S (Throttle), A/D (Yaw), Arrows (Pitch/Roll), ESC (Pause). Smooth stick ramping applied.
