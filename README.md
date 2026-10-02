@@ -80,6 +80,12 @@ Plug in your FPV radio via USB-C in Joystick mode. Supported radios with auto-de
 
 Any radio with 4+ axes works — use the Controller Setup wizard to map custom axes.
 
+## Rendering
+
+Rendering follows display density up to 1.5 pixels per CSS pixel, limiting
+high-DPI rendering to 2.25 times the baseline pixel count. Cesium's default 4×
+MSAA remains in use where supported. Tile-detail settings are unchanged.
+
 ## Tile reuse during practice
 
 Keep the app tab open between flights. Resetting, pausing, and changing locations
@@ -115,7 +121,7 @@ src/
 │   ├── flight-controller/  PID rate controller + motor mixing
 │   └── input/      Gamepad API, axis mapping, keyboard fallback
 ├── world/          CesiumJS: 3D tiles, coordinates, terrain
-├── camera/         FPV camera sync (configurable FOV, default 90°)
+├── camera/         FPV camera sync (horizontal FOV, default 110°)
 ├── game/           Game loop, crash detector, telemetry publisher, battery
 ├── store/          Zustand state management
 └── ui/             React UI overlays + theme.ts design token system
@@ -133,13 +139,20 @@ src/
 
 - 5" freestyle quad (550g AUW)
 - 4-motor X config with shared `MOTOR_LAYOUT` constant
-- Euler integration at 500Hz (decoupled from render)
+- Euler integration at 500Hz; render frames catch up at 10 FPS or above
+- Catch-up limited to 100ms after a render stall or inactive tab
+- Radio sampled for each physics step (browser device updates may be slower)
+- Quadratic throttle-to-thrust mapping; steady hover near 35% throttle
 - Quadratic angular drag (`-k * |omega| * omega`)
 - Direction-dependent translational drag (3x vertical multiplier for downwash)
-- Asymmetric motor spin-up/down (spin-down 2x slower)
-- Motor spin-up lag (first-order filter, τ=50ms)
+- Asymmetric motor spin-up/down (spin-down 1.3x slower)
+- Motor spin-up lag (first-order filter, τ=18ms)
 - PID rate controller (Betaflight-comparable defaults)
-- Configurable FOV (60-140°, default 90°)
+- Configurable horizontal FOV (60-140°, default 110°), camera tilt default 25°
+
+Saved custom settings are preserved. Physics Settings → Reset to Defaults applies
+the baseline physics and camera setup. These defaults are a representative
+starting point, not a calibration against recorded real-world flight data.
 
 ## License
 

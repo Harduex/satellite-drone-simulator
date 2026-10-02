@@ -19,8 +19,9 @@ import type {
 import { vec3 } from "../core/physics/types";
 import { createDefaultDroneState } from "../core/physics/types";
 
-const MAX_PHYSICS_SUBSTEPS = 10;
-const MAX_WALL_DT = MAX_PHYSICS_SUBSTEPS / 500; // 0.02s — matches physics budget exactly
+const MAX_PHYSICS_SUBSTEPS = 50;
+// Preserve real-time flight down to 10 FPS, but discard long stall time.
+const MAX_WALL_DT = MAX_PHYSICS_SUBSTEPS / 500;
 
 export class GameLoop {
   private running = false;
@@ -28,6 +29,7 @@ export class GameLoop {
   private readonly PHYSICS_DT = 1 / 500;
   private lastTimestamp = 0;
   private lastMotorCommands = { m1: 0, m2: 0, m3: 0, m4: 0 };
+  private stickInputs: StickInputs = { throttle: 0, roll: 0, pitch: 0, yaw: 0 };
 
   private droneState: DroneState;
   private droneStateBuffer: DroneState;
@@ -168,12 +170,6 @@ export class GameLoop {
     if (wallDt > MAX_WALL_DT) wallDt = MAX_WALL_DT;
     if (wallDt <= 0) return;
 
-    // 1. Read input (gamepad takes priority over keyboard)
-    let stickInputs: StickInputs | null = this.gamepadManager.read();
-    if (!stickInputs) {
-      stickInputs = this.keyboardInput.read(wallDt);
-    }
-
     // 2. Sample terrain height at drone position (once per render frame)
     this.terrainSampler.sampleAtPosition(this.droneState.position);
     const groundHeight = this.terrainSampler.getGroundHeight();
@@ -184,8 +180,9 @@ export class GameLoop {
     while (
       this.physicsAccumulator >= this.PHYSICS_DT && steps < MAX_PHYSICS_SUBSTEPS
     ) {
+      this.stickInputs = this.gamepadManager.read() ?? this.keyboardInput.read(this.PHYSICS_DT);
       this.flightController.updateInto(
-        stickInputs,
+        this.stickInputs,
         this.droneState,
         this.PHYSICS_DT,
         this.lastMotorCommands,
@@ -204,9 +201,6 @@ export class GameLoop {
       this.physicsAccumulator -= this.PHYSICS_DT;
       steps++;
     }
-    if (steps >= MAX_PHYSICS_SUBSTEPS) {
-      this.physicsAccumulator = 0;
-    }
 
     // 4. Sync camera to physics state
     this.fpvCamera.sync(this.droneState, this.enuFrame);
@@ -217,7 +211,7 @@ export class GameLoop {
     // 6. Publish telemetry (throttled to ~10Hz)
     const published = this.telemetryPublisher.maybePublish(
       this.droneState,
-      stickInputs.throttle,
+      this.stickInputs.throttle,
       groundHeight,
     );
 

@@ -7,6 +7,8 @@ const PHYSICS_CONFIG_STORAGE_KEY = "fpvsim_physics_config";
 const RATES_STORAGE_KEY = "fpvsim_rates";
 const FOV_STORAGE_KEY = "fpvsim_fov";
 const CAMERA_TILT_STORAGE_KEY = "fpvsim_camera_tilt";
+export const DEFAULT_FOV = 110;
+export const DEFAULT_CAMERA_TILT = 25;
 
 function isFiniteLatLng(lat: number, lng: number): boolean {
   return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 &&
@@ -103,13 +105,13 @@ export const SettingsPersistence = {
 
   readFov(): number {
     try {
-      if (typeof localStorage === "undefined") return 90;
+      if (typeof localStorage === "undefined") return DEFAULT_FOV;
       const raw = localStorage.getItem(FOV_STORAGE_KEY);
-      if (!raw) return 90;
+      if (!raw) return DEFAULT_FOV;
       const v = Number(raw);
-      return Number.isFinite(v) ? Math.max(60, Math.min(140, v)) : 90;
+      return Number.isFinite(v) ? Math.max(60, Math.min(140, v)) : DEFAULT_FOV;
     } catch {
-      return 90;
+      return DEFAULT_FOV;
     }
   },
 
@@ -120,13 +122,13 @@ export const SettingsPersistence = {
 
   readCameraTilt(): number {
     try {
-      if (typeof localStorage === "undefined") return 15;
+      if (typeof localStorage === "undefined") return DEFAULT_CAMERA_TILT;
       const raw = localStorage.getItem(CAMERA_TILT_STORAGE_KEY);
-      if (!raw) return 15;
+      if (!raw) return DEFAULT_CAMERA_TILT;
       const v = Number(raw);
-      return Number.isFinite(v) ? Math.max(0, Math.min(45, v)) : 15;
+      return Number.isFinite(v) ? Math.max(0, Math.min(45, v)) : DEFAULT_CAMERA_TILT;
     } catch {
-      return 15;
+      return DEFAULT_CAMERA_TILT;
     }
   },
 

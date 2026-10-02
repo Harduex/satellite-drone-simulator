@@ -16,6 +16,7 @@ export class CesiumManager {
   private viewer: Cesium.Viewer | null = null;
   private globeToggleCleanup: Cesium.Event.RemoveCallback | null = null;
   private cloudDriftCleanup: Cesium.Event.RemoveCallback | null = null;
+  private renderResolutionCleanup: Cesium.Event.RemoveCallback | null = null;
   private cloudCollection: Cesium.CloudCollection | null = null;
   private cloudDriftStart = performance.now();
   private cloudDriftScratch = new Cesium.Cartesian3();
@@ -42,6 +43,18 @@ export class CesiumManager {
       requestRenderMode: false,
       skyBox: false, // disable space/stars — drone sims always fly in daylight
     });
+
+    // Use a bounded display density instead of unbounded high-DPI supersampling.
+    // With browser-recommended resolution, resolutionScale is pixels per CSS pixel.
+    this.viewer.useBrowserRecommendedResolution = true;
+    const updateRenderResolution = () => {
+      const displayDensity = window.devicePixelRatio || 1;
+      this.viewer!.resolutionScale = Math.min(1.5, Math.max(1, displayDensity));
+    };
+    updateRenderResolution();
+    this.renderResolutionCleanup = this.viewer.scene.preUpdate.addEventListener(
+      updateRenderResolution,
+    );
 
     // Disable all default camera controls — we drive the camera from physics
     const controller = this.viewer.scene.screenSpaceCameraController;
@@ -227,6 +240,8 @@ export class CesiumManager {
   }
 
   destroy(): void {
+    this.renderResolutionCleanup?.();
+    this.renderResolutionCleanup = null;
     this.globeToggleCleanup?.();
     this.globeToggleCleanup = null;
     this.cloudDriftCleanup?.();

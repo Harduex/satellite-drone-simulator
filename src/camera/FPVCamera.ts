@@ -4,17 +4,17 @@ import { quatMultiplyInto } from "../core/physics/types";
 import { bodyQuatToEcefOrientation, enuToEcef } from "../world/CoordUtils";
 
 export interface CameraConfig {
-  fov: number; // degrees
+  fov: number; // horizontal degrees
   nearClip: number; // meters
   farClip: number; // meters
   tiltDegrees: number; // FPV camera up-angle
 }
 
 export const DEFAULT_CAMERA_CONFIG: CameraConfig = {
-  fov: 90,
+  fov: 110,
   nearClip: 0.05,
   farClip: 30000, // 30 km — needed to render clouds (3–7 km) and distant terrain
-  tiltDegrees: 0,
+  tiltDegrees: 25,
 };
 
 // Scratch quaternion for camera orientation computation
@@ -25,6 +25,8 @@ export class FPVCamera {
   private config: CameraConfig;
   private cachedTiltQuat: Quaternion = { w: 1, x: 0, y: 0, z: 0 };
   private cachedTiltDegrees: number = NaN; // NaN forces first update
+  private cachedAspectRatio = NaN;
+  private cachedFov = NaN;
   // Pre-allocated setView objects — mutated each frame, zero allocation
   private _lastEcefPos = new Cesium.Cartesian3();
   private _orientationObj = { direction: new Cesium.Cartesian3(), up: new Cesium.Cartesian3() };
@@ -43,7 +45,8 @@ export class FPVCamera {
 
     // Set FPV field of view
     const frustum = viewer.camera.frustum as Cesium.PerspectiveFrustum;
-    frustum.fov = Cesium.Math.toRadians(this.config.fov);
+    this.cachedAspectRatio = NaN;
+    this.updateFrustumFov();
     frustum.near = this.config.nearClip;
     frustum.far = this.config.farClip;
   }
@@ -51,9 +54,21 @@ export class FPVCamera {
   /** Update FOV at runtime (e.g. from settings slider) */
   setFov(degrees: number): void {
     this.config = { ...this.config, fov: degrees };
+    this.updateFrustumFov();
+  }
+
+  private updateFrustumFov(): void {
     if (!this.viewer) return;
     const frustum = this.viewer.camera.frustum as Cesium.PerspectiveFrustum;
-    frustum.fov = Cesium.Math.toRadians(degrees);
+    const aspect = frustum.aspectRatio;
+    if (aspect === undefined || !Number.isFinite(aspect) || aspect <= 0) return;
+    if (aspect === this.cachedAspectRatio && this.config.fov === this.cachedFov) return;
+    const horizontalFov = Cesium.Math.toRadians(this.config.fov);
+    // Cesium interprets fov as vertical when the viewport is taller than wide.
+    frustum.fov = aspect >= 1 ? horizontalFov :
+      2 * Math.atan(Math.tan(horizontalFov / 2) / aspect);
+    this.cachedAspectRatio = aspect;
+    this.cachedFov = this.config.fov;
   }
 
   /** Update camera tilt angle at runtime */
@@ -76,6 +91,7 @@ export class FPVCamera {
   /** Sync Cesium camera position and orientation from drone physics state */
   sync(droneState: DroneState, enuFrame: Cesium.Matrix4): void {
     if (!this.viewer) return;
+    this.updateFrustumFov();
 
     // Convert drone ENU position to ECEF
     const ecefPosition = enuToEcef(droneState.position, enuFrame);

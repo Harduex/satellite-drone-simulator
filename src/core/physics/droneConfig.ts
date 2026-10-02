@@ -35,7 +35,7 @@ export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
   referenceArea: 0.04,
   verticalDragMultiplier: 3.0,
   spawnAltitude: 2.0,
-  thrustLinearization: true,
+  thrustLinearization: false,
 };
 
 export const DEFAULT_RATES: RatesConfig = {

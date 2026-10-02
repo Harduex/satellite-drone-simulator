@@ -91,9 +91,15 @@ describe("SettingsPersistence.readFov / writeFov", () => {
     expect(SettingsPersistence.readFov()).toBe(60);
   });
 
-  it("returns 90 for invalid values", () => {
+  it("returns the freestyle FOV for invalid values", () => {
     localStorage.setItem("fpvsim_fov", "notanumber");
-    expect(SettingsPersistence.readFov()).toBe(90);
+    expect(SettingsPersistence.readFov()).toBe(110);
+  });
+
+  it("uses the freestyle camera setup when no settings are saved", () => {
+    localStorage.clear();
+    expect(SettingsPersistence.readFov()).toBe(110);
+    expect(SettingsPersistence.readCameraTilt()).toBe(25);
   });
 });
 

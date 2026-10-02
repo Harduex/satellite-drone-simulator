@@ -5,6 +5,26 @@ import { DEFAULT_DRONE_CONFIG } from "../types";
 const DT = 0.002; // 500Hz
 
 describe("MotorModel", () => {
+  it("supports approximately 35% hover throttle for the default quad", () => {
+    const model = new MotorModel(DEFAULT_DRONE_CONFIG);
+    let thrust = 0;
+    for (let step = 0; step < 500; step++) {
+      thrust = model.update([0.35, 0.35, 0.35, 0.35], DT).reduce((sum, t) => sum + t, 0);
+    }
+    expect(thrust).toBeCloseTo(5.3955, 1);
+  });
+
+  it("applies a changed motor lag without changing the timestep", () => {
+    const config = { ...DEFAULT_DRONE_CONFIG };
+    const model = new MotorModel(config);
+    model.update([1, 1, 1, 1], DT);
+    config.motorTimeConstant = 0.1;
+    model.reset();
+    model.update([1, 1, 1, 1], DT);
+    // First-order response: 24000 * (1 - exp(-0.002 / 0.1)).
+    expect(model.state.rpm[0]).toBeCloseTo(475.23184, 4);
+  });
+
   describe("asymmetric spin-up/down", () => {
     it("spins up faster than it spins down over same duration", () => {
       const model = new MotorModel(DEFAULT_DRONE_CONFIG);

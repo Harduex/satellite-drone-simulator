@@ -15,6 +15,8 @@ export class MotorModel {
   private cachedAlphaSpinUp = 0;
   private cachedAlphaSpinDown = 0;
   private cachedDt = 0;
+  private cachedTimeConstant = 0;
+  private cachedSpinDownFactor = 0;
 
   constructor(config: PhysicsConfig) {
     this.config = config;
@@ -29,9 +31,11 @@ export class MotorModel {
   update(throttleCommands: number[], dt: number): number[] {
     const { kT, maxThrottleRpm, motorTimeConstant, motorSpinDownFactor } = this.config;
 
-    // Cache exp() alpha values — dt is always PHYSICS_DT, tau has only 2 possible values
-    if (dt !== this.cachedDt) {
+    if (dt !== this.cachedDt || motorTimeConstant !== this.cachedTimeConstant ||
+      motorSpinDownFactor !== this.cachedSpinDownFactor) {
       this.cachedDt = dt;
+      this.cachedTimeConstant = motorTimeConstant;
+      this.cachedSpinDownFactor = motorSpinDownFactor;
       this.cachedAlphaSpinUp = 1 - Math.exp(-dt / motorTimeConstant);
       this.cachedAlphaSpinDown = 1 - Math.exp(-dt / (motorTimeConstant * motorSpinDownFactor));
     }

@@ -5,6 +5,7 @@ import type { DroneSlice } from "./droneSlice";
 import { createDroneSlice } from "./droneSlice";
 import type { SettingsSlice } from "./settingsSlice";
 import { createSettingsSlice } from "./settingsSlice";
+export { DEFAULT_FOV, DEFAULT_CAMERA_TILT } from "./SettingsPersistence";
 
 export type AppStore = SessionSlice & DroneSlice & SettingsSlice;
 

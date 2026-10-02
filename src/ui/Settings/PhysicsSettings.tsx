@@ -1,4 +1,4 @@
-import { useStore } from '../../store';
+import { useStore, DEFAULT_FOV, DEFAULT_CAMERA_TILT } from '../../store';
 import { DEFAULT_DRONE_CONFIG } from '../../core/physics/types';
 import { Slider, SettingsPanelHeader } from './shared';
 import css from './PhysicsSettings.module.css';
@@ -17,6 +17,8 @@ export function PhysicsSettings({ onClose }: Props) {
 
   const handleReset = () => {
     setConfig(DEFAULT_DRONE_CONFIG);
+    setFov(DEFAULT_FOV);
+    setCameraTilt(DEFAULT_CAMERA_TILT);
   };
 
   return (
@@ -27,7 +29,7 @@ export function PhysicsSettings({ onClose }: Props) {
       <Slider label="Drag Coeff." value={config.dragCoefficient} min={0.1} max={1.0} step={0.01} onChange={(v) => setConfig({ dragCoefficient: v })} />
       <Slider label="Motor Lag" value={config.motorTimeConstant * 1000} min={10} max={100} step={1} unit="ms" onChange={(v) => setConfig({ motorTimeConstant: v / 1000 })} />
       <Slider label="Spawn Alt." value={config.spawnAltitude} min={2} max={50} step={1} unit="m" onChange={(v) => setConfig({ spawnAltitude: v })} />
-      <Slider label="FOV" value={fov} min={60} max={140} step={1} unit="deg" onChange={(v) => setFov(v)} />
+      <Slider label="Horizontal FOV" value={fov} min={60} max={140} step={1} unit="deg" onChange={(v) => setFov(v)} />
       <Slider label="Cam. Tilt" value={cameraTilt} min={0} max={45} step={1} unit="deg" onChange={(v) => setCameraTilt(v)} />
 
       <button onClick={handleReset} className={css.resetButton}>
