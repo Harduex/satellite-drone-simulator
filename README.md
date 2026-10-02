@@ -80,6 +80,22 @@ Plug in your FPV radio via USB-C in Joystick mode. Supported radios with auto-de
 
 Any radio with 4+ axes works — use the Controller Setup wizard to map custom axes.
 
+## Tile reuse during practice
+
+Keep the app tab open between flights. Resetting, pausing, and changing locations
+reuse the same Google tileset and its loaded tiles. The tileset retains up to
+1.5 GiB of tile content, with another 0.5 GiB available for the current view.
+Cesium may evict older tiles when this budget fills. Unseen sibling tiles are
+not speculatively downloaded; turning toward a new area can require streaming.
+
+Browser HTTP caching follows the server's expiry and revalidation headers.
+There is no permanent/offline download cache. See the
+[Google tile caching policy](https://developers.google.com/maps/documentation/tile/policies).
+Cesium ion Community currently includes
+[1,000 Google root-tile requests per month](https://cesium.com/platform/cesium-ion/pricing/);
+these are distinct from individual content-tile requests. Reloading the app
+discards its in-memory tileset and can require another root request.
+
 ## Commands
 
 ```bash

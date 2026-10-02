@@ -54,16 +54,15 @@ export class TileLoader {
       // The helper enables camera collisions by default; physics handles them here.
       { enableCollision: false },
     );
-    // In-session tile cache — tileset is reused across sessions so the cache persists.
-    // cacheBytes is the newer API name (replaces maximumMemoryUsage in Cesium 1.107+).
-    // maximumCacheOverflowBytes gives Cesium a soft buffer above cacheBytes before
-    // it aggressively evicts tiles — reduces LOD thrashing when switching locations.
+    // Retain visited tiles across flights while leaving GPU memory for rendering.
+    // Overflow is reserved for tiles needed by the current view, not LRU retention.
     const ext = tileset as Cesium3DTilesetExtended;
-    ext.cacheBytes = 768 * 1024 * 1024;
-    ext.maximumCacheOverflowBytes = 256 * 1024 * 1024;
+    ext.cacheBytes = 1536 * 1024 * 1024;
+    ext.maximumCacheOverflowBytes = 512 * 1024 * 1024;
     tileset.maximumScreenSpaceError = 8;
     tileset.skipLevelOfDetail = true;
-    ext.loadSiblings = true;
+    // Avoid speculative downloads outside the view; visited tiles remain cached.
+    ext.loadSiblings = false;
     tileset.foveatedScreenSpaceError = true;
     tileset.foveatedConeSize = 0.3;
     ext.foveatedMinimumScreenSpaceError = 4;
@@ -80,8 +79,7 @@ export class TileLoader {
   /** Kick tile traversal for the new camera position. */
   prepareForNewLocation(): void {
     if (!this.tileset || !this.viewer) return;
-    // Let Cesium's cacheBytes (768MB) + maximumCacheOverflowBytes (256MB) handle
-    // natural LRU eviction — no need to aggressively flush all GPU-cached tiles.
+    // Preserve visited tiles and let Cesium evict them only under memory pressure.
     this.viewer.scene.requestRender();
   }
 

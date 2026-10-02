@@ -1,6 +1,8 @@
 # AGENTS.md
 
 ## Rules
+* This repository is public. Before every commit, inspect the complete staged diff, staged file list, and commit metadata for secrets, credentials, personal information, machine-local paths, and private conversation context. Run an available secret scanner with redacted output and verify its detection with a synthetic-secret self-test. Do not commit sensitive findings; resolve them first. Keep `.env`, local screenshots, logs, and session artifacts untracked. Record only project-relevant, public-safe instructions in this harness. Local commits are allowed when requested; pushing or publishing requires explicit approval.
+* Use a verified public author identity and privacy-preserving commit email (such as GitHub's noreply address). Do not include personal contact details in commit metadata or messages.
 * When reporting information to me, be extremely concise. Sacrifice grammar for the sake of concision and clarity.
 * When your context hits over 75%, use your compact tool to compact the context.
 * After the final implementation of the task, before ending the chat session, use your 'Ask Questions' tool to ask me: "Would you like me to apply any corrections, or should we conclude the session now?"
