@@ -1,0 +1,42 @@
+.panel {
+  position: fixed;
+  left: var(--space-md);
+  bottom: 160px;
+  z-index: 30;
+  width: min(300px, calc(100vw - 32px));
+  max-height: calc(100dvh - 184px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px;
+  color: var(--color-on-surface);
+  background: var(--glass-bg);
+  border: 1px solid var(--color-outline-variant);
+  border-left: 2px solid var(--color-secondary);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: auto;
+}
+
+.header, .footer { display: flex; align-items: center; justify-content: space-between; }
+.header { color: var(--color-secondary); font-size: 10px; letter-spacing: 0.12em; }
+.close { border: 0; padding: 0 4px; color: var(--color-on-surface-variant); background: transparent; font-size: 20px; cursor: pointer; }
+.close:focus-visible { outline: 1px solid var(--color-secondary); }
+.performance { display: flex; align-items: baseline; gap: 6px; margin: 6px 0; }
+.performance strong { font-family: var(--font-display); font-size: 30px; font-weight: 500; line-height: 1; }
+.performance > span { color: var(--color-on-surface-variant); font-size: 10px; }
+.frameTime { margin-left: auto; }
+.status { padding: 6px 0; color: var(--color-secondary); border-bottom: 1px solid var(--color-outline-variant); }
+.status[data-active='true'], .metrics dd[data-warning='true'] { color: var(--color-warning); }
+.metrics { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; margin: 10px 0; }
+.metrics dt { color: var(--color-on-surface-variant); }
+.metrics dd { margin: 0; text-align: right; }
+.memoryTrack { height: 3px; background: var(--color-surface-container-highest); }
+.memoryTrack > div { height: 100%; background: var(--color-secondary); }
+.note { margin: 10px 0; color: var(--color-on-surface-muted); font-size: 10px; line-height: 1.5; }
+.footer { padding-top: 8px; border-top: 1px solid var(--color-outline-variant); color: var(--color-on-surface-variant); font-size: 9px; }
+.footer span { color: var(--color-on-surface-muted); }
+
+@media (max-height: 500px) {
+  .panel { bottom: 32px; max-height: calc(100dvh - 48px); }
+}

@@ -4,6 +4,7 @@ import { CesiumManager } from "../world/CesiumManager";
 import { TileLoader } from "../world/TileLoader";
 import { TerrainSampler } from "../world/TerrainSampler";
 import { GameLoop } from "./GameLoop";
+import { RenderDiagnostics } from "./RenderDiagnostics";
 import { useStore } from "../store";
 import type { SavedLocation } from "../store/settingsSlice";
 
@@ -20,10 +21,24 @@ export class SimSession {
   private gameLoop: GameLoop | null = null;
   private spawnOrigin: SpawnOrigin | null = null;
   private isStarting = false;
+  private renderDiagnostics: RenderDiagnostics | null = null;
 
   constructor(cesiumManager: CesiumManager) {
     this.cesiumManager = cesiumManager;
     this.tileLoader = new TileLoader();
+  }
+
+  setDiagnosticsEnabled(enabled: boolean): void {
+    if (enabled) {
+      this.renderDiagnostics ??= new RenderDiagnostics(
+        this.cesiumManager.getViewer(), this.tileLoader,
+        snapshot => useStore.getState().updateRenderDiagnostics(snapshot),
+      );
+      this.renderDiagnostics.start();
+    } else {
+      this.renderDiagnostics?.stop();
+      useStore.getState().updateRenderDiagnostics(null);
+    }
   }
 
   async startSession(

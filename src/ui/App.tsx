@@ -4,6 +4,7 @@ import { LocationPicker } from './LocationPicker/LocationPicker';
 import { SimView } from './SimView/SimView';
 import { SetupRequired } from './SetupRequired';
 import { ServiceProvider, useServices } from './ServiceProvider';
+import { DeveloperOverlay } from './DeveloperOverlay/DeveloperOverlay';
 
 export function App() {
   const hasApiKeys = useRef(checkApiKeys());
@@ -41,6 +42,7 @@ function AppContent() {
 
   return (
     <>
+      <DeveloperOverlay session={simSession} />
       {phase === 'PICKER' && (
         <LocationPicker
           onFlyHere={(location) => {

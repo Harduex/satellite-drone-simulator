@@ -2,16 +2,14 @@ import * as Cesium from "cesium";
 
 interface RuntimeTilesetStats {
   numberOfPendingRequests: number;
+  numberOfTilesProcessing: number;
   numberOfTilesWithContentReady: number;
   visited: number;
 }
 
 interface Cesium3DTilesetExtended extends Cesium.Cesium3DTileset {
   statistics: RuntimeTilesetStats;
-  cacheBytes: number;
-  maximumCacheOverflowBytes: number;
-  loadSiblings: boolean;
-  foveatedMinimumScreenSpaceError: number;
+  memoryAdjustedScreenSpaceError: number;
 }
 
 function getRuntimeStats(
@@ -60,12 +58,13 @@ export class TileLoader {
     ext.cacheBytes = 1536 * 1024 * 1024;
     ext.maximumCacheOverflowBytes = 512 * 1024 * 1024;
     tileset.maximumScreenSpaceError = 8;
-    tileset.skipLevelOfDetail = true;
+    // Standard replacement avoids overlapping coarse and detailed photogrammetry.
+    tileset.skipLevelOfDetail = false;
     // Avoid speculative downloads outside the view; visited tiles remain cached.
     ext.loadSiblings = false;
     tileset.foveatedScreenSpaceError = true;
     tileset.foveatedConeSize = 0.3;
-    ext.foveatedMinimumScreenSpaceError = 4;
+    tileset.foveatedMinimumScreenSpaceErrorRelaxation = 4;
     viewer.scene.primitives.add(tileset);
     tileset.customShader = createTileColorGradingShader();
     this.tileset = tileset;
@@ -74,6 +73,15 @@ export class TileLoader {
 
   getTileset(): Cesium.Cesium3DTileset | null {
     return this.tileset;
+  }
+
+  getStreamingStatistics(): RuntimeTilesetStats | null {
+    return this.tileset ? getRuntimeStats(this.tileset) : null;
+  }
+
+  getEffectiveScreenSpaceError(): number {
+    return this.tileset
+      ? (this.tileset as Cesium3DTilesetExtended).memoryAdjustedScreenSpaceError : 0;
   }
 
   /** Kick tile traversal for the new camera position. */
