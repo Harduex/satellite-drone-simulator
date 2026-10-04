@@ -6,6 +6,31 @@ import { createRecordingFrameSource, getRecordingDimensions } from '../Recording
 afterEach(() => vi.restoreAllMocks());
 
 describe('recording frames', () => {
+  it('rejects attribution that cannot fit before publishing any scenery', async () => {
+    const context = { drawImage: vi.fn(), measureText: (text: string) => ({ width: text.length * 7 }) };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D);
+    const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360;
+    const credits = document.createElement('div'); credits.textContent = 'Provider attribution '.repeat(120);
+    const postRender = new CesiumEvent();
+    const viewer = { canvas, scene: { postRender }, cesiumWidget: { creditContainer: credits } } as unknown as Viewer;
+    await expect(createRecordingFrameSource(viewer)).rejects.toThrow('attribution');
+    expect(context.drawImage).not.toHaveBeenCalled(); expect(postRender.numberOfListeners).toBe(0);
+  });
+
+  it('pairs a scene frame with credits updated after the postRender event', async () => {
+    const context = { fillRect: vi.fn(), drawImage: vi.fn(), fillText: vi.fn(), measureText: (text: string) => ({ width: text.length * 7 }) };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D);
+    const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720;
+    const credits = document.createElement('div'); credits.textContent = 'Provider A';
+    const postRender = new CesiumEvent();
+    const viewer = { canvas, scene: { postRender }, cesiumWidget: { creditContainer: credits } } as unknown as Viewer;
+    const source = await createRecordingFrameSource(viewer);
+    context.fillText.mockClear();
+    postRender.raiseEvent(); credits.textContent = 'Provider B';
+    await vi.waitFor(() => { postRender.raiseEvent(); expect(context.fillText.mock.calls.flat().join(' ')).toContain('Provider B'); });
+    expect(context.fillText.mock.calls.flat().join(' ')).not.toContain('Provider A');
+    source.dispose();
+  });
   it('rejects missing credits before attaching a render listener', async () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
     const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720;
@@ -32,6 +57,7 @@ describe('recording frames', () => {
     const viewer = { canvas, scene: { postRender }, cesiumWidget: { creditContainer: credits } } as unknown as Viewer;
     const source = await createRecordingFrameSource(viewer);
     postRender.raiseEvent();
+    await Promise.resolve();
     expect(context.drawImage).toHaveBeenCalled();
     expect(context.fillText.mock.calls.flat().join(' ')).toContain('Google Maps');
     expect(context.fillText.mock.calls.flat().join(' ')).not.toContain('Data attribution');
@@ -45,7 +71,7 @@ describe('recording frames', () => {
       expect(context.fillText.mock.calls.flat().join(' ')).toContain('Different provider');
     });
     expect(source.canvas.width).toBe(1280);
-    expect(context.drawImage).toHaveBeenLastCalledWith(canvas, 280, 0, 720, 720);
+    expect(context.drawImage.mock.calls.filter(call => call[0] === canvas).at(-1)).toEqual([canvas, 280, 0, 720, 720]);
     expect(context.fillText.mock.calls.flat().join(' ')).toContain('Different provider');
     source.dispose(); source.dispose();
     expect(postRender.numberOfListeners).toBe(0);

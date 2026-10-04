@@ -7,19 +7,32 @@ import type { CesiumManager } from '../../world/CesiumManager';
 const recording = vi.hoisted(() => ({ start: vi.fn(async () => {}), stop: vi.fn(async () => {}),
   pause: vi.fn(), resume: vi.fn(), download: vi.fn(), discard: vi.fn(), dispose: vi.fn(async () => {}) }));
 vi.mock('../FlightRecorder', () => ({ FlightRecorder: class { constructor() { return recording; } } }));
+const loading = vi.hoisted(() => ({ load: vi.fn(async () => {}) }));
+vi.mock('../../world/TileLoader', () => ({ TileLoader: class { setCacheOnlyPractice() {} loadPhotorealisticTiles = loading.load; } }));
 
 afterEach(() => { vi.clearAllMocks(); useStore.setState({ phase: 'PICKER', recording: { ...INITIAL_RECORDING } }); });
 
 function fixture() {
-  const world = { getViewer: vi.fn(), teardownGlobeToggle: vi.fn(), hideContainer: vi.fn() };
+  const world = { getViewer: vi.fn(() => ({})), teardownGlobeToggle: vi.fn(), hideContainer: vi.fn(), showContainer: vi.fn() };
   const session = new SimSession(world as unknown as CesiumManager);
   const loop = { start: vi.fn(), stop: vi.fn(), reset: vi.fn(), applyStoreSettings: vi.fn() };
-  const audio = { dispose: vi.fn() };
+  const audio = { dispose: vi.fn(), unlock: vi.fn() };
   Object.assign(session, { gameLoop: loop, droneAudio: audio });
   return { session, world, loop, audio };
 }
 
 describe('session recording lifecycle', () => {
+  it('cancels pending flight startup on application disposal', async () => {
+    const f = fixture(); let release!: () => void;
+    loading.load.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve; }));
+    const start = f.session.startSession({ lon: 0, lat: 0, name: 'Test location' });
+    await f.session.dispose(); release();
+    await expect(start).resolves.toBeUndefined();
+    expect(f.world.showContainer).not.toHaveBeenCalled(); expect(f.loop.start).not.toHaveBeenCalled();
+    expect(useStore.getState().phase).toBe('PICKER');
+    await f.session.startSession({ lon: 0, lat: 0, name: 'Test location' });
+    expect(loading.load).toHaveBeenCalledOnce();
+  });
   it('starts only in flight, pauses before stopping the loop, and retains reset footage', async () => {
     const f = fixture(); await f.session.startRecording(); expect(recording.start).not.toHaveBeenCalled();
     expect(useStore.getState().recording.error?.code).toBe('not_flying');
