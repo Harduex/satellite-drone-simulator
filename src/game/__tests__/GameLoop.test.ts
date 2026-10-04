@@ -119,6 +119,18 @@ describe("GameLoop wall-clock integration", () => {
     expect(loop.getDroneState().velocity.z).toBeCloseTo(-9.81, 1);
   });
 
+  it("publishes live sticks on render frames and clears them on pause", () => {
+    useStore.setState({ showStickOverlay: true });
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyD" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowRight" }));
+    clock = 20;
+    preUpdate.raiseEvent();
+    expect(useStore.getState().liveSticks.yaw).toBeGreaterThan(0);
+    expect(useStore.getState().liveSticks.roll).toBeGreaterThan(0);
+    loop.stop();
+    expect(useStore.getState().liveSticks).toEqual({ throttle: 0, yaw: 0, roll: 0, pitch: 0 });
+  });
+
   it("returns normal crashes to the original spawn", () => {
     const onCrash = vi.fn();
     loop.onCrash(onCrash);

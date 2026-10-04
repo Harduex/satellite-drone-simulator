@@ -156,6 +156,7 @@ export class GameLoop {
     }
     this.gamepadManager.stopPolling();
     this.keyboardInput.stop();
+    useStore.getState().updateLiveSticks({ throttle: 0, yaw: 0, roll: 0, pitch: 0 });
     this.droneRenderer.destroy();
   }
 
@@ -245,6 +246,9 @@ export class GameLoop {
       this.recoverNearHit(groundHeight);
     }
     this.audio?.update(this.physics.getMotorModel().state.rpm, useStore.getState().audioVolume);
+    if (useStore.getState().showStickOverlay) {
+      useStore.getState().updateLiveSticks(this.stickInputs);
+    }
 
     // 4. Sync camera to physics state
     this.fpvCamera.sync(this.droneState, this.enuFrame);

@@ -19,6 +19,7 @@ export interface SettingsSlice {
   cameraTilt: number;
   godMode: boolean;
   audioVolume: number;
+  showStickOverlay: boolean;
   defaultLocation: SavedLocation | null;
   pickerInitialLocation: SavedLocation | null;
   setAxisMapping: (mapping: AxisMapping) => void;
@@ -29,6 +30,7 @@ export interface SettingsSlice {
   setCameraTilt: (tilt: number) => void;
   setGodMode: (enabled: boolean) => void;
   setAudioVolume: (volume: number) => void;
+  setShowStickOverlay: (enabled: boolean) => void;
   setDefaultLocation: (location: SavedLocation) => void;
   setPickerInitialLocation: (location: SavedLocation | null) => void;
   clearPickerInitialLocation: () => void;
@@ -43,6 +45,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   cameraTilt: SettingsPersistence.readCameraTilt(),
   godMode: SettingsPersistence.readGodMode(),
   audioVolume: SettingsPersistence.readAudioVolume(),
+  showStickOverlay: SettingsPersistence.readShowStickOverlay(),
   defaultLocation: SettingsPersistence.readDefaultLocation(),
   pickerInitialLocation: null,
   setAxisMapping: (mapping) => set({ axisMapping: mapping }),
@@ -78,6 +81,10 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
     const clamped = Math.max(0, Math.min(1, volume));
     SettingsPersistence.writeAudioVolume(clamped);
     set({ audioVolume: clamped });
+  },
+  setShowStickOverlay: (enabled) => {
+    SettingsPersistence.writeShowStickOverlay(enabled);
+    set({ showStickOverlay: enabled });
   },
   setDefaultLocation: (location) => {
     if (!SettingsPersistence.isFiniteLatLng(location.lat, location.lng)) return;

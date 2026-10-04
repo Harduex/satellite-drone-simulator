@@ -1,0 +1,16 @@
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+  font-size: var(--fs-body-sm);
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}

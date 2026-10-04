@@ -15,6 +15,17 @@ describe("Audio volume persistence", () => {
   });
 });
 
+describe("Live stick visibility persistence", () => {
+  it("defaults on, remembers hiding, and falls back on invalid storage", () => {
+    localStorage.clear();
+    expect(SettingsPersistence.readShowStickOverlay()).toBe(true);
+    SettingsPersistence.writeShowStickOverlay(false);
+    expect(SettingsPersistence.readShowStickOverlay()).toBe(false);
+    localStorage.setItem("fpvsim_show_stick_overlay", "invalid");
+    expect(SettingsPersistence.readShowStickOverlay()).toBe(true);
+  });
+});
+
 describe("God mode persistence", () => {
   it("defaults to normal crash respawns and rejects invalid stored values", () => {
     localStorage.clear();

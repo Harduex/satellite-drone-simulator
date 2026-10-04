@@ -10,6 +10,17 @@ function createTestStore() {
 }
 
 describe("droneSlice", () => {
+  it("copies live input buffers rather than retaining mutable physics references", () => {
+    const store = createTestStore();
+    const inputs = { throttle: 0.4, yaw: 0.6, roll: -0.5, pitch: 0.2 };
+    store.getState().updateLiveSticks(inputs);
+    const snapshot = store.getState().liveSticks;
+    inputs.roll = 0.9;
+    expect(snapshot.roll).toBe(-0.5);
+    store.getState().updateLiveSticks(inputs);
+    expect(store.getState().liveSticks.roll).toBe(0.9);
+    expect(snapshot.roll).toBe(-0.5);
+  });
   beforeEach(() => {
     vi.useFakeTimers();
   });

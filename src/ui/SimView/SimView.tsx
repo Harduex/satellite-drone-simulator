@@ -1,6 +1,7 @@
 import { HUD } from './HUD';
 import { PauseMenu } from './PauseMenu';
 import { CrashFlash } from './CrashFlash';
+import { LiveSticks } from './LiveSticks';
 import type { SimSession } from '../../game/SimSession';
 import styles from './SimView.module.css';
 
@@ -14,6 +15,7 @@ export function SimView({ session, isPaused }: Props) {
     <div className={styles.root}>
       {/* CesiumJS canvas is behind this in #cesium-container */}
       <HUD locationName={session.getSpawnOrigin()?.name ?? ''} />
+      <LiveSticks />
       <CrashFlash />
       {isPaused && (
         <PauseMenu

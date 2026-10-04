@@ -1,0 +1,20 @@
+.root {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 10;
+  --stick-background: rgba(14, 14, 15, 0.24);
+  --stick-grid: rgba(228, 225, 220, 0.3);
+  --stick-gap: 140px;
+  --stick-label-opacity: 0.8;
+  text-shadow: var(--hud-text-shadow);
+}
+
+@media (max-width: 560px) {
+  .root {
+    bottom: 85px;
+    --stick-gap: 24px;
+  }
+}
