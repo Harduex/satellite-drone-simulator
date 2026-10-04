@@ -5,6 +5,7 @@ import { SimView } from './SimView/SimView';
 import { SetupRequired } from './SetupRequired';
 import { ServiceProvider, useServices } from './ServiceProvider';
 import { DeveloperOverlay } from './DeveloperOverlay/DeveloperOverlay';
+import { RecordingControls } from './RecordingControls/RecordingControls';
 
 export function App() {
   const hasApiKeys = useRef(checkApiKeys());
@@ -42,6 +43,7 @@ function AppContent() {
 
   return (
     <>
+      <RecordingControls session={simSession} />
       <DeveloperOverlay session={simSession} />
       <LocationPicker compact={phase !== 'PICKER'}
         onFlyHere={(location) => simSession.startSession(location)}
