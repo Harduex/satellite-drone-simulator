@@ -104,6 +104,9 @@ discards its in-memory tileset and can require another root request.
 
 ## Commands
 
+Project knowledge is indexed in [Documentation](docs/README.md), including
+[offline maps experiment notes](docs/experiments/offline-maps.md). The Google map mode remains the default.
+
 ```bash
 npm run dev       # Start development server
 npm run build     # Production build

@@ -11,6 +11,10 @@
 ## Overview
 * Browser FPV drone sim. Google 3D Tiles (CesiumJS), 500Hz custom physics, Web Gamepad API.
 
+## Documentation Map
+* Start with [docs/README.md](docs/README.md) for product references and experiment findings; follow [docs/AGENTS.md](docs/AGENTS.md) when editing documentation.
+* Offline/custom-map evidence and deferred brainstorming: [docs/experiments/offline-maps.md](docs/experiments/offline-maps.md). Google remains the default; local probes do not constitute a shipped offline mode.
+
 ## Architecture & Constraints
 
 * `core/`: Pure TS. Physics, PID, input. **ZERO** external deps.
