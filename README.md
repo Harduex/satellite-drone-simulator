@@ -146,10 +146,19 @@ src/
 - Axial-inflow thrust loss: thrust falls linearly to zero at prop pitch speed (climb/forward flight)
 - Quadratic angular drag (`-k * |omega| * omega`)
 - Direction-dependent translational drag (3x vertical multiplier for downwash)
+- Frame drag and propeller inflow use air-relative velocity (drone velocity minus wind).
+- Lateral rotor drag scales with loaded motor RPM; conservative hover coefficient 0.025 N/(m/s).
+- Gentle breeze defaults to 1.5 m/s with smooth horizontal variation below 0.4 m/s and vertical variation below 0.05 m/s. Physics Settings → Gentle breeze off selects calm air.
+- Wind advances with simulation time, freezes on pause, and resets with the flight. The bounded wind model and rotor-drag coefficient are flight-feel approximations, not measured weather or flight-data calibration.
+
 - Asymmetric motor spin-up/down (spin-down 1.3x slower)
 - Motor spin-up lag (first-order filter, τ=18ms)
 - PID rate controller (simulation-tuned gains; not Betaflight GUI units)
 - Configurable horizontal FOV (60-140°, default 110°), camera tilt default 25°
+
+Aerodynamic basis: [NASA's drag equation](https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/drag-equation/) and [experimentally validated linear rotor drag](https://arxiv.org/abs/1712.02402). Frame drag and rotor drag are separate effects; the existing frame-drag calibration remains within the reference flight-envelope test after adding rotor drag.
+
+Potential realism extensions: [ground effect](https://arxiv.org/abs/2506.19424) can add lift and attitude-dependent forces near a surface; [wall proximity](https://arxiv.org/abs/2509.21496) can alter aerodynamic forces close to buildings. These need reliable local clearance and surface geometry before implementation. The current model does not simulate building wakes, ground effect, or descent propwash.
 
 ### Calibration sources
 

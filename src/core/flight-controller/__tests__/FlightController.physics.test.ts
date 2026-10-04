@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { FlightController } from "../FlightController";
 import { applyExpo } from "../FlightModes";
 import { DronePhysics } from "../../physics/DronePhysics";
+import { WindModel } from "../../physics/WindModel";
 import { DEFAULT_DRONE_CONFIG, DEFAULT_RATES } from "../../physics/droneConfig";
 import { createDefaultDroneState, type StickInputs } from "../../physics/types";
 
-describe("controller with the reference quad physics", () => {
+describe.each([false, true])("controller with the reference quad physics (wind=%s)", (gentleWind) => {
   describe.each([
     ["roll", "y", DEFAULT_RATES.rollRate, 1],
     ["pitch", "x", DEFAULT_RATES.pitchRate, -1],
@@ -15,6 +16,8 @@ describe("controller with the reference quad physics", () => {
       const config = DEFAULT_DRONE_CONFIG;
       const physics = new DronePhysics(config);
       const controller = new FlightController(DEFAULT_RATES);
+      const wind = new WindModel();
+      const air = { x: 0, y: 0, z: 0 };
       const hoverRpmFraction = Math.sqrt(config.mass * 9.81 / (4 * config.kT)) / config.maxThrottleRpm;
       const inputs: StickInputs = {
         throttle: Math.pow(hoverRpmFraction, 1 / config.motorResponseExponent!),
@@ -27,14 +30,16 @@ describe("controller with the reference quad physics", () => {
         physics.getMotorModel().update([inputs.throttle, inputs.throttle, inputs.throttle, inputs.throttle], dt);
       }
       for (let step = 0; step < 500; step++) {
-        state = physics.step(state, controller.update(inputs, state, dt), dt);
+        state = physics.step(state, controller.update(inputs, state, dt), dt, 0,
+          gentleWind ? wind.updateInto(dt, air) : undefined);
       }
       expect(Math.abs(state.velocity.z)).toBeLessThan(0.2);
       inputs[stick] = command;
       const target = sign * applyExpo(command, DEFAULT_RATES.expo) * rate * Math.PI / 180;
       let error = 0;
       for (let step = 0; step < 1500; step++) {
-        state = physics.step(state, controller.update(inputs, state, dt), dt);
+        state = physics.step(state, controller.update(inputs, state, dt), dt, 0,
+          gentleWind ? wind.updateInto(dt, air) : undefined);
         if (step >= 1250) {
           error += Math.abs(state.angularVelocity[axis] - target) / 250;
         }
@@ -42,7 +47,8 @@ describe("controller with the reference quad physics", () => {
       expect(error).toBeLessThan(15 * Math.PI / 180);
       inputs[stick] = 0;
       for (let step = 0; step < 500; step++) {
-        state = physics.step(state, controller.update(inputs, state, dt), dt);
+        state = physics.step(state, controller.update(inputs, state, dt), dt, 0,
+          gentleWind ? wind.updateInto(dt, air) : undefined);
       }
       expect(Math.abs(state.angularVelocity[axis])).toBeLessThan(15 * Math.PI / 180);
       expect(Math.hypot(state.quaternion.w, state.quaternion.x, state.quaternion.y, state.quaternion.z)).toBeCloseTo(1, 8);

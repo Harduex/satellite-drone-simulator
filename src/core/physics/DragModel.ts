@@ -23,12 +23,14 @@ const _dragBody: Vector3 = { x: 0, y: 0, z: 0 };
  * Compute direction-dependent translational drag.
  * Transforms velocity to body frame, applies per-axis Cd*A,
  * and transforms drag force back to world frame.
- * Vertical axis has higher drag (bottom of frame facing airflow).
+ * Velocity is relative to the air. Lateral rotor drag is linear in airspeed;
+ * axial inflow is handled by the thrust model instead.
  */
 export function computeTranslationalDrag(
   velocity: Vector3,
   bodyQuaternion: Quaternion,
   config: PhysicsConfig,
+  rotorDrag: number = 0,
 ): Vector3 {
   const speedSq = v3MagnitudeSq(velocity);
   if (speedSq < 1e-12) return { x: 0, y: 0, z: 0 };
@@ -36,14 +38,13 @@ export function computeTranslationalDrag(
   // Transform velocity into body frame
   const bodyVel = quatRotateVector(quatConjugate(bodyQuaternion), velocity);
 
-  // Per-axis drag in body frame: F_i = -0.5 * rho * Cd_i * A_i * |v_i| * v_i
   const rho = AIR_DENSITY;
   const CdA_lateral = config.dragCoefficient * config.referenceArea;
   const CdA_vertical = CdA_lateral * config.verticalDragMultiplier;
 
   const dragBody: Vector3 = {
-    x: -0.5 * rho * CdA_lateral * Math.abs(bodyVel.x) * bodyVel.x,
-    y: -0.5 * rho * CdA_lateral * Math.abs(bodyVel.y) * bodyVel.y,
+    x: -(0.5 * rho * CdA_lateral * Math.abs(bodyVel.x) + rotorDrag) * bodyVel.x,
+    y: -(0.5 * rho * CdA_lateral * Math.abs(bodyVel.y) + rotorDrag) * bodyVel.y,
     z: -0.5 * rho * CdA_vertical * Math.abs(bodyVel.z) * bodyVel.z,
   };
 
@@ -57,6 +58,7 @@ export function computeTranslationalDragInto(
   bodyQuaternion: Quaternion,
   config: PhysicsConfig,
   out: Vector3,
+  rotorDrag: number = 0,
 ): Vector3 {
   const speedSq = v3MagnitudeSq(velocity);
   if (speedSq < 1e-12) { out.x = 0; out.y = 0; out.z = 0; return out; }
@@ -75,8 +77,8 @@ export function computeTranslationalDragInto(
   const CdA_vertical = CdA_lateral * config.verticalDragMultiplier;
 
   // Per-axis drag in body frame
-  _dragBody.x = -0.5 * rho * CdA_lateral * Math.abs(_bodyVel.x) * _bodyVel.x;
-  _dragBody.y = -0.5 * rho * CdA_lateral * Math.abs(_bodyVel.y) * _bodyVel.y;
+  _dragBody.x = -(0.5 * rho * CdA_lateral * Math.abs(_bodyVel.x) + rotorDrag) * _bodyVel.x;
+  _dragBody.y = -(0.5 * rho * CdA_lateral * Math.abs(_bodyVel.y) + rotorDrag) * _bodyVel.y;
   _dragBody.z = -0.5 * rho * CdA_vertical * Math.abs(_bodyVel.z) * _bodyVel.z;
 
   // Transform drag force back to world frame

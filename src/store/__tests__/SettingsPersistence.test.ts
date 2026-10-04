@@ -4,6 +4,15 @@ import { describe, it, expect } from "vitest";
 import { SettingsPersistence, mergeNumericPartial } from "../SettingsPersistence";
 import { DEFAULT_DRONE_CONFIG, DEFAULT_RATES } from "../../core/physics/droneConfig";
 
+describe("weather persistence", () => {
+  it("gives older settings gentle weather and retains an explicit Calm selection", () => {
+    localStorage.setItem("fpvsim_physics_config", JSON.stringify({ mass: 0.8 }));
+    expect(SettingsPersistence.readPhysicsConfig().gentleWind).toBe(true);
+    SettingsPersistence.writePhysicsConfig({ ...DEFAULT_DRONE_CONFIG, gentleWind: false });
+    expect(SettingsPersistence.readPhysicsConfig().gentleWind).toBe(false);
+  });
+});
+
 describe("Audio volume persistence", () => {
   it("defaults, roundtrips mute, and rejects invalid saved volume", () => {
     localStorage.clear();

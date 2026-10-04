@@ -38,6 +38,9 @@ export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
   dragCoefficient: 1.0,
   referenceArea: 0.007,
   verticalDragMultiplier: 3.0,
+  // Conservative flight-feel estimate; rotor drag scales with mean loaded RPM.
+  rotorDragCoefficient: 0.025,
+  gentleWind: true,
   spawnAltitude: 2.0,
   thrustLinearization: false,
 };

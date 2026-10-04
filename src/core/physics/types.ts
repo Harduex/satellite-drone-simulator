@@ -108,6 +108,8 @@ export interface PhysicsConfig {
   dragCoefficient: number;
   referenceArea: number; // m²
   verticalDragMultiplier: number; // multiplier on Cd*A for vertical axis drag
+  rotorDragCoefficient?: number; // N/(m/s) at hover RPM, body X/Y only
+  gentleWind?: boolean; // fair-weather breeze; false selects calm air
   spawnAltitude: number; // m AGL
   thrustLinearization?: boolean; // apply sqrt to throttle commands for linear thrust feel
 }

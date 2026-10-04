@@ -30,6 +30,25 @@ export function PhysicsSettings({ onClose }: Props) {
 
       <label className={css.godMode}>
         <span className={css.godModeCopy}>
+          <span>Gentle breeze</span>
+          <span id="weather-description" className={css.godModeHint}>
+            Light wind with smooth gusts. Turn off for calm air.
+          </span>
+        </span>
+        <input
+          className={css.godModeInput}
+          type="checkbox"
+          role="switch"
+          aria-label="Gentle breeze"
+          aria-describedby="weather-description"
+          checked={config.gentleWind !== false}
+          onChange={(e) => setConfig({ gentleWind: e.target.checked })}
+        />
+        <span className={css.godModeTrack} aria-hidden="true" />
+      </label>
+
+      <label className={css.godMode}>
+        <span className={css.godModeCopy}>
           <span>God mode</span>
           <span id="god-mode-description" className={css.godModeHint}>
             Recover upright near the hit, above the surface.

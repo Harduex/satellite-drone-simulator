@@ -68,6 +68,7 @@ export class DronePhysics {
   private motorArmOffset: number; // armLength * cos(45°)
   private throttleBuffer: number[] = [0, 0, 0, 0];
   private inflowThrustBuffer: number[] = [0, 0, 0, 0];
+  private readonly airVelocity: Vector3 = { x: 0, y: 0, z: 0 };
 
   constructor(config: PhysicsConfig) {
     this.config = config;
@@ -81,22 +82,27 @@ export class DronePhysics {
    * All intermediate math uses pre-allocated scratch objects — the only
    * allocation is the returned DroneState.
    * @param groundHeight Dynamic ground floor in ENU Z coords (from terrain sampler)
+   * @param wind Air velocity in world ENU m/s; omitted means calm air
    */
-  step(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number = 0): DroneState {
+  step(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number = 0, wind?: Vector3): DroneState {
     return this.stepInto(state, motors, dt, groundHeight, {
       position: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       quaternion: { w: 1, x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
-    });
+    }, wind);
   }
 
-  stepInto(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number, out: DroneState): DroneState {
+  stepInto(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number, out: DroneState, wind?: Vector3): DroneState {
+    v3Set(this.airVelocity,
+      state.velocity.x - (wind?.x ?? 0),
+      state.velocity.y - (wind?.y ?? 0),
+      state.velocity.z - (wind?.z ?? 0));
     this.throttleBuffer[0] = motors.m1;
     this.throttleBuffer[1] = motors.m2;
     this.throttleBuffer[2] = motors.m3;
     this.throttleBuffer[3] = motors.m4;
-    const thrusts = this.applyInflowLoss(this.motorModel.update(this.throttleBuffer, dt), state);
+    const thrusts = this.applyInflowLoss(this.motorModel.update(this.throttleBuffer, dt), state.quaternion);
     const reactionTorques = this.motorModel.getReactionTorques();
 
     // ── Compute net force in body frame ───────────────────
@@ -116,7 +122,12 @@ export class DronePhysics {
     v3Set(_gravity, 0, 0, -this.config.mass * GRAVITY);
 
     // Translational drag (direction-dependent, body-frame aware)
-    computeTranslationalDragInto(state.velocity, state.quaternion, this.config, _drag);
+    const rpms = this.motorModel.state.rpm;
+    const hoverRpm = Math.sqrt(this.config.mass * GRAVITY / (4 * this.config.kT));
+    const coefficient = this.config.rotorDragCoefficient ?? 0;
+    const rotorDrag = Number.isFinite(coefficient) && coefficient > 0
+      ? coefficient * (rpms[0]! + rpms[1]! + rpms[2]! + rpms[3]!) / (4 * hoverRpm) : 0;
+    computeTranslationalDragInto(this.airVelocity, state.quaternion, this.config, _drag, rotorDrag);
 
     // Net force = thrust + gravity + drag
     v3AddInto(_thrustWorld, _gravity, _temp1);
@@ -216,14 +227,13 @@ export class DronePhysics {
   /**
    * Static bench thrust overstates thrust when air already flows through the
    * disc. First-order advance-ratio model: T = T_static * (1 - v_axial / v_pitch),
-   * where v_axial is body-up velocity and v_pitch = pitch * rpm / 60.
+   * where v_axial is air-relative body-up velocity and v_pitch = pitch * rpm / 60.
    * Descent (v_axial < 0) keeps static thrust; vortex-ring effects are not modeled.
    */
-  private applyInflowLoss(thrusts: number[], state: DroneState): number[] {
+  private applyInflowLoss(thrusts: number[], q: Quaternion): number[] {
     const pitch = this.config.propellerPitch;
     if (!(pitch !== undefined && Number.isFinite(pitch) && pitch > 0)) return thrusts;
-    const q = state.quaternion;
-    const v = state.velocity;
+    const v = this.airVelocity;
     // Body Z axis in world frame (third column of the rotation matrix).
     const axial = v.x * 2 * (q.x * q.z + q.w * q.y)
       + v.y * 2 * (q.y * q.z - q.w * q.x)

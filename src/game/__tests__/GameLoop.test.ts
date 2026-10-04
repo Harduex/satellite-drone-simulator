@@ -53,6 +53,25 @@ describe("GameLoop wall-clock integration", () => {
     vi.restoreAllMocks();
   });
 
+  it("applies gentle weather and honors Calm on resume", () => {
+    const originalConfig = useStore.getState().physicsConfig;
+    useStore.setState({ physicsConfig: { ...DEFAULT_DRONE_CONFIG, gentleWind: true } });
+    loop.applyStoreSettings();
+    clock = 20;
+    preUpdate.raiseEvent();
+    expect(loop.getDroneState().velocity.x).toBeGreaterThan(0);
+    loop.stop();
+    useStore.setState({ physicsConfig: { ...DEFAULT_DRONE_CONFIG, gentleWind: false } });
+    loop.applyStoreSettings();
+    loop.reset();
+    loop.start();
+    clock = 40;
+    preUpdate.raiseEvent();
+    expect(loop.getDroneState().velocity.x).toBe(0);
+    expect(loop.getDroneState().velocity.y).toBe(0);
+    useStore.setState({ physicsConfig: originalConfig });
+  });
+
   it.each([15, 30, 60, 144])("falls at real-time gravity at %i render FPS", (fps) => {
     for (let frame = 1; frame <= fps; frame++) {
       clock = frame * 1000 / fps;
