@@ -77,7 +77,7 @@ export class TileLoader {
     const tileset = await Cesium.createGooglePhotorealistic3DTileset(
       { onlyUsingWithGoogleGeocoder: true },
       // The helper enables camera collisions by default; physics handles them here.
-      { enableCollision: false },
+      { enableCollision: false, showCreditsOnScreen: true },
     );
     // Retain visited tiles across flights while leaving GPU memory for rendering.
     // Overflow is reserved for tiles needed by the current view, not LRU retention.
