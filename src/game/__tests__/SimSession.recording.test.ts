@@ -57,4 +57,13 @@ describe('session recording lifecycle', () => {
     expect(useStore.getState().recording.status).toBe('ready'); expect(useStore.getState().phase).toBe('PICKER');
     await f.session.dispose(); expect(recording.dispose).toHaveBeenCalledOnce();
   });
+  it('copies a Maps link for the current location and reports clipboard failure', async () => {
+    const f = fixture(); expect(await f.session.copyLocationLink()).toBe(false);
+    Object.assign(f.session, { spawnOrigin: { latitude: 10, longitude: 20, name: 'x' } });
+    const writeText = vi.fn(async () => {}); vi.stubGlobal('navigator', { clipboard: { writeText } });
+    expect(await f.session.copyLocationLink()).toBe(true);
+    expect(writeText).toHaveBeenCalledWith('https://www.google.com/maps/search/?api=1&query=10.000000%2C20.000000');
+    writeText.mockRejectedValueOnce(new Error('denied')); expect(await f.session.copyLocationLink()).toBe(false);
+    vi.unstubAllGlobals();
+  });
 });

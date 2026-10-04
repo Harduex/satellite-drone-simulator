@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ControllerSetup } from '../Settings/ControllerSetup';
 import { PhysicsSettings } from '../Settings/PhysicsSettings';
 import { FlightSettings } from '../Settings/FlightSettings';
@@ -7,16 +7,30 @@ import css from './PauseMenu.module.css';
 interface Props {
   onResume: () => void;
   onSaveCurrentAsDefault: () => void;
+  onCopyLocation: () => Promise<boolean>;
   onChangeLocation: () => Promise<void>;
 }
 
 type SettingsTab = 'controller' | 'physics' | 'flight';
 
+const COPY_FEEDBACK_MS = 1500;
+
 export function PauseMenu(
-  { onResume, onSaveCurrentAsDefault, onChangeLocation }: Props,
+  { onResume, onSaveCurrentAsDefault, onCopyLocation, onChangeLocation }: Props,
 ) {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('controller');
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
+
+  const handleCopy = async () => {
+    const ok = await onCopyLocation();
+    setCopyState(ok ? 'copied' : 'failed');
+    clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => setCopyState('idle'), COPY_FEEDBACK_MS);
+  };
 
   if (showSettings) {
     return (
@@ -60,6 +74,9 @@ export function PauseMenu(
         <button onClick={onResume} className={css.resumeButton}>Resume</button>
         <button onClick={() => setShowSettings(true)} className={css.ghostButton}>Settings</button>
         <button onClick={onSaveCurrentAsDefault} className={css.ghostButton}>Save Current As Default</button>
+        <button onClick={handleCopy} className={css.ghostButton}>
+          {copyState === 'copied' ? 'Copied!' : copyState === 'failed' ? 'Copy failed' : 'Copy Location'}
+        </button>
         <button onClick={onChangeLocation} className={css.ghostButton}>Change Location</button>
       </div>
     </div>

@@ -21,6 +21,7 @@ export function SimView({ session, isPaused }: Props) {
         <PauseMenu
           onResume={() => session.resume()}
           onSaveCurrentAsDefault={() => session.saveCurrentLocationAsDefault()}
+          onCopyLocation={() => session.copyLocationLink()}
           onChangeLocation={() => session.changeLocationFromPause()}
         />
       )}

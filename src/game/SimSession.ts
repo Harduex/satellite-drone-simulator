@@ -1,5 +1,6 @@
 import * as Cesium from "cesium";
 import { createENUFrame, enuToEcef } from "../world/CoordUtils";
+import { buildGoogleMapsUrl } from "./mapsUrl";
 import { CesiumManager } from "../world/CesiumManager";
 import { TileLoader } from "../world/TileLoader";
 import { TerrainSampler } from "../world/TerrainSampler";
@@ -279,6 +280,18 @@ export class SimSession {
     const store = useStore.getState();
     store.setDefaultLocation(currentLocation);
     store.setPickerInitialLocation(currentLocation);
+  }
+
+  async copyLocationLink(): Promise<boolean> {
+    const location = this.getCurrentLocationForPicker();
+    if (!location) return false;
+    try {
+      await navigator.clipboard.writeText(buildGoogleMapsUrl(location.lat, location.lng));
+      return true;
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn("Failed to copy location link", err);
+      return false;
+    }
   }
 
   async changeLocationFromPause(): Promise<void> {
