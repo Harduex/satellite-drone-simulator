@@ -1,15 +1,24 @@
 import * as Cesium from "cesium";
 import { initTerrainProvider } from "./TerrainProviderFactory";
+import { createDaylightPanorama } from "./DaylightSky";
 
 const CLOUD_LAYOUT = [
-  { east: -3600, north: 3400, up: 900, width: 2400, height: 860, depth: 520, brightness: 0.97, slice: 0.5 },
-  { east: -1200, north: 4700, up: 1180, width: 3200, height: 1100, depth: 680, brightness: 0.95, slice: 0.45 },
-  { east: 1800, north: 3900, up: 980, width: 2600, height: 920, depth: 560, brightness: 0.94, slice: 0.52 },
-  { east: 4200, north: 5200, up: 1320, width: 3400, height: 1180, depth: 740, brightness: 0.9, slice: 0.44 },
-  { east: 5200, north: 1800, up: 1080, width: 2100, height: 760, depth: 460, brightness: 0.92, slice: 0.48 },
-  { east: -5200, north: 1700, up: 1040, width: 2300, height: 800, depth: 500, brightness: 0.93, slice: 0.46 },
-  { east: -800, north: 2600, up: 760, width: 1700, height: 620, depth: 360, brightness: 0.98, slice: 0.56 },
-  { east: 2900, north: 2500, up: 820, width: 1900, height: 660, depth: 380, brightness: 0.96, slice: 0.54 },
+  { east: -3400, north: 4200, up: 1400, width: 2200, height: 820, depth: 11, brightness: 0.96 },
+  { east: -1500, north: 5000, up: 1700, width: 1800, height: 700, depth: 9, brightness: 0.98 },
+  { east: 800, north: 4600, up: 1450, width: 1400, height: 620, depth: 13, brightness: 0.94 },
+  { east: 2900, north: 5300, up: 1950, width: 2100, height: 740, depth: 8, brightness: 0.97 },
+  { east: 4900, north: 3200, up: 1550, width: 1900, height: 760, depth: 12, brightness: 0.95 },
+  { east: 6100, north: 800, up: 1800, width: 2400, height: 880, depth: 10, brightness: 0.98 },
+  { east: 4500, north: -1700, up: 1250, width: 1300, height: 560, depth: 9, brightness: 0.93 },
+  { east: 5700, north: -3900, up: 2000, width: 2000, height: 730, depth: 13, brightness: 0.96 },
+  { east: 2300, north: -5100, up: 1550, width: 1800, height: 640, depth: 11, brightness: 0.95 },
+  { east: -200, north: -6200, up: 1850, width: 2300, height: 800, depth: 8, brightness: 0.98 },
+  { east: -2200, north: -4300, up: 1350, width: 1400, height: 600, depth: 12, brightness: 0.94 },
+  { east: -4800, north: -3900, up: 1750, width: 2100, height: 780, depth: 10, brightness: 0.96 },
+  { east: -6100, north: -1200, up: 2050, width: 2000, height: 680, depth: 9, brightness: 0.98 },
+  { east: -4400, north: 1400, up: 1300, width: 1500, height: 640, depth: 13, brightness: 0.94 },
+  { east: -7000, north: 4200, up: 2200, width: 2400, height: 840, depth: 10, brightness: 0.97 },
+  { east: 6800, north: 6800, up: 2400, width: 1900, height: 600, depth: 8, brightness: 0.99 },
 ] as const;
 
 export class CesiumManager {
@@ -18,8 +27,13 @@ export class CesiumManager {
   private cloudDriftCleanup: Cesium.Event.RemoveCallback | null = null;
   private renderResolutionCleanup: Cesium.Event.RemoveCallback | null = null;
   private cloudCollection: Cesium.CloudCollection | null = null;
+  private daylightPanorama: Cesium.CubeMapPanorama | null = null;
   private cloudDriftStart = performance.now();
+  private cloudDriftLastUpdate = 0;
   private cloudDriftScratch = new Cesium.Cartesian3();
+  private cloudPositionScratch = new Cesium.Cartesian3();
+  private cloudVelocity = new Cesium.Cartesian3();
+  private driftingClouds: { cloud: Cesium.CumulusCloud; origin: Cesium.Cartesian3 }[] = [];
 
   init(containerId: string): void {
     const ionToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN?.trim();
@@ -42,6 +56,7 @@ export class CesiumManager {
       scene3DOnly: true,
       requestRenderMode: false,
       skyBox: false, // disable space/stars — drone sims always fly in daylight
+      shadows: true,
     });
 
     // Use a bounded display density instead of unbounded high-DPI supersampling.
@@ -69,22 +84,27 @@ export class CesiumManager {
       this.viewer.scene.skyAtmosphere.show = true;
       this.viewer.scene.skyAtmosphere.perFragmentAtmosphere = true;
       this.viewer.scene.skyAtmosphere.hueShift = 0.0;
-      this.viewer.scene.skyAtmosphere.saturationShift = 0.18;
-      this.viewer.scene.skyAtmosphere.brightnessShift = 0.12;
+      this.viewer.scene.skyAtmosphere.saturationShift = 0.04;
+      this.viewer.scene.skyAtmosphere.brightnessShift = 0.02;
     }
-    // Show sun so skyAtmosphere renders a directional gradient and the ground
-    // receives natural lighting → realistic horizon colour at dawn/dusk.
-    if (this.viewer.scene.sun) this.viewer.scene.sun.show = true;
+    // Disabling the default star sky also disables Viewer creation of the sun.
+    this.viewer.scene.sun = new Cesium.Sun();
     if (this.viewer.scene.moon) this.viewer.scene.moon.show = false;
-    this.viewer.scene.backgroundColor = new Cesium.Color(0.53, 0.81, 0.98, 1.0);
+    this.viewer.scene.backgroundColor = new Cesium.Color(0.38, 0.62, 0.82, 1.0);
+    const shadows = this.viewer.scene.shadowMap;
+    shadows.softShadows = true;
+    shadows.size = 2048;
+    shadows.maximumDistance = 750;
+    // Photogrammetry already contains photographed shadows; keep added shade gentle.
+    shadows.darkness = 0.65;
 
     const globe = this.viewer.scene.globe;
     globe.showGroundAtmosphere = true;
     globe.dynamicAtmosphereLighting = true;
     globe.dynamicAtmosphereLightingFromSun = true;
     globe.atmosphereHueShift = 0.0;
-    globe.atmosphereSaturationShift = 0.12;
-    globe.atmosphereBrightnessShift = 0.05;
+    globe.atmosphereSaturationShift = 0.04;
+    globe.atmosphereBrightnessShift = 0.02;
     globe.baseColor = new Cesium.Color(0.74, 0.86, 0.97, 1.0);
 
     // Globe terrain lighting — adds sun-based hillshading on terrain with vertex normals
@@ -106,11 +126,6 @@ export class CesiumManager {
       this.cloudCollection.show = false;
     }
 
-    // Set clock to local solar noon today — drone sims always fly in daylight,
-    // and noon ensures the sun is high for a rich blue skyAtmosphere gradient.
-    const noon = new Date();
-    noon.setHours(12, 0, 0, 0);
-    this.viewer.clock.currentTime = Cesium.JulianDate.fromDate(noon);
     this.viewer.clock.shouldAnimate = false;
 
     // Subtle aerial-perspective fog for depth realism.
@@ -174,12 +189,13 @@ export class CesiumManager {
     // Cloud drift runs as a separate, lightweight listener
     this.cloudDriftCleanup?.();
     this.cloudDriftCleanup = this.viewer.scene.preRender.addEventListener(() => {
-      if (this.cloudCollection) {
-        const drift = (performance.now() - this.cloudDriftStart) * 0.00002;
-        this.cloudDriftScratch.x = drift;
-        this.cloudDriftScratch.y = 0.12;
-        this.cloudDriftScratch.z = 0.04;
-        this.cloudCollection.noiseOffset = this.cloudDriftScratch;
+      const now = performance.now();
+      if (now - this.cloudDriftLastUpdate < 100) return;
+      this.cloudDriftLastUpdate = now;
+      Cesium.Cartesian3.multiplyByScalar(this.cloudVelocity, (now - this.cloudDriftStart) / 1000, this.cloudDriftScratch);
+      for (const { cloud, origin } of this.driftingClouds) {
+        Cesium.Cartesian3.add(origin, this.cloudDriftScratch, this.cloudPositionScratch);
+        cloud.position = this.cloudPositionScratch;
       }
     });
   }
@@ -194,9 +210,22 @@ export class CesiumManager {
     this.cloudCollection.removeAll();
     this.cloudCollection.show = true;
     this.cloudDriftStart = performance.now();
+    this.cloudDriftLastUpdate = this.cloudDriftStart;
+    this.driftingClouds.length = 0;
+
+    const today = new Date();
+    // Mean solar time shifts by four minutes per degree of longitude.
+    const afternoon = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 13, 30)
+      - longitude * 4 * 60 * 1000);
+    this.viewer.clock.currentTime = Cesium.JulianDate.fromDate(afternoon);
+    this.viewer.clock.shouldAnimate = false;
+
+    if (this.daylightPanorama) this.viewer.scene.primitives.remove(this.daylightPanorama);
+    this.daylightPanorama = this.viewer.scene.primitives.add(createDaylightPanorama(longitude, latitude));
 
     const origin = Cesium.Cartesian3.fromDegrees(longitude, latitude, terrainHeight);
     const enuFrame = Cesium.Transforms.eastNorthUpToFixedFrame(origin);
+    Cesium.Matrix4.multiplyByPointAsVector(enuFrame, new Cesium.Cartesian3(2.4, 0.8, 0), this.cloudVelocity);
 
     for (const cloud of CLOUD_LAYOUT) {
       const position = Cesium.Matrix4.multiplyByPoint(
@@ -205,18 +234,19 @@ export class CesiumManager {
         new Cesium.Cartesian3(),
       );
 
-      this.cloudCollection.add({
+      const renderedCloud = this.cloudCollection.add({
         position,
         scale: new Cesium.Cartesian2(cloud.width, cloud.height),
         maximumSize: new Cesium.Cartesian3(
-          cloud.width,
-          cloud.height,
+          18,
+          18 * cloud.height / cloud.width,
           cloud.depth,
         ),
-        color: new Cesium.Color(1, 1, 1, 0.92),
+        color: new Cesium.Color(1, 0.985, 0.97, 0.96),
         brightness: cloud.brightness,
-        slice: cloud.slice,
+        slice: -1,
       });
+      this.driftingClouds.push({ cloud: renderedCloud, origin: position });
     }
   }
 
@@ -251,5 +281,7 @@ export class CesiumManager {
     this.viewer?.destroy();
     this.viewer = null;
     this.cloudCollection = null;
+    this.daylightPanorama = null;
+    this.driftingClouds.length = 0;
   }
 }

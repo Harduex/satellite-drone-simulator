@@ -87,6 +87,8 @@ export class TileLoader {
     tileset.maximumScreenSpaceError = 8;
     // Standard replacement avoids overlapping coarse and detailed photogrammetry.
     tileset.skipLevelOfDetail = false;
+    // Scanned buildings contain photographed shadows; dynamic self-shadows cause roof striping.
+    tileset.shadows = Cesium.ShadowMode.DISABLED;
     // Avoid speculative downloads outside the view; visited tiles remain cached.
     ext.loadSiblings = false;
     tileset.foveatedScreenSpaceError = true;
