@@ -32,7 +32,7 @@ export function PhysicsSettings({ onClose }: Props) {
         <span className={css.godModeCopy}>
           <span>God mode</span>
           <span id="god-mode-description" className={css.godModeHint}>
-            No crash respawn. Ground contact stays on.
+            Recover upright near the hit, above the surface.
           </span>
         </span>
         <input

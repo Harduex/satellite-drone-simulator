@@ -16,12 +16,14 @@ import type {
   StickInputs,
   Vector3,
 } from "../core/physics/types";
-import { vec3 } from "../core/physics/types";
+import { vec3, quatFromEuler } from "../core/physics/types";
 import { createDefaultDroneState } from "../core/physics/types";
 
 const MAX_PHYSICS_SUBSTEPS = 50;
 // Preserve real-time flight down to 10 FPS, but discard long stall time.
 const MAX_WALL_DT = MAX_PHYSICS_SUBSTEPS / 500;
+const RECOVERY_CLEARANCE = 5;
+const MAX_RECOVERY_DISTANCE = 20;
 
 export class GameLoop {
   private running = false;
@@ -49,6 +51,7 @@ export class GameLoop {
 
   private spawnAltitude: number;
   private spawnPosition: Vector3;
+  private lastSafePosition: Vector3;
 
   constructor(params: {
     viewer: Cesium.Viewer;
@@ -63,6 +66,7 @@ export class GameLoop {
     this.enuFrame = params.enuFrame;
     this.spawnAltitude = params.physicsConfig.spawnAltitude;
     this.spawnPosition = params.initialPosition ?? vec3(0, 0, this.spawnAltitude);
+    this.lastSafePosition = { ...this.spawnPosition };
     this.terrainSampler = params.terrainSampler;
     this.sceneExclusions = params.sceneExclusions ?? [];
 
@@ -150,13 +154,37 @@ export class GameLoop {
   }
 
   reset(): void {
-    this.droneState = createDefaultDroneState(this.spawnPosition);
+    this.resetAtPosition(this.spawnPosition);
+  }
+
+  private resetAtPosition(position: Vector3): void {
+    this.droneState = createDefaultDroneState(position);
+    Object.assign(this.lastSafePosition, position);
     this.physics.reset();
     this.flightController.reset();
     this.telemetryPublisher.reset();
     this.crashDetector.reset();
     this.physicsAccumulator = 0;
     useStore.getState().resetTelemetry();
+  }
+
+  private recoverNearHit(groundHeight: number): void {
+    const { position, quaternion: q } = this.droneState;
+    const dx = position.x - this.lastSafePosition.x;
+    const dy = position.y - this.lastSafePosition.y;
+    const nearby = dx * dx + dy * dy <= MAX_RECOVERY_DISTANCE * MAX_RECOVERY_DISTANCE;
+    const recoveryPosition = {
+      x: nearby ? this.lastSafePosition.x : position.x,
+      y: nearby ? this.lastSafePosition.y : position.y,
+      z: nearby ? this.lastSafePosition.z : position.z,
+    };
+    this.terrainSampler.sampleAtPosition(recoveryPosition);
+    recoveryPosition.z = Math.max(recoveryPosition.z,
+      groundHeight + RECOVERY_CLEARANCE,
+      this.terrainSampler.getGroundHeight() + RECOVERY_CLEARANCE);
+    const yaw = Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
+    this.resetAtPosition(recoveryPosition);
+    this.droneState.quaternion = quatFromEuler(0, 0, yaw);
   }
 
   private tick(timestamp: number): void {
@@ -173,6 +201,9 @@ export class GameLoop {
     // 2. Sample terrain height at drone position (once per render frame)
     this.terrainSampler.sampleAtPosition(this.droneState.position);
     const groundHeight = this.terrainSampler.getGroundHeight();
+    if (this.droneState.position.z - groundHeight >= 2) {
+      Object.assign(this.lastSafePosition, this.droneState.position);
+    }
 
     // 3. Flight controller + physics substeps at fixed 500Hz
     this.physicsAccumulator += wallDt;
@@ -202,6 +233,12 @@ export class GameLoop {
       steps++;
     }
 
+    // Contact recovery bypasses spawn grace so repeated hits cannot trap god mode.
+    const godMode = useStore.getState().godMode;
+    if (godMode && this.droneState.position.z - groundHeight < 0.5) {
+      this.recoverNearHit(groundHeight);
+    }
+
     // 4. Sync camera to physics state
     this.fpvCamera.sync(this.droneState, this.enuFrame);
 
@@ -216,11 +253,7 @@ export class GameLoop {
     );
 
     // 7. Crash detection (only on telemetry frames to avoid spam)
-    if (published) {
-      if (useStore.getState().godMode) {
-        this.crashDetector.reset();
-        return;
-      }
+    if (published && !godMode) {
       const crashed = this.crashDetector.check(this.droneState, groundHeight);
       if (crashed) {
         this.reset();

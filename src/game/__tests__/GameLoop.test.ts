@@ -10,10 +10,12 @@ describe("GameLoop wall-clock integration", () => {
   let clock = 0;
   let loop: GameLoop;
   let preUpdate: Cesium.Event;
+  let groundHeight = 0;
 
   beforeEach(() => {
     useStore.setState({ godMode: false });
     clock = 0;
+    groundHeight = 0;
     vi.spyOn(performance, "now").mockImplementation(() => clock);
     Object.defineProperty(navigator, "getGamepads", {
       configurable: true,
@@ -31,7 +33,7 @@ describe("GameLoop wall-clock integration", () => {
     const terrainSampler = {
       setExclusions: () => {},
       sampleAtPosition: () => {},
-      getGroundHeight: () => 0,
+      getGroundHeight: () => groundHeight,
     } as unknown as TerrainSampler;
     loop = new GameLoop({
       viewer,
@@ -117,29 +119,46 @@ describe("GameLoop wall-clock integration", () => {
     expect(loop.getDroneState().velocity.z).toBeCloseTo(-9.81, 1);
   });
 
-  it.each([false, true])("preserves ground contact with god mode %s, and respawns only when disabled", (godMode) => {
-    useStore.getState().setGodMode(godMode);
+  it("returns normal crashes to the original spawn", () => {
     const onCrash = vi.fn();
     loop.onCrash(onCrash);
     for (let frame = 1; frame <= 360; frame++) {
       clock = frame * 1000 / 60;
       preUpdate.raiseEvent();
     }
-    if (!godMode) {
-      expect(onCrash).toHaveBeenCalledOnce();
-      expect(loop.getDroneState().position.z).toBeGreaterThan(50);
-      return;
-    }
+    expect(onCrash).toHaveBeenCalledOnce();
+    expect(loop.getDroneState().position.z).toBeGreaterThan(50);
+  });
+
+  it.each([0, 50])("recovers god mode near a hit above a %im surface, even during spawn grace", (surface) => {
+    useStore.getState().setGodMode(true);
+    const onCrash = vi.fn();
+    loop.onCrash(onCrash);
+    Object.assign(loop.getDroneState().position, { x: 300, y: 120, z: 3 });
+    clock = 20;
+    preUpdate.raiseEvent();
+    groundHeight = surface;
+    const hit = loop.getDroneState();
+    hit.position.z = surface - 2;
+    hit.velocity.z = -10;
+    hit.angularVelocity.x = 2;
+    hit.quaternion = { w: 0.8, x: 0.3, y: 0.2, z: 0.4 };
+    clock = 40;
+    preUpdate.raiseEvent();
+    const recovered = loop.getDroneState();
+    expect(recovered.position.x).toBeCloseTo(300);
+    expect(recovered.position.y).toBeCloseTo(120);
+    expect(recovered.position.z).toBeGreaterThanOrEqual(surface + 5);
+    expect(recovered.velocity).toEqual({ x: 0, y: 0, z: 0 });
+    expect(recovered.angularVelocity).toEqual({ x: 0, y: 0, z: 0 });
+    expect(recovered.quaternion.x).toBe(0);
+    expect(recovered.quaternion.y).toBe(0);
+    expect(recovered.quaternion.z).not.toBe(0);
     expect(onCrash).not.toHaveBeenCalled();
-    expect(loop.getDroneState().position.z).toBe(0);
-    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyW" }));
-    for (let frame = 1; frame <= 90; frame++) {
-      clock = 6000 + frame * 1000 / 60;
-      preUpdate.raiseEvent();
-    }
-    window.dispatchEvent(new KeyboardEvent("keyup", { code: "KeyW" }));
-    expect(loop.getDroneState().position.z).toBeGreaterThan(2);
-    expect(onCrash).not.toHaveBeenCalled();
+    recovered.position.z = surface - 1;
+    clock = 60;
+    preUpdate.raiseEvent();
+    expect(loop.getDroneState().position.z).toBeGreaterThanOrEqual(surface + 5);
   });
 
   it("restores crash respawns when God mode is disabled during a flight", () => {
@@ -150,7 +169,7 @@ describe("GameLoop wall-clock integration", () => {
       clock = frame * 1000 / 60;
       preUpdate.raiseEvent();
     }
-    expect(loop.getDroneState().position.z).toBe(0);
+    expect(loop.getDroneState().position.z).toBeGreaterThan(0.5);
     useStore.getState().setGodMode(false);
     for (let frame = 1; frame <= 210; frame++) {
       clock = 6000 + frame * 1000 / 60;
