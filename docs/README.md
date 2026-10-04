@@ -16,5 +16,12 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | Document | Status |
 |---|---|
 | [Offline and custom maps](experiments/offline-maps.md) | Helsinki and textured Grove Street feasibility findings; future brainstorming questions |
+| [Archived rendering roadmap](experiments/rendering-roadmap.md) | Six recovered proposals; historical assumptions corrected in the audit below |
+
+## Audits
+
+| Document | Scope |
+|---|---|
+| [Rendering quick wins — October 2026](audits/quick-wins-2026-10.md) | Current renderer evidence, ranked experiments and assessment of the six rendering proposals |
 
 Keep experiment findings under `experiments/`. Add further categories when there is a document to place in them. Local assets, screenshots and logs remain outside this tracked documentation tree.
