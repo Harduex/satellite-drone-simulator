@@ -7,7 +7,7 @@ import css from './PauseMenu.module.css';
 interface Props {
   onResume: () => void;
   onSaveCurrentAsDefault: () => void;
-  onChangeLocation: () => void;
+  onChangeLocation: () => Promise<void>;
 }
 
 type SettingsTab = 'controller' | 'physics' | 'flight';

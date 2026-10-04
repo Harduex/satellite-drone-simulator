@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import { CesiumManager } from '../world/CesiumManager';
 import { SimSession } from '../game/SimSession';
 
@@ -17,6 +17,7 @@ export function useServices(): Services {
 
 export function ServiceProvider({ children }: { children: React.ReactNode }) {
   const servicesRef = useRef<Services | null>(null);
+  const disposalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!servicesRef.current) {
     const cesiumManager = new CesiumManager();
@@ -25,6 +26,14 @@ export function ServiceProvider({ children }: { children: React.ReactNode }) {
     const simSession = new SimSession(cesiumManager);
     servicesRef.current = { cesiumManager, simSession };
   }
+
+  useEffect(() => {
+    if (disposalTimer.current !== null) clearTimeout(disposalTimer.current);
+    return () => {
+      // React's development effect remount reuses the same services.
+      disposalTimer.current = setTimeout(() => { void servicesRef.current?.simSession.dispose(); }, 0);
+    };
+  }, []);
 
   return (
     <ServiceContext.Provider value={servicesRef.current}>

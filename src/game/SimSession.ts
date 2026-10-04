@@ -6,6 +6,8 @@ import { TerrainSampler } from "../world/TerrainSampler";
 import { GameLoop } from "./GameLoop";
 import { RenderDiagnostics } from "./RenderDiagnostics";
 import { DroneAudio } from "./DroneAudio";
+import { FlightRecorder } from './FlightRecorder';
+import { createRecordingFrameSource } from '../world/RecordingFrameSource';
 import { useStore } from "../store";
 import type { SavedLocation } from "../store/settingsSlice";
 
@@ -24,10 +26,17 @@ export class SimSession {
   private isStarting = false;
   private renderDiagnostics: RenderDiagnostics | null = null;
   private droneAudio = new DroneAudio();
+  private flightRecorder: FlightRecorder;
+  private exitPromise: Promise<void> | null = null;
 
   constructor(cesiumManager: CesiumManager) {
     this.cesiumManager = cesiumManager;
     this.tileLoader = new TileLoader();
+    this.flightRecorder = new FlightRecorder({
+      createFrameSource: () => createRecordingFrameSource(this.cesiumManager.getViewer()),
+      createAudioSource: () => this.droneAudio.createRecordingSource(),
+      publish: snapshot => useStore.getState().setRecording(snapshot),
+    });
   }
 
   setDiagnosticsEnabled(enabled: boolean): void {
@@ -51,7 +60,7 @@ export class SimSession {
   async startSession(
     location: { lon: number; lat: number; name: string },
   ): Promise<void> {
-    if (this.isStarting) return;
+    if (this.isStarting || this.exitPromise) return;
     this.droneAudio.unlock();
     this.setCacheOnlyPractice(false);
     this.isStarting = true;
@@ -262,15 +271,18 @@ export class SimSession {
     store.setPickerInitialLocation(currentLocation);
   }
 
-  changeLocationFromPause(): void {
+  async changeLocationFromPause(): Promise<void> {
     const currentLocation = this.getCurrentLocationForPicker();
     if (currentLocation) {
       useStore.getState().setPickerInitialLocation(currentLocation);
     }
-    this.endSession();
+    await this.endSession();
   }
 
   pause(): void {
+    this.flightRecorder.pause();
+    const recording = useStore.getState().recording;
+    if (recording.status === 'finalizing' && recording.stopReason === null) void this.flightRecorder.stop();
     this.gameLoop?.stop();
     useStore.getState().setPhase("PAUSED");
   }
@@ -278,10 +290,18 @@ export class SimSession {
   resume(): void {
     this.gameLoop?.applyStoreSettings();
     this.gameLoop?.start();
+    this.flightRecorder.resume();
     useStore.getState().setPhase("FLYING");
   }
 
-  endSession(): void {
+  endSession(): Promise<void> {
+    if (this.exitPromise) return this.exitPromise;
+    this.exitPromise = this.finishSession().finally(() => { this.exitPromise = null; });
+    return this.exitPromise;
+  }
+
+  private async finishSession(): Promise<void> {
+    await this.flightRecorder.stop('session_exit');
     this.setCacheOnlyPractice(false);
     this.gameLoop?.stop();
     this.droneAudio.dispose();
@@ -292,6 +312,25 @@ export class SimSession {
     this.spawnOrigin = null;
     useStore.getState().updateNavigation(null);
     useStore.getState().resetSession();
+  }
+
+  startRecording(): Promise<void> {
+    const store = useStore.getState();
+    if (store.phase !== 'FLYING' || this.exitPromise) {
+      store.setRecording({ ...store.recording, status: store.recording.status === 'ready' ? 'ready' : 'error',
+        error: { code: 'not_flying', message: 'Resume the flight before recording.' } });
+      return Promise.resolve();
+    }
+    return this.flightRecorder.start();
+  }
+
+  stopRecording(): Promise<void> { return this.flightRecorder.stop(); }
+  downloadRecording(): void { this.flightRecorder.download(); }
+  discardRecording(): void { this.flightRecorder.discard(); }
+
+  async dispose(): Promise<void> {
+    await this.endSession();
+    await this.flightRecorder.dispose();
   }
 
   getSpawnOrigin(): SpawnOrigin | null {
