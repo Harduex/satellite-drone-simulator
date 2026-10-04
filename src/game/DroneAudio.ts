@@ -2,6 +2,11 @@ import { DEFAULT_DRONE_CONFIG } from "../core/physics/droneConfig";
 
 const PROPELLER_BLADES = 3;
 
+export interface RecordingAudioSource {
+  stream: MediaStream;
+  dispose(): void;
+}
+
 /** Synthesized propeller blade pulses and airflow, driven by the four physical motors. */
 export class DroneAudio {
   private context: AudioContext | null = null;
@@ -11,6 +16,7 @@ export class DroneAudio {
   private airFilter: BiquadFilterNode | null = null;
   private active = false;
   private unavailable = false;
+  private recordingSources = new Set<RecordingAudioSource>();
 
   constructor(private createContext: () => AudioContext = () => new AudioContext()) {}
 
@@ -108,7 +114,29 @@ export class DroneAudio {
     void this.context.suspend().catch(error => console.warn("Drone audio could not suspend.", error));
   }
 
+  createRecordingSource(): RecordingAudioSource {
+    if (!this.context || !this.master) throw new Error('Drone audio is unavailable.');
+    const master = this.master;
+    const destination = this.context.createMediaStreamDestination();
+    master.connect(destination);
+    let disposed = false;
+    const source: RecordingAudioSource = {
+      stream: destination.stream,
+      dispose: () => {
+        if (disposed) return;
+        disposed = true;
+        master.disconnect(destination);
+        destination.disconnect();
+        destination.stream.getTracks().forEach(track => track.stop());
+        this.recordingSources.delete(source);
+      },
+    };
+    this.recordingSources.add(source);
+    return source;
+  }
+
   dispose(): void {
+    for (const source of this.recordingSources) source.dispose();
     this.active = false;
     if (this.context) void this.context.close().catch(error => console.warn("Drone audio could not close.", error));
     this.context = null;

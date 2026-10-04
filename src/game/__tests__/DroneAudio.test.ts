@@ -3,23 +3,42 @@ import { DroneAudio } from "../DroneAudio";
 
 function audioContext() {
   const parameter = () => ({ value: 0, setTargetAtTime: vi.fn(), cancelScheduledValues: vi.fn(), setValueAtTime: vi.fn() });
-  const gains: { gain: ReturnType<typeof parameter> }[] = [];
+  const gains: (ReturnType<typeof node> & { gain: ReturnType<typeof parameter> })[] = [];
   const oscillators: { frequency: ReturnType<typeof parameter> }[] = [];
   const node = () => ({ connect: vi.fn(), start: vi.fn(), disconnect: vi.fn() });
+  const track = { stop: vi.fn() };
+  const recordingDestination = { ...node(), stream: { getTracks: () => [track] } };
   const context = {
     currentTime: 0, sampleRate: 48000, destination: {},
     resume: vi.fn(async () => {}), suspend: vi.fn(async () => {}), close: vi.fn(async () => {}),
     createGain: () => { const result = { ...node(), gain: parameter() }; gains.push(result); return result; },
     createOscillator: () => { const result = { ...node(), frequency: parameter(), detune: parameter(), setPeriodicWave: vi.fn() }; oscillators.push(result); return result; },
     createPeriodicWave: vi.fn(),
+    createMediaStreamDestination: () => recordingDestination,
     createBuffer: () => ({ getChannelData: () => new Float32Array(48000) }),
     createBufferSource: () => ({ ...node(), buffer: null, loop: false }),
     createBiquadFilter: () => ({ ...node(), type: "", frequency: parameter(), Q: parameter() }),
   };
-  return { context: context as unknown as AudioContext, gains, oscillators };
+  return { context: context as unknown as AudioContext, gains, oscillators, recordingDestination, track };
 }
 
 describe("drone audio lifecycle", () => {
+  it('disposes only the recording branch and permits recording again', () => {
+    const { context, gains, recordingDestination, track } = audioContext();
+    const audio = new DroneAudio(() => context);
+    expect(() => audio.createRecordingSource()).toThrow();
+    audio.play();
+    const source = audio.createRecordingSource();
+    expect(source.stream).toBe(recordingDestination.stream);
+    expect(gains[0]!.connect).toHaveBeenCalledWith(context.destination);
+    expect(gains[0]!.connect).toHaveBeenCalledWith(recordingDestination);
+    source.dispose(); source.dispose();
+    expect(gains[0]!.disconnect).toHaveBeenCalledExactlyOnceWith(recordingDestination);
+    expect(track.stop).toHaveBeenCalledOnce();
+    expect(context.close).not.toHaveBeenCalled();
+    audio.createRecordingSource().dispose();
+    audio.dispose();
+  });
   it("uses three-blade passage pitch and keeps invalid or stopped motors silent", () => {
     const { context, gains, oscillators } = audioContext();
     const audio = new DroneAudio(() => context);
