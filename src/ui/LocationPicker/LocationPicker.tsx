@@ -6,6 +6,8 @@ import { FlightSettings } from '../Settings/FlightSettings';
 import { colors, gradients } from '../theme';
 import { useStore } from '../../store';
 import css from './LocationPicker.module.css';
+import { FlightMinimap } from '../SimView/FlightMinimap';
+import minimapCss from '../SimView/FlightMinimap.module.css';
 
 // Ensure Google Places autocomplete dropdown renders above everything
 const GLOBAL_STYLE_ID = 'fpvsim-pac-style';
@@ -18,10 +20,11 @@ function ensureAutocompleteStyles() {
 }
 
 interface Props {
+  compact?: boolean;
   onFlyHere: (location: { lon: number; lat: number; name: string }) => Promise<void>;
 }
 
-export function LocationPicker({ onFlyHere }: Props) {
+export function LocationPicker({ onFlyHere, compact = false }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapControllerRef = useRef<MapController | null>(null);
@@ -38,6 +41,9 @@ export function LocationPicker({ onFlyHere }: Props) {
   const [settingsPanel, setSettingsPanel] = useState<'none' | 'controller' | 'physics' | 'flight'>('none');
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const navigation = useStore(s => s.navigation);
 
   useEffect(() => {
     ensureAutocompleteStyles();
@@ -65,6 +71,7 @@ export function LocationPicker({ onFlyHere }: Props) {
         initialCenter,
         seededLocation ?? undefined,
       )
+      .then(ready => { if (ready) setMapReady(true); })
       .catch((e) => {
         setMapError(`Failed to load Google Maps: ${String(e)}`);
       });
@@ -79,6 +86,22 @@ export function LocationPicker({ onFlyHere }: Props) {
       mapControllerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    mapControllerRef.current?.setFlightMode(compact);
+    if (!compact && pickerInitialLocation) {
+      const { lat, lng } = pickerInitialLocation;
+      mapControllerRef.current?.setMarker(lat, lng);
+      mapControllerRef.current?.flyTo(lat, lng, 16);
+      setSelectedLocation(pickerInitialLocation);
+      clearPickerInitialLocation();
+    }
+  }, [compact, mapReady, pickerInitialLocation, clearPickerInitialLocation]);
+
+  useEffect(() => {
+    if (compact && !collapsed && navigation && mapReady) mapControllerRef.current?.updateFlight(navigation);
+  }, [compact, collapsed, navigation, mapReady]);
 
   const handleFlyHere = async () => {
     if (!selectedLocation || launching) return;
@@ -107,9 +130,12 @@ export function LocationPicker({ onFlyHere }: Props) {
   };
 
   return (
-    <div className={css.root}>
+    <div className={compact ? `${minimapCss.panel} ${collapsed ? minimapCss.collapsed : ''}` : css.root}>
       {/* Map container */}
-      <div ref={mapContainerRef} className={css.mapContainer} />
+      <div ref={mapContainerRef} className={compact ? `${minimapCss.map} ${collapsed ? minimapCss.hidden : ''}` : css.mapContainer} />
+
+      {compact && <FlightMinimap collapsed={collapsed} onToggle={() => setCollapsed(value => !value)} error={mapError} />}
+      <div hidden={compact}>
 
       {mapError && (
         <div className={css.errorOverlay}>
@@ -224,6 +250,7 @@ export function LocationPicker({ onFlyHere }: Props) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

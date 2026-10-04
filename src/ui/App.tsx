@@ -43,13 +43,9 @@ function AppContent() {
   return (
     <>
       <DeveloperOverlay session={simSession} />
-      {phase === 'PICKER' && (
-        <LocationPicker
-          onFlyHere={(location) => {
-            return simSession.startSession(location);
-          }}
-        />
-      )}
+      <LocationPicker compact={phase !== 'PICKER'}
+        onFlyHere={(location) => simSession.startSession(location)}
+      />
       {(phase === 'FLYING' || phase === 'PAUSED') && (
         <SimView
           session={simSession}

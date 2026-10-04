@@ -290,6 +290,7 @@ export class SimSession {
     this.cesiumManager.teardownGlobeToggle();
     this.cesiumManager.hideContainer();
     this.spawnOrigin = null;
+    useStore.getState().updateNavigation(null);
     useStore.getState().resetSession();
   }
 

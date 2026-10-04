@@ -1,5 +1,7 @@
 import type { StateCreator } from "zustand";
 import type { StickInputs } from "../core/physics/types";
+import type { FlightNavigationSnapshot } from "../core/navigation/types";
+export type { FlightNavigationSnapshot } from "../core/navigation/types";
 
 export interface DroneTelemetry {
   speed: number; // m/s
@@ -8,6 +10,8 @@ export interface DroneTelemetry {
 }
 
 export interface DroneSlice extends DroneTelemetry {
+  navigation: FlightNavigationSnapshot | null;
+  updateNavigation: (navigation: FlightNavigationSnapshot | null) => void;
   crashFlashActive: boolean;
   liveSticks: StickInputs;
   updateLiveSticks: (inputs: StickInputs) => void;
@@ -26,6 +30,8 @@ let crashFlashTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 export const createDroneSlice: StateCreator<DroneSlice> = (set) => ({
   ...INITIAL_TELEMETRY,
+  navigation: null,
+  updateNavigation: (navigation) => set({ navigation }),
   crashFlashActive: false,
   liveSticks: { throttle: 0, yaw: 0, roll: 0, pitch: 0 },
   updateLiveSticks: (inputs) => set(state => {

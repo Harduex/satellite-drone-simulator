@@ -8,6 +8,7 @@ import { FPVCamera, DEFAULT_CAMERA_CONFIG } from "../camera/FPVCamera";
 import { DroneRenderer } from "../world/DroneRenderer";
 import { CrashDetector } from "./CrashDetector";
 import { TelemetryPublisher } from "./TelemetryPublisher";
+import { FlightNavigation } from "./FlightNavigation";
 import type { DroneAudio } from "./DroneAudio";
 import { TerrainSampler } from "../world/TerrainSampler";
 import { useStore } from "../store";
@@ -48,6 +49,7 @@ export class GameLoop {
   private droneRenderer: DroneRenderer;
   private crashDetector: CrashDetector;
   private telemetryPublisher: TelemetryPublisher;
+  private navigation: FlightNavigation;
   private enuFrame: Cesium.Matrix4;
   private viewer: Cesium.Viewer;
   private terrainSampler: TerrainSampler;
@@ -103,6 +105,8 @@ export class GameLoop {
 
     this.droneState = createDefaultDroneState(this.spawnPosition);
     this.droneStateBuffer = createDefaultDroneState(this.spawnPosition);
+    this.navigation = new FlightNavigation(this.enuFrame, this.spawnPosition);
+    this.publishNavigation(performance.now());
   }
 
   /** Register a callback for crash events */
@@ -180,6 +184,8 @@ export class GameLoop {
     this.crashDetector.reset();
     this.physicsAccumulator = 0;
     useStore.getState().resetTelemetry();
+    this.navigation.reset();
+    this.publishNavigation(performance.now());
   }
 
   private recoverNearHit(groundHeight: number): void {
@@ -265,6 +271,7 @@ export class GameLoop {
 
     // 5. Update drone renderer position (reuse ECEF from camera sync)
     this.droneRenderer.update(this.fpvCamera.getLastEcefPosition());
+    this.publishNavigation(timestamp);
 
     // 6. Publish telemetry (throttled to ~10Hz)
     const published = this.telemetryPublisher.maybePublish(
@@ -284,6 +291,11 @@ export class GameLoop {
 
   getDroneState(): DroneState {
     return this.droneState;
+  }
+
+  private publishNavigation(timestamp: number): void {
+    const snapshot = this.navigation.update(this.droneState, timestamp);
+    if (snapshot) useStore.getState().updateNavigation(snapshot);
   }
 
   getEnuFrame(): Cesium.Matrix4 {

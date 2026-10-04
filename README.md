@@ -36,7 +36,7 @@ VITE_CESIUM_ION_ACCESS_TOKEN=your_token_here
    - Elevation API
 3. Create an API key and add it to `.env`
 
-The Google key is used for the location picker, Places search, and Elevation.
+The Google key is used for the location picker, flight minimap, Places search, and Elevation.
 Google Map Tiles API is not required.
 
 ### Cesium ion
@@ -56,6 +56,14 @@ Never commit real keys or tokens.
 2. **Fly Here** — Click the button to enter FPV view
 3. **Fly** — Use keyboard controls or plug in a radio controller
 4. **Pause** — Press ESC to pause, change location, or adjust settings
+
+The bottom-right satellite minimap shows the drone's heading, launch point (H),
+and recent flight trail. Its footer shows horizontal distance and direction home.
+Use −/+ to collapse or expand it. Navigation updates at 5 Hz; the trail retains
+up to 300 points, sampled after at least 2 m of horizontal travel, and clears on reset.
+The picker and minimap share one Google Maps instance across flight and pause.
+Moving into new areas can still fetch map imagery; navigation itself needs no
+Places or Elevation queries. Offline/custom-map support remains experimental.
 
 ## Controls
 
