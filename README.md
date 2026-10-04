@@ -67,6 +67,26 @@ Places or Elevation queries. Offline/custom-map support remains experimental.
 
 ## Controls
 
+### Flight recording
+
+Click **Record**, or press **R**, during a flight. Press R again or click
+**Stop**, then **Download**. The video includes drone sound and provider
+attribution, without the HUD, minimap, menus, or recording controls.
+
+Recording pauses with the flight; leaving a location finishes the clip and
+keeps it available in the picker. Download can be retried. **Discard** clears
+the clip before another recording. Reloading the page loses unsaved footage.
+
+Capture keeps the starting aspect ratio, fits within 1920 × 1080 without
+upscaling, and targets 60 fps. Resizing adds letterboxing. MP4 is preferred;
+WebM is used when supported instead. Capture stops after five minutes of
+active flight or 256 MiB of encoded data, whichever comes first. Actual frame
+rate depends on browser and hardware performance. Hiding the tab pauses a
+recorded flight; resume explicitly when returning.
+
+General map-content video-use permission remains a release condition; retaining
+provider attribution alone does not establish permission.
+
 ### Keyboard
 
 | Key                | Action               |
@@ -76,6 +96,7 @@ Places or Elevation queries. Offline/custom-map support remains experimental.
 | Arrow Up / Down    | Pitch forward / back |
 | Arrow Left / Right | Roll left / right    |
 | ESC                | Pause / Resume       |
+| R                  | Record / Stop video  |
 
 ### Radio Controller (USB)
 

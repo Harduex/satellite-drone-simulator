@@ -2,6 +2,21 @@
 
 **Date:** 2026-10-04
 **Scope:** Local video recording of short FPV flights, without flight overlays.
+**Status:** Implemented locally; general provider video-use permission remains a release condition.
+
+## Implementation notes
+
+`FlightRecorder` owns encoded data and object URLs; Zustand receives serializable
+snapshots only. `RecordingControls` owns the app-level R and visibility listeners.
+`SimSession` finalizes capture before disposing source audio and cancels pending
+flight startup on exit or application disposal.
+
+`RecordingFrameSource` defers composition to a microtask after Cesium's
+`postRender`, because Cesium updates its public credit container later in the
+same render call. Frames and complete credits are composed on a staging canvas
+before publishing to the captured canvas. Attribution loading or fit failures
+prevent publication and end capture with a recoverable error. Logo loads time
+out after ten seconds.
 
 ## TL;DR
 
