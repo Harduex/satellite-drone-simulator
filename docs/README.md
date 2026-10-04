@@ -24,4 +24,10 @@ Start here for project knowledge. Agent instructions for documentation live in [
 |---|---|
 | [Rendering quick wins — October 2026](audits/quick-wins-2026-10.md) | Current renderer evidence, ranked experiments and assessment of the six rendering proposals |
 
+## Feature designs
+
+| Document | Status |
+| --- | --- |
+| [Flight video recording](superpowers/specs/2026-10-04-flight-recording-design.md) | Proposed design; implementation and provider video-use permission remain unverified |
+
 Keep experiment findings under `experiments/`. Add further categories when there is a document to place in them. Local assets, screenshots and logs remain outside this tracked documentation tree.
