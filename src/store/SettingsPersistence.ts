@@ -8,6 +8,7 @@ const RATES_STORAGE_KEY = "fpvsim_rates";
 const FOV_STORAGE_KEY = "fpvsim_fov";
 const CAMERA_TILT_STORAGE_KEY = "fpvsim_camera_tilt";
 const GOD_MODE_STORAGE_KEY = "fpvsim_god_mode";
+const AUDIO_VOLUME_STORAGE_KEY = "fpvsim_audio_volume";
 export const DEFAULT_FOV = 110;
 export const DEFAULT_CAMERA_TILT = 25;
 
@@ -55,6 +56,19 @@ export function mergeNumericPartial<T>(persisted: unknown, defaults: T): T {
 /** Storage adapter for settings persistence. Extracted for testability. */
 export const SettingsPersistence = {
   isFiniteLatLng,
+
+  readAudioVolume(): number {
+    try {
+      const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(AUDIO_VOLUME_STORAGE_KEY);
+      if (raw === null || raw.trim() === "") return 0.35;
+      const volume = Number(raw);
+      return Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.35;
+    } catch { return 0.35; }
+  },
+
+  writeAudioVolume(volume: number): void {
+    if (typeof localStorage !== "undefined") localStorage.setItem(AUDIO_VOLUME_STORAGE_KEY, String(volume));
+  },
 
   readGodMode(): boolean {
     try {

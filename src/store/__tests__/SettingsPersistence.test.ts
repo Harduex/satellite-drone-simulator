@@ -4,6 +4,17 @@ import { describe, it, expect } from "vitest";
 import { SettingsPersistence, mergeNumericPartial } from "../SettingsPersistence";
 import { DEFAULT_DRONE_CONFIG, DEFAULT_RATES } from "../../core/physics/droneConfig";
 
+describe("Audio volume persistence", () => {
+  it("defaults, roundtrips mute, and rejects invalid saved volume", () => {
+    localStorage.clear();
+    expect(SettingsPersistence.readAudioVolume()).toBe(0.35);
+    SettingsPersistence.writeAudioVolume(0);
+    expect(SettingsPersistence.readAudioVolume()).toBe(0);
+    localStorage.setItem("fpvsim_audio_volume", "NaN");
+    expect(SettingsPersistence.readAudioVolume()).toBe(0.35);
+  });
+});
+
 describe("God mode persistence", () => {
   it("defaults to normal crash respawns and rejects invalid stored values", () => {
     localStorage.clear();

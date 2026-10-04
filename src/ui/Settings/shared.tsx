@@ -21,7 +21,7 @@ export function Slider({ label, value, min, max, step = 1, unit = '', labelWidth
         {label}
       </span>
       <input
-        type="range" min={min} max={max} step={step} value={value}
+        type="range" aria-label={label} min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className={css.sliderInput}
       />

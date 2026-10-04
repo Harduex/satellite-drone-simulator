@@ -18,6 +18,7 @@ export interface SettingsSlice {
   fov: number;
   cameraTilt: number;
   godMode: boolean;
+  audioVolume: number;
   defaultLocation: SavedLocation | null;
   pickerInitialLocation: SavedLocation | null;
   setAxisMapping: (mapping: AxisMapping) => void;
@@ -27,6 +28,7 @@ export interface SettingsSlice {
   setFov: (fov: number) => void;
   setCameraTilt: (tilt: number) => void;
   setGodMode: (enabled: boolean) => void;
+  setAudioVolume: (volume: number) => void;
   setDefaultLocation: (location: SavedLocation) => void;
   setPickerInitialLocation: (location: SavedLocation | null) => void;
   clearPickerInitialLocation: () => void;
@@ -40,6 +42,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   fov: SettingsPersistence.readFov(),
   cameraTilt: SettingsPersistence.readCameraTilt(),
   godMode: SettingsPersistence.readGodMode(),
+  audioVolume: SettingsPersistence.readAudioVolume(),
   defaultLocation: SettingsPersistence.readDefaultLocation(),
   pickerInitialLocation: null,
   setAxisMapping: (mapping) => set({ axisMapping: mapping }),
@@ -69,6 +72,12 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   setGodMode: (enabled) => {
     SettingsPersistence.writeGodMode(enabled);
     set({ godMode: enabled });
+  },
+  setAudioVolume: (volume) => {
+    if (!Number.isFinite(volume)) return;
+    const clamped = Math.max(0, Math.min(1, volume));
+    SettingsPersistence.writeAudioVolume(clamped);
+    set({ audioVolume: clamped });
   },
   setDefaultLocation: (location) => {
     if (!SettingsPersistence.isFiniteLatLng(location.lat, location.lng)) return;

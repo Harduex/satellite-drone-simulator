@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { MapController } from './MapController';
 import { ControllerSetup } from '../Settings/ControllerSetup';
 import { PhysicsSettings } from '../Settings/PhysicsSettings';
+import { FlightSettings } from '../Settings/FlightSettings';
 import { colors, gradients } from '../theme';
 import { useStore } from '../../store';
 import css from './LocationPicker.module.css';
@@ -34,7 +35,7 @@ export function LocationPicker({ onFlyHere }: Props) {
   } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
-  const [settingsPanel, setSettingsPanel] = useState<'none' | 'controller' | 'physics'>('none');
+  const [settingsPanel, setSettingsPanel] = useState<'none' | 'controller' | 'physics' | 'flight'>('none');
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
 
@@ -209,6 +210,9 @@ export function LocationPicker({ onFlyHere }: Props) {
               >
                 Physics
               </button>
+                <button onClick={() => setSettingsPanel('flight')} className={css.settingsTab}
+                  style={{ background: settingsPanel === 'flight' ? colors.primary : 'transparent',
+                    color: settingsPanel === 'flight' ? colors.on_primary : colors.on_surface }}>Flight</button>
             </div>
             {settingsPanel === 'controller' && (
               <ControllerSetup onClose={() => setSettingsPanel('none')} />
@@ -216,6 +220,7 @@ export function LocationPicker({ onFlyHere }: Props) {
             {settingsPanel === 'physics' && (
               <PhysicsSettings onClose={() => setSettingsPanel('none')} />
             )}
+            {settingsPanel === 'flight' && <FlightSettings onClose={() => setSettingsPanel('none')} />}
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import { FPVCamera, DEFAULT_CAMERA_CONFIG } from "../camera/FPVCamera";
 import { DroneRenderer } from "../world/DroneRenderer";
 import { CrashDetector } from "./CrashDetector";
 import { TelemetryPublisher } from "./TelemetryPublisher";
+import type { DroneAudio } from "./DroneAudio";
 import { TerrainSampler } from "../world/TerrainSampler";
 import { useStore } from "../store";
 import type {
@@ -52,6 +53,7 @@ export class GameLoop {
   private spawnAltitude: number;
   private spawnPosition: Vector3;
   private lastSafePosition: Vector3;
+  private audio?: DroneAudio;
 
   constructor(params: {
     viewer: Cesium.Viewer;
@@ -61,6 +63,7 @@ export class GameLoop {
     terrainSampler: TerrainSampler;
     initialPosition?: Vector3;
     sceneExclusions?: object[];
+    audio?: DroneAudio;
   }) {
     this.viewer = params.viewer;
     this.enuFrame = params.enuFrame;
@@ -69,6 +72,7 @@ export class GameLoop {
     this.lastSafePosition = { ...this.spawnPosition };
     this.terrainSampler = params.terrainSampler;
     this.sceneExclusions = params.sceneExclusions ?? [];
+    this.audio = params.audio;
 
     this.physics = new DronePhysics(params.physicsConfig);
     this.flightController = new FlightController(
@@ -111,6 +115,7 @@ export class GameLoop {
   }
 
   start(): void {
+    this.audio?.play();
     this.running = true;
     this.lastTimestamp = performance.now();
     this.physicsAccumulator = 0;
@@ -143,6 +148,7 @@ export class GameLoop {
   }
 
   stop(): void {
+    this.audio?.pause();
     this.running = false;
     if (this.preUpdateListener) {
       this.preUpdateListener();
@@ -238,6 +244,7 @@ export class GameLoop {
     if (godMode && this.droneState.position.z - groundHeight < 0.5) {
       this.recoverNearHit(groundHeight);
     }
+    this.audio?.update(this.physics.getMotorModel().state.rpm, useStore.getState().audioVolume);
 
     // 4. Sync camera to physics state
     this.fpvCamera.sync(this.droneState, this.enuFrame);

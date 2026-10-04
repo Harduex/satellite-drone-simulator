@@ -5,6 +5,7 @@ import { TileLoader } from "../world/TileLoader";
 import { TerrainSampler } from "../world/TerrainSampler";
 import { GameLoop } from "./GameLoop";
 import { RenderDiagnostics } from "./RenderDiagnostics";
+import { DroneAudio } from "./DroneAudio";
 import { useStore } from "../store";
 import type { SavedLocation } from "../store/settingsSlice";
 
@@ -22,6 +23,7 @@ export class SimSession {
   private spawnOrigin: SpawnOrigin | null = null;
   private isStarting = false;
   private renderDiagnostics: RenderDiagnostics | null = null;
+  private droneAudio = new DroneAudio();
 
   constructor(cesiumManager: CesiumManager) {
     this.cesiumManager = cesiumManager;
@@ -50,6 +52,7 @@ export class SimSession {
     location: { lon: number; lat: number; name: string },
   ): Promise<void> {
     if (this.isStarting) return;
+    this.droneAudio.unlock();
     this.setCacheOnlyPractice(false);
     this.isStarting = true;
     try {
@@ -148,6 +151,7 @@ export class SimSession {
       terrainSampler,
       initialPosition: spawnPoint,
       sceneExclusions,
+      audio: this.droneAudio,
     });
 
     // Wire crash callback to Zustand store (no window globals)
@@ -167,6 +171,7 @@ export class SimSession {
 
     useStore.getState().setPhase("FLYING");
     } finally {
+      if (!this.gameLoop) this.droneAudio.dispose();
       this.isStarting = false;
     }
   }
@@ -279,6 +284,7 @@ export class SimSession {
   endSession(): void {
     this.setCacheOnlyPractice(false);
     this.gameLoop?.stop();
+    this.droneAudio.dispose();
     this.gameLoop = null;
     this.isStarting = false;
     this.cesiumManager.teardownGlobeToggle();

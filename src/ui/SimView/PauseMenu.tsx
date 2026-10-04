@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ControllerSetup } from '../Settings/ControllerSetup';
 import { PhysicsSettings } from '../Settings/PhysicsSettings';
+import { FlightSettings } from '../Settings/FlightSettings';
 import css from './PauseMenu.module.css';
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
   onChangeLocation: () => void;
 }
 
-type SettingsTab = 'controller' | 'physics';
+type SettingsTab = 'controller' | 'physics' | 'flight';
 
 export function PauseMenu(
   { onResume, onSaveCurrentAsDefault, onChangeLocation }: Props,
@@ -35,6 +36,8 @@ export function PauseMenu(
             >
               Physics
             </button>
+            <button onClick={() => setActiveTab('flight')}
+              className={`${css.tab} ${activeTab === 'flight' ? css.active : ''}`}>Flight</button>
           </div>
 
           {/* Tab content */}
@@ -44,6 +47,7 @@ export function PauseMenu(
           {activeTab === 'physics' && (
             <PhysicsSettings onClose={() => setShowSettings(false)} />
           )}
+          {activeTab === 'flight' && <FlightSettings onClose={() => setShowSettings(false)} />}
         </div>
       </div>
     );
