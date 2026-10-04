@@ -1,3 +1,6 @@
+const PROPELLER_BLADES = 3;
+const MAX_AUDIO_RPM = 24000;
+
 /** Synthesized propeller blade pulses and airflow, driven by the four physical motors. */
 export class DroneAudio {
   private context: AudioContext | null = null;
@@ -20,14 +23,17 @@ export class DroneAudio {
         this.master = context.createGain();
         this.master.gain.value = 0;
         this.master.connect(context.destination);
-        const wave = context.createPeriodicWave(
-          new Float32Array(6), new Float32Array([0, 1, 0.35, 0.16, 0.08, 0.04]),
-        );
+        // Acoustic reference: 5-inch, three-blade racing props. Harmonic weights
+        // are a designed timbre, rather than a calibrated recording of this quad.
+        const harmonics = new Float32Array([0, 0.55, 1, 0.8, 0.5, 0.3, 0.18, 0.12, 0.08, 0.05, 0.03]);
+        const wave = context.createPeriodicWave(new Float32Array(harmonics.length), harmonics);
         for (let index = 0; index < 4; index++) {
           const oscillator = context.createOscillator();
           const gain = context.createGain();
           gain.gain.value = 0;
           oscillator.setPeriodicWave(wave);
+          // Slight rotor variation avoids phase-locked tones at equal commanded RPM.
+          oscillator.detune.value = (index - 1.5) * 2;
           oscillator.connect(gain);
           gain.connect(this.master);
           oscillator.start();
@@ -43,12 +49,17 @@ export class DroneAudio {
         const noise = context.createBufferSource();
         noise.buffer = buffer;
         noise.loop = true;
+        const airHighPass = context.createBiquadFilter();
+        airHighPass.type = "highpass";
+        airHighPass.frequency.value = 180;
+        airHighPass.Q.value = 0.5;
         this.airFilter = context.createBiquadFilter();
         this.airFilter.type = "lowpass";
         this.airFilter.Q.value = 0.5;
         this.airflow = context.createGain();
         this.airflow.gain.value = 0;
-        noise.connect(this.airFilter);
+        noise.connect(airHighPass);
+        airHighPass.connect(this.airFilter);
         this.airFilter.connect(this.airflow);
         this.airflow.connect(this.master);
         noise.start();
@@ -74,16 +85,16 @@ export class DroneAudio {
     this.master.gain.setTargetAtTime(safeVolume, now, 0.03);
     let airflow = 0;
     for (let index = 0; index < this.motors.length; index++) {
-      const rpm = Number.isFinite(rpms[index]) ? Math.max(0, rpms[index]!) : 0;
-      const level = Math.min(1, rpm / 24000);
+      const rpm = Number.isFinite(rpms[index]) ? Math.max(0, Math.min(MAX_AUDIO_RPM, rpms[index]!)) : 0;
+      const level = rpm / MAX_AUDIO_RPM;
       const motor = this.motors[index]!;
-      // Two blades pass per revolution; native oscillators bandlimit the harmonics.
-      motor.oscillator.frequency.setTargetAtTime(Math.max(20, Math.min(3000, rpm / 30)), now, 0.025);
-      motor.gain.gain.setTargetAtTime(0.08 * Math.pow(level, 0.7), now, 0.025);
-      airflow += level / 4;
+      // Native oscillators bandlimit the blade-passage harmonics.
+      motor.oscillator.frequency.setTargetAtTime(Math.max(20, rpm * PROPELLER_BLADES / 60), now, 0.012);
+      motor.gain.gain.setTargetAtTime(0.065 * Math.pow(level, 1.1), now, 0.02);
+      airflow += Math.pow(level, 1.8) / 4;
     }
-    this.airflow?.gain.setTargetAtTime(airflow * 0.1, now, 0.04);
-    this.airFilter?.frequency.setTargetAtTime(1200 + airflow * 2200, now, 0.04);
+    this.airflow?.gain.setTargetAtTime(airflow * 0.22, now, 0.025);
+    this.airFilter?.frequency.setTargetAtTime(1800 + airflow * 4700, now, 0.025);
   }
 
   pause(): void {

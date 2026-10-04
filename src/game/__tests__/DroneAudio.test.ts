@@ -10,7 +10,7 @@ function audioContext() {
     currentTime: 0, sampleRate: 48000, destination: {},
     resume: vi.fn(async () => {}), suspend: vi.fn(async () => {}), close: vi.fn(async () => {}),
     createGain: () => { const result = { ...node(), gain: parameter() }; gains.push(result); return result; },
-    createOscillator: () => { const result = { ...node(), frequency: parameter(), setPeriodicWave: vi.fn() }; oscillators.push(result); return result; },
+    createOscillator: () => { const result = { ...node(), frequency: parameter(), detune: parameter(), setPeriodicWave: vi.fn() }; oscillators.push(result); return result; },
     createPeriodicWave: vi.fn(),
     createBuffer: () => ({ getChannelData: () => new Float32Array(48000) }),
     createBufferSource: () => ({ ...node(), buffer: null, loop: false }),
@@ -20,6 +20,22 @@ function audioContext() {
 }
 
 describe("drone audio lifecycle", () => {
+  it("uses three-blade passage pitch and keeps invalid or stopped motors silent", () => {
+    const { context, gains, oscillators } = audioContext();
+    const audio = new DroneAudio(() => context);
+    audio.play();
+    audio.update([8400, 24000, Number.NaN, -100], 1);
+    expect(oscillators[0]!.frequency.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(420);
+    expect(oscillators[1]!.frequency.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(1200);
+    expect(gains[3]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(0);
+    expect(gains[4]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(0);
+    audio.update([0, 0, 0, 0], 1);
+    for (const gain of gains.slice(1)) {
+      expect(gain.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(0);
+    }
+    audio.dispose();
+  });
+
   it("tracks individual motor pitch, mutes at zero volume, and silences pause", () => {
     const { context, gains, oscillators } = audioContext();
     const audio = new DroneAudio(() => context);
