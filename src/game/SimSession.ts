@@ -41,10 +41,16 @@ export class SimSession {
     }
   }
 
+  setCacheOnlyPractice(enabled: boolean): void {
+    this.tileLoader.setCacheOnlyPractice(enabled);
+    useStore.getState().setCacheOnlyPractice(enabled);
+  }
+
   async startSession(
     location: { lon: number; lat: number; name: string },
   ): Promise<void> {
     if (this.isStarting) return;
+    this.setCacheOnlyPractice(false);
     this.isStarting = true;
     try {
     const viewer = this.cesiumManager.getViewer();
@@ -271,6 +277,7 @@ export class SimSession {
   }
 
   endSession(): void {
+    this.setCacheOnlyPractice(false);
     this.gameLoop?.stop();
     this.gameLoop = null;
     this.isStarting = false;

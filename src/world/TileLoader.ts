@@ -21,6 +21,33 @@ function getRuntimeStats(
 export class TileLoader {
   private tileset: Cesium.Cesium3DTileset | null = null;
   private viewer: Cesium.Viewer | null = null;
+  private cacheOnlyPractice = false;
+  private previousTileServerLimit: number | undefined;
+  private previousCacheBytes: number | null = null;
+
+  setCacheOnlyPractice(enabled: boolean): void {
+    if (enabled === this.cacheOnlyPractice) return;
+    const serverLimits = Cesium.RequestScheduler.requestsByServer;
+    const tileServer = 'tile.googleapis.com:443';
+    if (enabled) {
+      this.previousTileServerLimit = serverLimits[tileServer];
+      // A saturated server defers content requests without marking tiles as failed.
+      serverLimits[tileServer] = 0;
+      if (this.tileset) {
+        this.previousCacheBytes = this.tileset.cacheBytes;
+        // Keep the warmed area while allowing requests already in flight to finish.
+        this.tileset.cacheBytes = Math.max(this.tileset.cacheBytes, this.tileset.totalMemoryUsageInBytes)
+          + this.tileset.maximumCacheOverflowBytes;
+      }
+    } else {
+      if (this.previousTileServerLimit === undefined) delete serverLimits[tileServer];
+      else serverLimits[tileServer] = this.previousTileServerLimit;
+      if (this.tileset && this.previousCacheBytes !== null) this.tileset.cacheBytes = this.previousCacheBytes;
+      this.previousCacheBytes = null;
+    }
+    this.cacheOnlyPractice = enabled;
+    this.viewer?.scene.requestRender();
+  }
 
   hasRenderableTilesInView(): boolean {
     const tileset = this.tileset;
@@ -55,7 +82,7 @@ export class TileLoader {
     // Retain visited tiles across flights while leaving GPU memory for rendering.
     // Overflow is reserved for tiles needed by the current view, not LRU retention.
     const ext = tileset as Cesium3DTilesetExtended;
-    ext.cacheBytes = 1536 * 1024 * 1024;
+    ext.cacheBytes = 6 * 1024 * 1024 * 1024;
     ext.maximumCacheOverflowBytes = 512 * 1024 * 1024;
     tileset.maximumScreenSpaceError = 8;
     // Standard replacement avoids overlapping coarse and detailed photogrammetry.

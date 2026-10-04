@@ -10,6 +10,8 @@ function memory(bytes: number): string {
 export function DeveloperOverlay({ session }: { session: SimSession }) {
   const visible = useStore(state => state.diagnosticsVisible);
   const snapshot = useStore(state => state.renderDiagnostics);
+  const cacheOnlyPractice = useStore(state => state.cacheOnlyPractice);
+  const phase = useStore(state => state.phase);
 
   useEffect(() => {
     const toggle = (event: KeyboardEvent) => {
@@ -36,6 +38,7 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
   const activeRequests = (snapshot?.pendingRequests ?? 0) > 0;
   const pressure = snapshot && snapshot.memoryAdjustedScreenSpaceError > snapshot.maximumScreenSpaceError;
   const status = !snapshot?.tilesetLoaded ? 'Awaiting flight'
+    : cacheOnlyPractice ? (activeRequests ? 'Cache-only · finishing requests' : 'Cache-only · streaming stopped')
     : activeRequests ? 'Tile requests active'
     : snapshot.processingTiles > 0 ? 'Processing tiles'
     : snapshot.visibleTiles === 0 ? 'No tiles in view'
@@ -57,7 +60,24 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
         <strong>{snapshot ? snapshot.fps.toFixed(0) : '—'}</strong><span>FPS</span>
         <span className={styles.frameTime}>{snapshot ? snapshot.frameTimeMs.toFixed(1) : '—'} ms / frame</span>
       </div>
-      <div className={styles.status} data-active={activeRequests || pressure || (snapshot?.tileFetchesLast5Seconds ?? 0) > 0}>{status}</div>
+      <div className={styles.status} data-active={activeRequests || pressure || (!cacheOnlyPractice && (snapshot?.tileFetchesLast5Seconds ?? 0) > 0)}>{status}</div>
+      <div className={styles.practiceOption}>
+        <button type="button" role="switch" className={styles.practiceToggle}
+          aria-checked={cacheOnlyPractice} disabled={phase === 'PICKER'}
+          onClick={() => session.setCacheOnlyPractice(!cacheOnlyPractice)}
+          aria-label="Cache-only practice" aria-describedby="cache-only-description">
+          <span>Cache-only practice</span><span aria-hidden="true">{cacheOnlyPractice ? 'ON' : 'OFF'}</span>
+        </button>
+        <p id="cache-only-description" className={styles.note}>{phase === 'PICKER'
+          ? 'Start a flight to enable. Stops new 3D tile requests.'
+          : 'Stops new 3D tile requests; keeps loaded tiles available.'}</p>
+        <details className={styles.practiceHelp}>
+          <summary>How this works</summary>
+          <p>Fly around with this OFF to load your practice area. Turn it ON to reuse loaded 3D tiles without requesting more.</p>
+          <p>Unloaded views may look incomplete. Requests already in flight may finish. Turn it OFF to load more detail.</p>
+          <p>Only 3D tiles are blocked; search, elevation and globe services may still make requests. Closing this panel keeps the mode active. Leaving the flight resets it.</p>
+        </details>
+      </div>
       {snapshot?.tilesetLoaded && (
         <>
           <dl className={styles.metrics}>
@@ -85,7 +105,9 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
           </dl>
         </>
       )}
-      <p className={styles.note}>Tile requests only; unknown sources may use the API. Turning or altitude changes can fetch more detail.</p>
+      <p className={styles.note}>{cacheOnlyPractice
+        ? 'New 3D tile requests are blocked. Uncached views may appear incomplete.'
+        : 'Tile requests only; unknown sources may use the API. Turning or altitude changes can fetch more detail.'}</p>
       <footer className={styles.footer}>CTRL + SHIFT + D <span>2 updates / sec</span></footer>
     </aside>
   );

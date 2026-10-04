@@ -31,6 +31,15 @@
 .metrics { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; margin: 10px 0; }
 .metrics dt { color: var(--color-on-surface-variant); }
 .metrics dd { margin: 0; text-align: right; }
+.practiceOption { padding: 10px 0; border-bottom: 1px solid var(--color-outline-variant); }
+.practiceToggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 6px 8px; border: 1px solid var(--color-outline-variant); background: transparent; color: var(--color-on-surface); font: inherit; cursor: pointer; }
+.practiceToggle[aria-checked='true'] { border-color: var(--color-secondary); color: var(--color-secondary); }
+.practiceToggle:disabled { opacity: 0.5; cursor: default; }
+.practiceToggle:focus-visible { outline: 1px solid var(--color-secondary); outline-offset: 2px; }
+.practiceOption .note { margin: 6px 0; }
+.practiceHelp { color: var(--color-on-surface-variant); font-size: 10px; line-height: 1.5; }
+.practiceHelp summary { color: var(--color-secondary); cursor: pointer; }
+.practiceHelp p { margin: 8px 0 0; }
 .memoryTrack { height: 3px; background: var(--color-surface-container-highest); }
 .memoryTrack > div { height: 100%; background: var(--color-secondary); }
 .note { margin: 10px 0; color: var(--color-on-surface-muted); font-size: 10px; line-height: 1.5; }

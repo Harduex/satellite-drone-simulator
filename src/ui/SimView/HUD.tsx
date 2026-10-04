@@ -10,11 +10,13 @@ export function HUD({ locationName }: Props) {
   const speed = useStore((s) => s.speed);
   const altitudeAGL = useStore((s) => s.altitudeAGL);
   const throttle = useStore((s) => s.throttle);
+  const cacheOnlyPractice = useStore(s => s.cacheOnlyPractice);
 
   return (
     <div className={css.root}>
       {/* Top-left: location name */}
       <div className={css.locationName}>{locationName}</div>
+      {cacheOnlyPractice && <div className={css.practiceBadge}>Cache-only practice · 3D streaming off</div>}
 
       {/* Bottom-left: throttle bar */}
       <div className={css.throttleGroup}>

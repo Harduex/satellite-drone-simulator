@@ -27,6 +27,17 @@
   gap: 6px;
 }
 
+.practiceBadge {
+  position: absolute;
+  top: 40px;
+  left: 16px;
+  padding: 6px 8px;
+  background: var(--glass-bg);
+  color: var(--color-secondary);
+  font-size: var(--fs-label-sm);
+  text-shadow: var(--hud-text-shadow);
+}
+
 .throttleTrack {
   width: 12px;
   height: 120px;
