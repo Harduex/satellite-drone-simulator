@@ -245,7 +245,8 @@ export class GameLoop {
     if (godMode && this.droneState.position.z - groundHeight < 0.5) {
       this.recoverNearHit(groundHeight);
     }
-    this.audio?.update(this.physics.getMotorModel().state.rpm, useStore.getState().audioVolume);
+    const audioSettings = useStore.getState();
+    this.audio?.update(this.physics.getMotorModel().state.rpm, audioSettings.audioVolume, audioSettings.physicsConfig.maxThrottleRpm);
     if (useStore.getState().showStickOverlay) {
       useStore.getState().updateLiveSticks(this.stickInputs);
     }

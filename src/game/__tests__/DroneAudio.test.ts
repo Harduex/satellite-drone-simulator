@@ -27,6 +27,9 @@ describe("drone audio lifecycle", () => {
     audio.update([8400, 24000, Number.NaN, -100], 1);
     expect(oscillators[0]!.frequency.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(420);
     expect(oscillators[1]!.frequency.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(1200);
+    audio.update([30000, 30000, 30000, 30000], 1, 30000);
+    expect(oscillators[0]!.frequency.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(1500);
+    audio.update([8400, 24000, Number.NaN, -100], 1);
     expect(gains[3]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(0);
     expect(gains[4]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(0);
     audio.update([0, 0, 0, 0], 1);

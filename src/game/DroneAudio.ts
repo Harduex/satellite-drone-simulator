@@ -1,5 +1,6 @@
+import { DEFAULT_DRONE_CONFIG } from "../core/physics/droneConfig";
+
 const PROPELLER_BLADES = 3;
-const MAX_AUDIO_RPM = 24000;
 
 /** Synthesized propeller blade pulses and airflow, driven by the four physical motors. */
 export class DroneAudio {
@@ -78,23 +79,25 @@ export class DroneAudio {
     this.unlock();
   }
 
-  update(rpms: readonly number[], volume: number): void {
+  update(rpms: readonly number[], volume: number, maxRpm = DEFAULT_DRONE_CONFIG.maxThrottleRpm): void {
     if (!this.context || !this.master || !this.active) return;
     const now = this.context.currentTime;
     const safeVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0;
     this.master.gain.setTargetAtTime(safeVolume, now, 0.03);
+    const rpmLimit = Number.isFinite(maxRpm) && maxRpm > 0 ? maxRpm : DEFAULT_DRONE_CONFIG.maxThrottleRpm;
     let airflow = 0;
     for (let index = 0; index < this.motors.length; index++) {
-      const rpm = Number.isFinite(rpms[index]) ? Math.max(0, Math.min(MAX_AUDIO_RPM, rpms[index]!)) : 0;
-      const level = rpm / MAX_AUDIO_RPM;
+      const rpm = Number.isFinite(rpms[index]) ? Math.max(0, Math.min(rpmLimit, rpms[index]!)) : 0;
+      const level = rpm / rpmLimit;
       const motor = this.motors[index]!;
       // Native oscillators bandlimit the blade-passage harmonics.
-      motor.oscillator.frequency.setTargetAtTime(Math.max(20, rpm * PROPELLER_BLADES / 60), now, 0.012);
+      const bladeFrequency = Math.min(this.context.sampleRate / 4, Math.max(20, rpm * PROPELLER_BLADES / 60));
+      motor.oscillator.frequency.setTargetAtTime(bladeFrequency, now, 0.012);
       motor.gain.gain.setTargetAtTime(0.065 * Math.pow(level, 1.1), now, 0.02);
       airflow += Math.pow(level, 1.8) / 4;
     }
-    this.airflow?.gain.setTargetAtTime(airflow * 0.22, now, 0.025);
-    this.airFilter?.frequency.setTargetAtTime(1800 + airflow * 4700, now, 0.025);
+    this.airflow?.gain.setTargetAtTime(airflow * 0.055, now, 0.025);
+    this.airFilter?.frequency.setTargetAtTime(1800 + airflow * 1800, now, 0.025);
   }
 
   pause(): void {
