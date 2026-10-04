@@ -29,5 +29,6 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | Document | Status |
 | --- | --- |
 | [Flight video recording](superpowers/specs/2026-10-04-flight-recording-design.md) | Proposed design; implementation and provider video-use permission remain unverified |
+| [Flight recording implementation plan](superpowers/plans/2026-10-04-flight-recording.md) | Six tasks; awaiting plan review before implementation |
 
 Keep experiment findings under `experiments/`. Add further categories when there is a document to place in them. Local assets, screenshots and logs remain outside this tracked documentation tree.
