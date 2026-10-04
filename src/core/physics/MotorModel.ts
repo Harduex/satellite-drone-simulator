@@ -30,6 +30,8 @@ export class MotorModel {
    */
   update(throttleCommands: number[], dt: number): number[] {
     const { kT, maxThrottleRpm, motorTimeConstant, motorSpinDownFactor } = this.config;
+    const responseExponent = Number.isFinite(this.config.motorResponseExponent) && this.config.motorResponseExponent! > 0
+      ? this.config.motorResponseExponent! : 1;
 
     if (dt !== this.cachedDt || motorTimeConstant !== this.cachedTimeConstant ||
       motorSpinDownFactor !== this.cachedSpinDownFactor) {
@@ -43,10 +45,10 @@ export class MotorModel {
     for (let i = 0; i < 4; i++) {
       const cmd = Math.max(0, Math.min(1, throttleCommands[i] ?? 0));
 
-      // Thrust linearization: T = kT * RPM² is quadratic in cmd.
-      // Applying sqrt makes thrust linear in stick position.
+      // Linear thrust uses sqrt(command) directly; the loaded RPM curve applies
+      // only to raw ESC commands so it does not undo thrust linearization.
       const linearizedCmd = this.config.thrustLinearization !== false
-        ? Math.sqrt(cmd) : cmd;
+        ? Math.sqrt(cmd) : Math.pow(cmd, responseExponent);
       const targetRpm = linearizedCmd * maxThrottleRpm;
       const currentRpm = this.state.rpm[i] ?? 0;
 

@@ -96,7 +96,7 @@ describe("MotorModel extended", () => {
     });
 
     it("without linearization, half-cmd produces quarter-thrust", () => {
-      const config: PhysicsConfig = { ...DEFAULT_DRONE_CONFIG, thrustLinearization: false };
+      const config: PhysicsConfig = { ...DEFAULT_DRONE_CONFIG, thrustLinearization: false, motorResponseExponent: 1 };
       const model = new MotorModel(config);
       for (let i = 0; i < 500; i++) model.update([1, 0, 0, 0], DT);
       const fullThrust = model.update([1, 0, 0, 0], DT)[0]!;

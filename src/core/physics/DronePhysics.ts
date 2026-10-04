@@ -67,6 +67,7 @@ export class DronePhysics {
   private motorModel: MotorModel;
   private motorArmOffset: number; // armLength * cos(45°)
   private throttleBuffer: number[] = [0, 0, 0, 0];
+  private inflowThrustBuffer: number[] = [0, 0, 0, 0];
 
   constructor(config: PhysicsConfig) {
     this.config = config;
@@ -95,7 +96,7 @@ export class DronePhysics {
     this.throttleBuffer[1] = motors.m2;
     this.throttleBuffer[2] = motors.m3;
     this.throttleBuffer[3] = motors.m4;
-    const thrusts = this.motorModel.update(this.throttleBuffer, dt);
+    const thrusts = this.applyInflowLoss(this.motorModel.update(this.throttleBuffer, dt), state);
     const reactionTorques = this.motorModel.getReactionTorques();
 
     // ── Compute net force in body frame ───────────────────
@@ -210,6 +211,30 @@ export class DronePhysics {
     out.quaternion.y = _newQuat.y; out.quaternion.z = _newQuat.z;
     out.angularVelocity.x = favX; out.angularVelocity.y = favY; out.angularVelocity.z = favZ;
     return out;
+  }
+
+  /**
+   * Static bench thrust overstates thrust when air already flows through the
+   * disc. First-order advance-ratio model: T = T_static * (1 - v_axial / v_pitch),
+   * where v_axial is body-up velocity and v_pitch = pitch * rpm / 60.
+   * Descent (v_axial < 0) keeps static thrust; vortex-ring effects are not modeled.
+   */
+  private applyInflowLoss(thrusts: number[], state: DroneState): number[] {
+    const pitch = this.config.propellerPitch;
+    if (!(pitch !== undefined && Number.isFinite(pitch) && pitch > 0)) return thrusts;
+    const q = state.quaternion;
+    const v = state.velocity;
+    // Body Z axis in world frame (third column of the rotation matrix).
+    const axial = v.x * 2 * (q.x * q.z + q.w * q.y)
+      + v.y * 2 * (q.y * q.z - q.w * q.x)
+      + v.z * (1 - 2 * (q.x * q.x + q.y * q.y));
+    const rpms = this.motorModel.state.rpm;
+    for (let i = 0; i < 4; i++) {
+      const pitchSpeed = pitch * rpms[i]! / 60;
+      const factor = axial <= 0 ? 1 : pitchSpeed > 0 ? Math.max(0, 1 - axial / pitchSpeed) : 0;
+      this.inflowThrustBuffer[i] = thrusts[i]! * factor;
+    }
+    return this.inflowThrustBuffer;
   }
 
   getMotorModel(): MotorModel {

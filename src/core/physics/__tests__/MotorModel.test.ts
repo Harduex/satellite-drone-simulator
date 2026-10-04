@@ -5,13 +5,22 @@ import { DEFAULT_DRONE_CONFIG } from "../types";
 const DT = 0.002; // 500Hz
 
 describe("MotorModel", () => {
-  it("supports approximately 35% hover throttle for the default quad", () => {
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])("keeps stopped motors stopped with invalid response exponent %f", (motorResponseExponent) => {
+    const model = new MotorModel({ ...DEFAULT_DRONE_CONFIG, motorResponseExponent });
+    expect(model.update([0, 0, 0, 0], DT)).toEqual([0, 0, 0, 0]);
+  });
+  // F60 Pro V 1750KV / T5147-3, manufacturer static bench at 24.8–25.2V.
+  it.each([
+    [0.2, 11132, 227], [0.4, 16928, 558.6], [0.6, 21409, 910.7],
+    [0.8, 26122, 1403.4], [1, 30527, 1882.5],
+  ])("matches loaded RPM and thrust near %f command", (command, rpm, grams) => {
     const model = new MotorModel(DEFAULT_DRONE_CONFIG);
     let thrust = 0;
     for (let step = 0; step < 500; step++) {
-      thrust = model.update([0.35, 0.35, 0.35, 0.35], DT).reduce((sum, t) => sum + t, 0);
+      thrust = model.update([command, 0, 0, 0], DT)[0]!;
     }
-    expect(thrust).toBeCloseTo(5.3955, 1);
+    expect(Math.abs(model.state.rpm[0]! / rpm - 1)).toBeLessThan(0.06);
+    expect(Math.abs(thrust / (grams * 0.00981) - 1)).toBeLessThan(0.1);
   });
 
   it("applies a changed motor lag without changing the timestep", () => {
@@ -21,8 +30,7 @@ describe("MotorModel", () => {
     config.motorTimeConstant = 0.1;
     model.reset();
     model.update([1, 1, 1, 1], DT);
-    // First-order response: 24000 * (1 - exp(-0.002 / 0.1)).
-    expect(model.state.rpm[0]).toBeCloseTo(475.23184, 4);
+    expect(model.state.rpm[0]).toBeCloseTo(DEFAULT_DRONE_CONFIG.maxThrottleRpm * (1 - Math.exp(-DT / 0.1)), 4);
   });
 
   describe("asymmetric spin-up/down", () => {

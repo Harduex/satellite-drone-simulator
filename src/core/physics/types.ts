@@ -103,6 +103,8 @@ export interface PhysicsConfig {
   motorTimeConstant: number; // s
   motorSpinDownFactor: number; // multiplier on motorTimeConstant for spin-down (>1 = slower)
   maxThrottleRpm: number;
+  motorResponseExponent?: number; // loaded RPM curve; 1 gives linear RPM/command
+  propellerPitch?: number; // m; geometric pitch for axial-inflow thrust loss (omit = static thrust)
   dragCoefficient: number;
   referenceArea: number; // m²
   verticalDragMultiplier: number; // multiplier on Cd*A for vertical axis drag

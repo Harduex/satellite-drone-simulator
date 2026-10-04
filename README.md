@@ -1,6 +1,6 @@
 # Satellite Drone Simulator
 
-A browser-based FPV drone simulator where the **world is the map**. Search any real-world location, then fly over it in first-person view using a real radio controller or keyboard. Physics feel like Liftoff — realistic motor thrust, drag, inertia, and ground effect.
+A browser-based FPV drone simulator where the **world is the map**. Search any real-world location, then fly over it in first-person view using a real radio controller or keyboard. Physics feel like Liftoff — realistic motor thrust, drag, inertia, and inflow thrust loss.
 
 ## Quick Start
 
@@ -122,7 +122,7 @@ src/
 │   └── input/      Gamepad API, axis mapping, keyboard fallback
 ├── world/          CesiumJS: 3D tiles, coordinates, terrain
 ├── camera/         FPV camera sync (horizontal FOV, default 110°)
-├── game/           Game loop, crash detector, telemetry publisher, battery
+├── game/           Game loop, crash detector, telemetry publisher, motor audio
 ├── store/          Zustand state management
 └── ui/             React UI overlays + theme.ts design token system
 ```
@@ -137,18 +137,37 @@ src/
 
 ## Physics Model
 
-- 5" freestyle quad (550g AUW)
+- 5" 6S freestyle quad, representative build: 644g AUW, 225mm wheelbase, symmetric X
 - 4-motor X config with shared `MOTOR_LAYOUT` constant
 - Euler integration at 500Hz; render frames catch up at 10 FPS or above
 - Catch-up limited to 100ms after a render stall or inactive tab
 - Radio sampled for each physics step (browser device updates may be slower)
-- Quadratic throttle-to-thrust mapping; steady hover near 35% throttle
+- Loaded RPM curve (`RPM = maxRPM * command^0.65`), thrust `kT * RPM²`; hover near 15% raw command, ~11:1 static thrust-to-weight
+- Axial-inflow thrust loss: thrust falls linearly to zero at prop pitch speed (climb/forward flight)
 - Quadratic angular drag (`-k * |omega| * omega`)
 - Direction-dependent translational drag (3x vertical multiplier for downwash)
 - Asymmetric motor spin-up/down (spin-down 1.3x slower)
 - Motor spin-up lag (first-order filter, τ=18ms)
-- PID rate controller (Betaflight-comparable defaults)
+- PID rate controller (simulation-tuned gains; not Betaflight GUI units)
 - Configurable horizontal FOV (60-140°, default 110°), camera tilt default 25°
+
+### Calibration sources
+
+| Parameter | Value | Basis |
+|---|---|---|
+| Mass, wheelbase | 644g, 225mm | Published: [iFlight Nazgul Evoque F5 V2](https://shop.iflight.com/Nazgul-Evoque-F5-V2-6S-Pro1954) (with 6S 1400mAh) |
+| Max RPM, `kT`, RPM curve | 30527, 1.94e-8 N/RPM², exp 0.65 | Fit to [T-Motor F60 Pro V 1750KV + T5147-3 bench](https://www.ligpower.com/cn/product/f60prov-fpv-motor.html) (RPM within 6%, thrust within 10% at 20–100%) |
+| Prop pitch | 4.7in | T5147-3 geometry |
+| `kQ` | 2.5e-10 | Estimate: implied shaft power ≈ 67–77% of bench electrical power |
+| Inertia | 0.00165 / 0.00125 / 0.0027 kg·m² | Estimate: point-mass motors, arms, central battery/body |
+| Cd·A | 0.007 m² lateral (3x vertical) | Estimate: tuned so level top speed ≈ the advertised 190 km/h |
+| Motor lag | 18ms | Estimate |
+| FOV | 110° horizontal | Approximation of [DJI O3](https://www.dji.com/o3-air-unit/video) 12.7mm-equivalent lens (155° is diagonal); not a calibrated live-feed FOV |
+
+Not modeled: battery voltage sag/discharge, current limits, motor heating,
+edgewise-flow/propwash effects, vortex ring state, ground effect, and lens distortion.
+Bench power figures inform estimates only; there is no power-consumption simulation.
+Hover below 20% command is extrapolated from the bench curve.
 
 Saved custom settings are preserved. Physics Settings → Reset to Defaults applies
 the baseline physics and camera setup. These defaults are a representative

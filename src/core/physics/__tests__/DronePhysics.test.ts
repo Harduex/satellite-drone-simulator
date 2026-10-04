@@ -106,7 +106,7 @@ describe("DronePhysics", () => {
       // we need cmd such that sqrt(cmd)*maxRpm = hoverRpm → cmd = rawThrottle²
       const hoverThrottle = config.thrustLinearization !== false
         ? rawThrottle * rawThrottle
-        : rawThrottle;
+        : Math.pow(rawThrottle, 1 / (config.motorResponseExponent ?? 1));
 
       let state = createDefaultDroneState(10);
       const hoverMotors: MotorCommands = {

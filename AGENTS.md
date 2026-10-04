@@ -24,8 +24,8 @@
 
 * **Physics:** Custom force model, Euler integrator @ 500Hz. Zero-alloc hot path: `stepInto()`/`updateInto()` write into pre-allocated buffers. GameLoop uses ping-pong double-buffer for DroneState.
 * **Coords:** ENU (physics) → ECEF (render). Body: X=Right (Pitch), Y=Forward (Roll), Z=Up (Yaw).
-* **PID:** Runs @ 500Hz. Betaflight-like defaults. Target rates negated (right-hand rule).
-* **Motors:** Shared `MOTOR_LAYOUT` (`types.ts`). M1 = front-left CCW. Asymmetric spin-down (1.3x time constant). Default quadratic throttle mapping gives hover @ ~35% throttle. `Math.exp` alpha values cached by timestep and motor lag settings.
+* **PID:** Runs @ 500Hz. Simulation-tuned gains (not Betaflight GUI units); closed-loop test `FlightController.physics.test.ts` guards tracking/stop. Target rates negated (right-hand rule).
+* **Motors:** Shared `MOTOR_LAYOUT` (`types.ts`). M1 = front-left CCW. Asymmetric spin-down (1.3x time constant). Default profile = representative 5" 6S (README calibration table): RPM = max·cmd^0.65, hover @ ~15% raw command. Axial-inflow thrust loss via `propellerPitch`. `Math.exp` alpha values cached by timestep and motor lag settings.
 * **Drag:** Quadratic angular, direction-dependent translational (3x vertical downwash). Translational threshold uses `v3MagnitudeSq` (no sqrt).
 * **Render:** CesiumJS. Globe hidden < 2km from spawn (separate `preRender` listener from cloud drift).
 * **State:** Crash events flow via Zustand. `triggerCrashFlash` uses `clearTimeout` to prevent race conditions.

@@ -18,21 +18,25 @@ export const MOTOR_LAYOUT: readonly [MotorDef, MotorDef, MotorDef, MotorDef] = [
 ] as const;
 
 export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
-  mass: 0.550,
-  armLength: 0.11,
-  inertia: { xx: 0.003, yy: 0.003, zz: 0.005 },
-  // kT chosen so hover occurs at ~35% throttle:
-  // T_hover_per_motor = (0.550 * 9.81) / 4 = 1.349 N
-  // RPM_hover = 0.35 * 24000 = 8400
-  // kT = 1.349 / 8400² ≈ 1.9e-8
-  kT: 1.9e-8,
-  // kQ maintains same kQ/kT ratio as original (≈0.01314, ~13mm torque arm)
+  mass: 0.644,
+  armLength: 0.1125,
+  // Component-mass estimate for a central battery/body plus four motors and arms.
+  inertia: { xx: 0.00165, yy: 0.00125, zz: 0.0027 },
+  // Fit to F60 Pro V 1750KV / T5147-3 static thrust/RPM data at 24.8–25.2V.
+  kT: 1.94e-8,
+  // Estimate: implied shaft power kQ*rpm²*ω is ~67–77% of the bench's measured
+  // electrical power (53.6–1002.8 W), a plausible motor+ESC efficiency.
   kQ: 2.5e-10,
   motorTimeConstant: 0.018,
   motorSpinDownFactor: 1.3,
-  maxThrottleRpm: 24000,
-  dragCoefficient: 0.3,
-  referenceArea: 0.04,
+  maxThrottleRpm: 30527,
+  motorResponseExponent: 0.65,
+  // T5147-3 geometric pitch (4.7 in); drives the axial-inflow thrust loss.
+  propellerPitch: 0.1194,
+  // Effective Cd*A is a flight-envelope estimate (level top speed ≈ the
+  // advertised 190 km/h with inflow loss), not a measured body area.
+  dragCoefficient: 1.0,
+  referenceArea: 0.007,
   verticalDragMultiplier: 3.0,
   spawnAltitude: 2.0,
   thrustLinearization: false,
