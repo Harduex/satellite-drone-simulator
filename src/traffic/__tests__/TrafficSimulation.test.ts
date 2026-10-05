@@ -192,6 +192,7 @@ it("fills but never exceeds the 150-car ceiling on abundant roads", () => {
   simulation.setGraph(buildRoadGraph(roads, { x: 0, y: 0, z: 0 }));
   simulation.reset({ x: 0, y: 0, z: 0 });
   expect(simulation.getFrames()).toHaveLength(150);
+  expect(new Set(simulation.getFrames().map(car => car.modelIndex))).toEqual(new Set([0, 1, 2, 3, 4]));
   for (let i = 0; i < 100; i++) {
     simulation.step(0.1);
     expect(simulation.getFrames().length).toBeLessThanOrEqual(150);

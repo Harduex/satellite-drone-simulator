@@ -34,6 +34,7 @@ export class SimSession {
   private disposed = false;
   private sessionGeneration = 0;
   private traffic: TrafficController | null = null;
+  private environmentExposure = 1;
   private trafficSettingsCleanup: (() => void) | null = null;
 
   constructor(cesiumManager: CesiumManager) {
@@ -143,7 +144,11 @@ export class SimSession {
 
     this.applyEnvironmentSettings();
     this.cesiumManager.setEnvironmentPaused(false);
-    this.cesiumManager.setEnvironmentExposureListener(exposure => this.tileLoader.setEnvironmentExposure(exposure));
+    this.cesiumManager.setEnvironmentExposureListener(exposure => {
+      this.environmentExposure = exposure;
+      this.tileLoader.setEnvironmentExposure(exposure);
+      this.traffic?.setEnvironmentExposure(exposure);
+    });
     this.cesiumManager.setEnvironmentAnchor(
       location.lon,
       location.lat,
@@ -197,6 +202,7 @@ export class SimSession {
       diagnosticsEnabled: () => useStore.getState().diagnosticsVisible,
     });
     this.gameLoop.onReset(() => this.traffic?.reset());
+    this.traffic.setEnvironmentExposure(this.environmentExposure);
     this.traffic.setEnabled(store.roadTrafficEnabled);
     this.traffic.start();
     this.trafficSettingsCleanup = useStore.subscribe((next, previous) => {

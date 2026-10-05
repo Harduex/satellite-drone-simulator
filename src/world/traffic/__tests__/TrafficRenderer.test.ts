@@ -2,6 +2,40 @@ import { expect, it, vi } from "vitest";
 import * as Cesium from "cesium";
 import { interpolatePose, TrafficRenderer } from "../TrafficRenderer";
 import type { VehicleFrame } from "../../../traffic/TrafficTypes";
+it("uses current scene exposure for loaded and late-loading cars", async () => {
+  let resolve!: (model: Cesium.Model) => void;
+  const loader = vi.spyOn(Cesium.Model, "fromGltfAsync").mockImplementation(
+    () => new Promise(done => { resolve = done; }),
+  );
+  const viewer = {
+    scene: { primitives: { add: vi.fn(), remove: vi.fn() } },
+    creditDisplay: { addStaticCredit: vi.fn(), removeStaticCredit: vi.fn() },
+  } as unknown as Cesium.Viewer;
+  const pose = { position: { x: 0, y: 0, z: 0 }, heading: 0, pitch: 0 };
+  const renderer = new TrafficRenderer(viewer, Cesium.Matrix4.IDENTITY, () => {});
+  try {
+    renderer.setEnvironmentExposure(0.025);
+    renderer.update([{
+      id: 1, modelIndex: 3, colorIndex: 0, previous: pose, current: pose,
+      speed: 0, length: 4.343, edgeId: "a", distance: 0,
+    }], 0);
+    const options = loader.mock.calls[0]![0];
+    expect(options.url).toContain("audi-a3.glb");
+    const shader = options.customShader!;
+    expect(shader.uniforms.u_environmentExposure!.value).toBe(0.025);
+    renderer.setEnvironmentExposure(0.4);
+    resolve({ destroy: vi.fn() } as unknown as Cesium.Model);
+    await vi.waitFor(() => expect(viewer.scene.primitives.add).toHaveBeenCalledOnce());
+    expect(shader.uniforms.u_environmentExposure!.value).toBe(0.4);
+    renderer.setEnvironmentExposure(1);
+    expect(shader.uniforms.u_environmentExposure!.value).toBe(1);
+    renderer.setEnvironmentExposure(NaN);
+    expect(shader.uniforms.u_environmentExposure!.value).toBe(1);
+  } finally {
+    renderer.dispose();
+    loader.mockRestore();
+  }
+});
 it("interpolates heading through north without spinning around", () => {
   const position = { x: 0, y: 0, z: 0 };
   const value = interpolatePose(

@@ -1,7 +1,7 @@
 import * as Cesium from "cesium";
 import type { VehicleFrame, VehiclePose } from "../../traffic/TrafficTypes";
+import { TRAFFIC_MODELS } from "../../traffic/TrafficConfig";
 
-const MODELS = ["sedan", "hatchback-sports", "suv"];
 const PALETTE = [
   "#b93832",
   "#235991",
@@ -41,9 +41,10 @@ export class TrafficRenderer {
   private desired = new Set<number>();
   private disposed = false;
   private paused = false;
+  private environmentExposure = 1;
   private failedModels = new Set<number>();
   private credit = new Cesium.Credit(
-    '<a href="https://openfreemap.org/">OpenFreeMap</a> · <a href="https://openmaptiles.org/">© OpenMapTiles</a> · <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a> · Cars: Kenney (CC0)',
+    '<a href="https://openfreemap.org/">OpenFreeMap</a> · <a href="https://openmaptiles.org/">© OpenMapTiles</a> · <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a> · Cars: Kenney + originals (CC0)',
     true,
   );
   private scratchRotation = new Cesium.Matrix3();
@@ -63,6 +64,14 @@ export class TrafficRenderer {
   }
   setPaused(paused: boolean): void {
     this.paused = paused;
+  }
+  setEnvironmentExposure(exposure: number): void {
+    if (!Number.isFinite(exposure)) return;
+    const normalized = Math.max(0.01, Math.min(1, exposure));
+    if (normalized === this.environmentExposure) return;
+    this.environmentExposure = normalized;
+    for (const car of this.cars.values())
+      car.shader.setUniform("u_environmentExposure", this.environmentExposure);
   }
   update(frames: readonly VehicleFrame[], alpha: number): void {
     if (this.disposed) return;
@@ -117,17 +126,21 @@ export class TrafficRenderer {
     );
     const shader = new Cesium.CustomShader({
       uniforms: {
+        u_environmentExposure: {
+          type: Cesium.UniformType.FLOAT,
+          value: this.environmentExposure,
+        },
         u_bodyColor: {
           type: Cesium.UniformType.VEC3,
           value: new Cesium.Cartesian3(color.red, color.green, color.blue),
         },
       },
       fragmentShaderText:
-        "void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) { if (material.diffuse.r > 0.95 && material.diffuse.b > 0.95 && material.diffuse.g < 0.01) { material.diffuse = u_bodyColor; } }",
+        "void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) { if (material.diffuse.r > 0.95 && material.diffuse.b > 0.95 && material.diffuse.g < 0.01) { material.diffuse = u_bodyColor; } material.diffuse *= u_environmentExposure; material.emissive *= u_environmentExposure; }",
     });
     const matrix = Cesium.Matrix4.clone(this.frame);
     void Cesium.Model.fromGltfAsync({
-      url: `${import.meta.env.BASE_URL}models/traffic/${MODELS[frame.modelIndex] ?? MODELS[0]}.glb`,
+      url: `${import.meta.env.BASE_URL}models/traffic/${(TRAFFIC_MODELS[frame.modelIndex] ?? TRAFFIC_MODELS[0]).name}.glb`,
       modelMatrix: matrix,
       upAxis: Cesium.Axis.Z,
       forwardAxis: Cesium.Axis.X,
@@ -142,6 +155,7 @@ export class TrafficRenderer {
           shader.destroy();
           return;
         }
+        shader.setUniform("u_environmentExposure", this.environmentExposure);
         this.scene.primitives.add(model);
         this.cars.set(frame.id, {
           model,

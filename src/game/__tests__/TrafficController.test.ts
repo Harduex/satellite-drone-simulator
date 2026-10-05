@@ -1,6 +1,7 @@
 import { expect, it, vi } from "vitest";
 import * as Cesium from "cesium";
 import { TrafficController, advanceTrafficTime } from "../TrafficController";
+import { TrafficRenderer } from "../../world/traffic/TrafficRenderer";
 it.each([30, 60, 120])(
   "preserves ten-second traffic cadence at %i render Hz",
   (frequency) => {
@@ -25,6 +26,7 @@ it("limits long-stall traffic work and preserves fractional steps", () => {
   expect(advanceTrafficTime(0, 0)).toEqual({ steps: 0, remainder: 0 });
 });
 it("pause/off/dispose release requests and callbacks without resurrecting late work", async () => {
+  const exposure = vi.spyOn(TrafficRenderer.prototype, "setEnvironmentExposure");
   const event = new Cesium.Event();
   const credits = new Set<Cesium.Credit>();
   const viewer = {
@@ -61,17 +63,27 @@ it("pause/off/dispose release requests and callbacks without resurrecting late w
     diagnosticsEnabled: () => true,
   });
   try {
+    controller.setEnvironmentExposure(0.025);
     controller.setEnabled(true);
     expect(pending.length).toBe(0);
     controller.start();
     expect(event.numberOfListeners).toBe(1);
     expect(credits.size).toBe(1);
+    expect(exposure).toHaveBeenLastCalledWith(0.025);
+    controller.reset();
+    expect(exposure).toHaveBeenLastCalledWith(0.025);
     await Promise.resolve();
     expect(pending.length).toBe(1);
     controller.pause();
     expect(pending[0]!.signal!.aborted).toBe(true);
     controller.setEnabled(false);
     expect(credits.size).toBe(0);
+    controller.setEnvironmentExposure(0.4);
+    controller.setEnabled(true);
+    expect(credits.size).toBe(0);
+    controller.resume();
+    expect(exposure).toHaveBeenLastCalledWith(0.4);
+    controller.setEnabled(false);
     controller.dispose();
     expect(event.numberOfListeners).toBe(0);
     pending[0]!.resolve(
@@ -90,5 +102,6 @@ it("pause/off/dispose release requests and callbacks without resurrecting late w
   } finally {
     controller.dispose();
     vi.unstubAllGlobals();
+    exposure.mockRestore();
   }
 });

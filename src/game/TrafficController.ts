@@ -41,6 +41,7 @@ export class TrafficController {
   private inverse: Cesium.Matrix4;
   private enabled = false;
   private paused = true;
+  private environmentExposure = 1;
   private disposed = false;
   private removeFrame: Cesium.Event.RemoveCallback | null = null;
   private abort: AbortController | null = null;
@@ -123,6 +124,11 @@ export class TrafficController {
       this.options.publish(null);
     }
   }
+  setEnvironmentExposure(exposure: number): void {
+    if (!Number.isFinite(exposure)) return;
+    this.environmentExposure = Math.max(0.01, Math.min(1, exposure));
+    this.renderer?.setEnvironmentExposure(this.environmentExposure);
+  }
   private activate(): void {
     this.renderer ??= new TrafficRenderer(
       this.options.viewer,
@@ -130,6 +136,7 @@ export class TrafficController {
       () =>
         this.options.exclusionsChanged(this.renderer?.getExclusions() ?? []),
     );
+    this.renderer.setEnvironmentExposure(this.environmentExposure);
     void this.refresh(this.options.readDronePosition());
   }
   private cancel(): void {
@@ -169,6 +176,7 @@ export class TrafficController {
         () =>
           this.options.exclusionsChanged(this.renderer?.getExclusions() ?? []),
       );
+    this.renderer?.setEnvironmentExposure(this.environmentExposure);
     if (this.enabled && !this.paused) void this.refresh(this.options.spawn);
   }
   private async refresh(center: Point3): Promise<void> {

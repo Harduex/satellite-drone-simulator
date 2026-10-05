@@ -1,3 +1,11 @@
+export const TRAFFIC_MODELS = [
+  { name: "sedan", length: 4.3 },
+  { name: "hatchback-sports", length: 4.1 },
+  { name: "suv", length: 4.6 },
+  { name: "audi-a3", length: 4.343 },
+  { name: "mazda-cx5", length: 4.55 },
+] as const;
+
 export const TRAFFIC = {
   radius: 1000,
   preload: 1500,

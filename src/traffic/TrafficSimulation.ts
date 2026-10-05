@@ -1,4 +1,4 @@
-import { TRAFFIC, ROAD_DENSITY, ROAD_SPEED } from "./TrafficConfig";
+import { TRAFFIC, TRAFFIC_MODELS, ROAD_DENSITY, ROAD_SPEED } from "./TrafficConfig";
 import { poseOnEdge } from "./RoadGraph";
 import type { Point3, RoadEdge, RoadGraph, VehicleFrame } from "./TrafficTypes";
 
@@ -46,7 +46,7 @@ export class TrafficSimulation {
   private targetCenter: Point3 = { x: Infinity, y: Infinity, z: 0 };
   constructor(
     private seed = 42,
-    private lengths: readonly number[] = [4.3, 4.1, 4.6],
+    private lengths: readonly number[] = TRAFFIC_MODELS.map(model => model.length),
   ) {
     this.randomState = seed;
   }
