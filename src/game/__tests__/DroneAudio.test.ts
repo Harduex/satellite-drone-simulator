@@ -23,16 +23,22 @@ function audioContext() {
 }
 
 describe("drone audio lifecycle", () => {
-  it("increases airflow with relative airspeed without changing motor pitch", () => {
+  it("adds bounded airflow texture only to running propellers without changing their pitch", () => {
     const { context, gains, oscillators } = audioContext();
     const audio = new DroneAudio(() => context);
     audio.play();
+    audio.update([0, 0, 0, 0], 1, 24000, 30);
+    expect(gains[5]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(0);
     audio.update([8400, 8400, 8400, 8400], 1, 24000, 0);
-    const quiet = gains[5]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0];
-    audio.update([8400, 8400, 8400, 8400], 1, 24000, 20);
-    expect(gains[5]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBeGreaterThan(quiet);
+    const calm = gains[5]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0] as number;
+    audio.update([8400, 8400, 8400, 8400], 1, 24000, 15);
+    const moving = gains[5]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0] as number;
+    expect(moving).toBeGreaterThan(calm);
+    expect(moving).toBeLessThanOrEqual(calm * 1.25);
+    audio.update([8400, 8400, 8400, 8400], 1, 24000, 1000);
+    expect(gains[5]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(moving);
     expect(oscillators[0]!.frequency.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(420);
-    audio.update([8400, 8400, 8400, 8400], 0, 24000, 20);
+    audio.update([8400, 8400, 8400, 8400], 0, 24000, 15);
     expect(gains[0]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(0);
     audio.dispose();
   });

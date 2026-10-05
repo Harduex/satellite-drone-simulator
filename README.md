@@ -199,7 +199,7 @@ src/
 - Frame drag and propeller inflow use air-relative velocity (drone velocity minus wind).
 - Lateral rotor drag scales with loaded motor RPM; conservative hover coefficient 0.025 N/(m/s).
 - Physics Settings offers Calm (0 m/s), Light (1.5 m/s, default) and Breezy (4 m/s), plus mean speed, wind-from direction and gust controls. Direction is clockwise from north; the HUD airflow arrow points where the air travels relative to the drone heading.
-- Gust strength bounds horizontal velocity variation; vertical variation stays within 10% of that value. Light uses 0.35 m/s gust strength, Breezy 1 m/s. Cloud drift follows the configured mean wind; airflow sound follows air-relative speed.
+- Gust strength bounds horizontal velocity variation; vertical variation stays within 10% of that value. Light uses 0.35 m/s gust strength, Breezy 1 m/s. Cloud drift follows the configured mean wind. Motor pitch follows RPM, with softened upper harmonics. Air-relative speed adds at most 25% to rotor noise texture; stopped motors produce no wind hiss.
 - Wind advances with simulation time, freezes on pause, and resets with the flight. The bounded wind model and rotor-drag coefficient are flight-feel approximations, not measured weather or flight-data calibration.
 
 - Asymmetric motor spin-up/down (spin-down 1.3x slower)

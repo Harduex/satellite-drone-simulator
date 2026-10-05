@@ -30,6 +30,12 @@ export class DroneAudio {
         this.master = context.createGain();
         this.master.gain.value = 0;
         this.master.connect(context.destination);
+        const motorFilter = context.createBiquadFilter();
+        motorFilter.type = "lowpass";
+        motorFilter.frequency.value = 2400;
+        // Web Audio low-pass Q is in dB; damping avoids a resonant whine.
+        motorFilter.Q.value = -6;
+        motorFilter.connect(this.master);
         // Acoustic reference: 5-inch, three-blade racing props. Harmonic weights
         // are a designed timbre, rather than a calibrated recording of this quad.
         const harmonics = new Float32Array([0, 0.55, 1, 0.8, 0.5, 0.3, 0.18, 0.12, 0.08, 0.05, 0.03]);
@@ -42,7 +48,7 @@ export class DroneAudio {
           // Slight rotor variation avoids phase-locked tones at equal commanded RPM.
           oscillator.detune.value = (index - 1.5) * 2;
           oscillator.connect(gain);
-          gain.connect(this.master);
+          gain.connect(motorFilter);
           oscillator.start();
           this.motors.push({ oscillator, gain });
         }
@@ -102,9 +108,10 @@ export class DroneAudio {
       motor.gain.gain.setTargetAtTime(0.065 * Math.pow(level, 1.1), now, 0.02);
       airflow += Math.pow(level, 1.8) / 4;
     }
-    const relativeFlow = Number.isFinite(airspeed) ? Math.min(1, Math.max(0, airspeed) / 30) : 0;
-    this.airflow?.gain.setTargetAtTime(airflow * 0.055 + relativeFlow * 0.09, now, 0.025);
-    this.airFilter?.frequency.setTargetAtTime(1800 + airflow * 1800 + relativeFlow * 2400, now, 0.025);
+    const relativeFlow = Number.isFinite(airspeed) ? Math.min(1, Math.max(0, airspeed) / 15) : 0;
+    // Airflow changes rotor texture, without an independent wind-noise floor.
+    this.airflow?.gain.setTargetAtTime(airflow * 0.055 * (1 + relativeFlow * 0.25), now, 0.025);
+    this.airFilter?.frequency.setTargetAtTime(1800 + airflow * 1800, now, 0.025);
   }
 
   pause(): void {

@@ -142,3 +142,10 @@ Recommended execution: native in the current session, followed by one independen
 - V6: Browser settings checks cover custom direction via keyboard, mute control, narrow viewport, reload persistence and Reset to Defaults. The narrow browser check reproduced minimap interception of settings; elevating the paused view fixes it, with a passing click/persistence/reset rerun and independent approval. Physical radio hardware and subjective sound realism were not tested; existing controller suites and audio parameter tests pass. Coasting/wind behavior is covered numerically rather than a measured browser flight comparison.
 
 Local screenshots, video, automation and logs remain untracked. P3–P6, R1–R5 and F3 remain deferred in [simulator improvement proposals](../../experiments/simulator-improvements.md). No weather service or new dependency was added.
+
+
+### Audio refinement
+
+Independent airspeed noise could remain audible with stopped motors. It is replaced by a rotor-dependent texture multiplier, capped at 1.25; zero RPM gives zero noise. A damped 2.4 kHz motor filter softens upper harmonics without changing blade-passage pitch. This is designed sound, not calibrated acoustic simulation.
+
+Actual browser OfflineAudioContext rendering at 48 kHz confirms stopped-motor output is exactly zero, the high-pass-measured upper-band RMS at 8400 RPM falls from 0.00430 to 0.00268, and maximum-RPM/airflow peak stays below 0.164. Full 319 tests and production build pass. These measurements verify signal behavior, not subjective listening quality. Filter Q follows the [Web Audio specification](https://www.w3.org/TR/webaudio-1.0/#dom-biquadfilternode-q).

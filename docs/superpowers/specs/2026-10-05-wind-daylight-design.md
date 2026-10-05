@@ -6,7 +6,7 @@
 
 ## TL;DR
 
-Wind gains Calm, Light and Breezy presets, direction controls and smoothly varying bounded gusts. Light remains the default; existing aerodynamic coefficients remain unchanged. A compact HUD indicator and airspeed-driven airflow sound make the environment perceptible. Real-time daylight uses the machine's UTC instant at the selected flight location. The default freezes at solar noon, with a bright seasonal fallback where noon is too dark for pleasant flying. Cesium supplies the astronomical positions; the environment uses one time source for sky, Sun, Moon and lighting. Google photogrammetry retains photographed shadows, so its day/night appearance remains an approximation. Settings remain local, require no new credentials, and make no weather-service requests. Battery, training features, collision changes and crash-timing changes are outside this implementation.
+Wind gains Calm, Light and Breezy presets, direction controls and smoothly varying bounded gusts. Light remains the default; existing aerodynamic coefficients remain unchanged. A compact HUD indicator makes the environment perceptible. Motor pitch follows RPM with softened upper harmonics; airflow subtly changes running rotor texture without independent wind hiss. Real-time daylight uses the machine's UTC instant at the selected flight location. The default freezes at solar noon, with a bright seasonal fallback where noon is too dark for pleasant flying. Cesium supplies the astronomical positions; the environment uses one time source for sky, Sun, Moon and lighting. Google photogrammetry retains photographed shadows, so its day/night appearance remains an approximation. Settings remain local, require no new credentials, and make no weather-service requests. Battery, training features, collision changes and crash-timing changes are outside this implementation.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ Wind gains Calm, Light and Breezy presets, direction controls and smoothly varyi
 │ PhysicsConfig: 3 wind fields (NEW)                   │
 │ WindModel: seeded bounded gusts (reused)             │
 │ GameLoop / SimSession: environment inputs (reused)   │
-│ DroneAudio: relative-airflow sound (reused)          │
+│ DroneAudio: RPM-based propeller sound (reused)        │
 │ DronePhysics: air-relative forces (reused)           │
 └──────────────────────────────────────────────────────┘
 ┌──────────────────────────────────────────────────────┐
@@ -70,7 +70,7 @@ This is a lightweight weather approximation, not a measured wind field or a full
 It applies no arbitrary angular kicks and adds no allocation to the physics hot path.
 
 The HUD displays wind speed and its direction relative to drone heading. It labels the arrow as airflow travel direction.
-Airflow audio follows relative airspeed, while motor tones continue following RPM and the existing volume/mute controls.
+Audio pitch follows motor RPM and the existing volume/mute controls. A 2.4 kHz low-pass filter softens motor harmonics. Relative airspeed increases RPM-driven rotor noise texture by at most 25%, reaching the cap at 15 m/s; zero RPM remains silent. There is no independent wind-noise floor.
 Cloud drift follows the configured mean wind through an explicit renderer input; it does not read physics internals.
 Cloud position advances incrementally and freezes on pause, avoiding jumps when changing settings or resuming.
 
@@ -104,7 +104,7 @@ Lighting/shadow behavior on a representative Google scene is a required visual a
 1. `SettingsPersistence` reads and validates settings, migrates the legacy breeze flag, and preserves valid saved overrides.
 2. Settings controls update Zustand. Launch and resume apply the validated configuration through `SimSession` and `GameLoop`.
 3. Each 500 Hz step samples wind once, then passes that vector into `DronePhysics`; thrust inflow and drag share relative air velocity.
-4. Render updates publish wind indication at a bounded cadence and supply relative airspeed to `DroneAudio`.
+4. Render updates publish wind indication at a bounded cadence; `DroneAudio` receives motor RPM, volume and relative airspeed for bounded rotor texture.
 5. `CesiumManager` owns daylight state and renderer cleanup. `SimSession` supplies location, time mode and mean cloud wind.
 6. Pause freezes flight/wind/cloud motion. Real-time astronomy remains tied to machine time; resume does not replay paused physics time.
 7. Reset restores flight and seeded wind state without changing the chosen environment settings or real-time instant.
