@@ -34,5 +34,6 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | [Flight recording implementation plan](superpowers/plans/2026-10-04-flight-recording.md) | Implementation and verification record, including browser coverage limits |
 | [Wind and daylight design](superpowers/specs/2026-10-05-wind-daylight-design.md) | P1/P2 implemented locally; Google photographed-shadow limitations documented |
 | [Wind and daylight implementation plan](superpowers/plans/2026-10-05-wind-daylight.md) | Completed implementation and verification record |
+| [Road traffic V1 design](superpowers/specs/2026-10-05-road-traffic-design.md) | Final review draft: bounded simulated cars, public roads, model variation; implementation not started |
 
 Keep experiment findings under `experiments/`. Add further categories when there is a document to place in them. Local assets, screenshots and logs remain outside this tracked documentation tree.

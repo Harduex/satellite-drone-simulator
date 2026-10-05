@@ -1,6 +1,6 @@
 # Living-world and live-traffic research
 
-Assessed 2026-10-05. Research and next-step direction; traffic design is in brainstorming. No simulator integration implemented or implementation design approved.
+Assessed 2026-10-05. Research and next-step direction; [traffic V1 design](../superpowers/specs/2026-10-05-road-traffic-design.md) is ready for review. No simulator integration implemented or implementation design approved.
 
 ## Recommendation
 
@@ -67,7 +67,7 @@ These distinctions come from GEV’s [layer inventory](https://github.com/bilawa
 
 The selected sequence is three separate tasks: **LW1/LW2 traffic first**, **LW3 aircraft second**, **LW4 live weather third**. This selects product priorities and design constraints, not an implementation specification. Ships, transit and LW5 remain undecided. LW4 revisits deferred P6 as a later task.
 
-- **N1 — Traffic:** Simple 3D cars on real mapped roads, with simulated movement inspired by public data. Active roads and vehicles follow the drone's nearby area; cap work and rendering to protect flight performance. Whether the first version needs current congestion remains an open design question.
+- **N1 — Traffic:** Simple 3D cars on real mapped roads, with simulated movement inspired by public data. Active roads and vehicles follow the drone's nearby area; cap work and rendering to protect flight performance. The V1 review draft uses estimated road-class/time demand, with live congestion deferred. D11 adds 2–3 licensed low-poly models and realistic body-color variation.
 - **N2 — Aircraft:** Later, simple 3D planes driven by public flight-position reports, limited to a useful viewing distance. Report age, interpolation, coverage and permission to use a feed still need validation; a free public endpoint alone is insufficient.
 - **N3 — Weather:** Later, optional live weather to support realistic atmosphere and experimentation. Keep this separate from traffic and aircraft work.
 - **N4 — Infrastructure:** Reuse Cesium, coordinate utilities, session lifecycle, settings and diagnostics wherever they fit. Prefer browser-side operation and existing APIs; avoid a new backend, paid feeds, subscriptions or elaborate external services. Flag any necessary additional source or dependency before adopting it.
