@@ -12,7 +12,7 @@ export function FlightMinimap({ collapsed, onToggle, error }: Props) {
   const distance = navigation?.homeDistance ?? 0;
   return <>
     <header className={css.header}>
-      <span className={css.label}>NAV <span className={css.north}>↑ N</span></span>
+      <span className={css.label}>NAV <span className={css.north} title="North"><span style={{ display: 'inline-block', transform: `rotate(${-(navigation?.heading ?? 0)}deg)` }}>↑</span> N</span></span>
       <button type="button" onClick={onToggle} aria-expanded={!collapsed}
         aria-label={collapsed ? 'Show minimap' : 'Hide minimap'} className={css.toggle}>
         {collapsed ? '+' : '−'}

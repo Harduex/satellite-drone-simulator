@@ -12,6 +12,8 @@ export class MapController {
   private homeMarker: google.maps.marker.AdvancedMarkerElement | null = null;
   private trail: google.maps.Polyline | null = null;
   private droneArrow: HTMLElement | null = null;
+  private homeEl: HTMLElement | null = null;
+  private container: HTMLElement | null = null;
   onLocationSelect:
     | ((location: { lat: number; lng: number; name: string }) => void)
     | null = null;
@@ -34,6 +36,7 @@ export class MapController {
     // React can dispose the picker while the Maps libraries are still loading.
     if (this.destroyed) return false;
 
+    this.container = container;
     this.map = new google.maps.Map(container, {
       center: initialCenter ?? { lat: 48.8584, lng: 2.2945 }, // Eiffel Tower default
       zoom: 15,
@@ -97,6 +100,7 @@ export class MapController {
       if (this.droneMarker) this.droneMarker.map = null;
       if (this.homeMarker) this.homeMarker.map = null;
       this.trail?.setMap(null);
+      if (this.container) this.container.style.transform = '';
     } else {
       this.map?.setZoom(17);
     }
@@ -117,29 +121,23 @@ export class MapController {
         background: colors.surface, color: colors.primary, border: `2px solid ${colors.primary}`,
         borderRadius: '50%', font: '700 11px sans-serif' });
       home.textContent = 'H';
+      this.homeEl = home;
       this.homeMarker = new google.maps.marker.AdvancedMarkerElement({ content: home, title: 'Home' });
       this.trail = new google.maps.Polyline({ strokeColor: colors.secondary, strokeOpacity: 0.85,
         strokeWeight: 2, clickable: false });
     }
     this.droneMarker.map = this.map;
     this.droneMarker.position = navigation.position;
-    this.droneArrow!.style.transform = `rotate(${navigation.heading}deg)`;
+    // The marker sits inside the map, which is rotated by -heading; counter-rotate so it always points up (forward).
+    // Advanced markers anchor bottom-centre; translate so the arrow's centre is on the point, then rotate about it.
+    this.droneArrow!.style.transform = `translateY(50%) rotate(${navigation.heading}deg)`;
     this.homeMarker!.map = this.map;
     this.homeMarker!.position = navigation.home;
+    this.homeEl!.style.transform = `translateY(50%) rotate(${navigation.heading}deg)`;
     this.trail!.setMap(this.map);
     this.trail!.setPath([...navigation.trail]);
-    const bounds = this.map.getBounds();
-    const center = this.map.getCenter();
-    if (!bounds || !center) {
-      this.map.setCenter(navigation.position);
-      return;
-    }
-    const spanLat = bounds.getNorthEast().lat() - bounds.getSouthWest().lat();
-    const spanLng = (bounds.getNorthEast().lng() - bounds.getSouthWest().lng() + 360) % 360;
-    const deltaLng = ((navigation.position.lng - center.lng() + 540) % 360) - 180;
-    if (Math.abs(navigation.position.lat - center.lat()) > spanLat * 0.3 || Math.abs(deltaLng) > spanLng * 0.3) {
-      this.map.setCenter(navigation.position);
-    }
+    if (this.container) this.container.style.transform = `rotate(${-navigation.heading}deg)`;
+    this.map.moveCamera({ center: navigation.position });
   }
 
   setMarker(lat: number, lng: number): void {

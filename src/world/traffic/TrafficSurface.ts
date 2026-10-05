@@ -69,18 +69,25 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
   processFrame(): void {
     const start = this.now();
     this.samples = 0;
+    let skipped = 0;
     while (
       this.queue.length &&
+      skipped < this.queue.length &&
       this.samples < this.limits.samples &&
       this.now() - start < this.limits.ms
     ) {
       const job = this.queue[0]!;
-      if (job.readyAt > this.now()) break;
+      if (job.readyAt > this.now()) {
+        this.queue.push(this.queue.shift()!);
+        skipped++;
+        continue;
+      }
+      skipped = 0;
       const point = job.points[job.index]!;
       const a = job.points[0]!,
         b = job.points.at(-1)!;
       const length = Math.hypot(b.x - a.x, b.y - a.y);
-      const side = job.probe === 1 ? this.limits.lateral : job.probe === 2 ? -this.limits.lateral : 0;
+      const side = this.limits.lateral > 0 ? (job.probe === 1 ? this.limits.lateral : job.probe === 2 ? -this.limits.lateral : 0) : 0;
       const height = this.sample(
         side
           ? {
@@ -108,7 +115,7 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
       }
       if (job.probe === 0) point.z = height;
       else job.lateral.push(height);
-      if (!job.edge.bridge && job.probe < 2) {
+      if (!job.edge.bridge && this.limits.lateral > 0 && job.probe < 2) {
         job.probe++;
         continue;
       }

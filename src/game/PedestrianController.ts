@@ -47,7 +47,7 @@ export class PedestrianController {
         this.inverse = Cesium.Matrix4.inverseTransformation(options.enuFrame, new Cesium.Matrix4());
         const origin = Cesium.Cartographic.fromCartesian(Cesium.Matrix4.getTranslation(options.enuFrame, new Cesium.Cartesian3()));
         this.source = new RoadSource<WalkingPath>(point => ecefToEnu(Cesium.Cartesian3.fromDegrees(point.longitude, point.latitude, origin.height), this.inverse), undefined, { ...PEDESTRIANS, decode: decodePedestrianTile });
-        this.surface = new TrafficSurface<WalkingEdge>(point => this.sample(point), undefined, { samples: PEDESTRIANS.surfaceSamples, ms: PEDESTRIANS.surfaceMs, spacing: 8, lateral: .75 });
+        this.surface = new TrafficSurface<WalkingEdge>(point => this.sample(point), undefined, { samples: PEDESTRIANS.surfaceSamples, ms: PEDESTRIANS.surfaceMs, spacing: 12, lateral: 0 });
     }
     private sample(point: Point3): number | undefined {
         const scene = this.options.viewer.scene;

@@ -132,7 +132,9 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
   return (
     <div className={compact ? `${minimapCss.panel} ${collapsed ? minimapCss.collapsed : ''}` : css.root}>
       {/* Map container */}
-      <div ref={mapContainerRef} className={compact ? `${minimapCss.map} ${collapsed ? minimapCss.hidden : ''}` : css.mapContainer} />
+      <div className={compact ? `${minimapCss.mapClip} ${collapsed ? minimapCss.hidden : ''}` : css.mapContainer}>
+        <div ref={mapContainerRef} className={compact ? minimapCss.map : minimapCss.mapFull} />
+      </div>
 
       {compact && <FlightMinimap collapsed={collapsed} onToggle={() => setCollapsed(value => !value)} error={mapError} />}
       <div hidden={compact}>

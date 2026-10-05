@@ -19,3 +19,7 @@ export const useStore = create<AppStore>()((...a) => ({
   ...createDiagnosticsSlice(...a),
   ...createRecordingSlice(...a),
 }));
+
+if (typeof window !== 'undefined') {
+  (window as unknown as { useStore: typeof useStore }).useStore = useStore;
+}

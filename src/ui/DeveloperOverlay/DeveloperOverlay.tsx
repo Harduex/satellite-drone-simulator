@@ -12,6 +12,8 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
   const snapshot = useStore(state => state.renderDiagnostics);
   const traffic = useStore(state => state.trafficDiagnostics);
   const trafficEnabled = useStore(state => state.roadTrafficEnabled);
+  const pedestrians = useStore(state => state.pedestrianDiagnostics);
+  const pedestriansEnabled = useStore(state => state.pedestriansEnabled);
   const cacheOnlyPractice = useStore(state => state.cacheOnlyPractice);
   const phase = useStore(state => state.phase);
 
@@ -117,6 +119,16 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
           <dt>Update / surface ms</dt><dd>{traffic.updateMs.toFixed(2)} / {traffic.surfaceMs.toFixed(2)}</dd>
           <dt>Surface samples / refreshes</dt><dd>{traffic.surfaceSamples} / {traffic.refreshes}</dd>
         </dl> : <p className={styles.note}>{trafficEnabled ? 'Preparing nearby roads…' : 'Road traffic is off.'}</p>}
+      </section>
+      <section aria-label="Pedestrian diagnostics">
+        <div className={styles.status}>PEDESTRIANS · SIMULATED</div>
+        {pedestrians ? <dl className={styles.metrics}>
+          <dt>People / rendered</dt><dd>{pedestrians.people} / {pedestrians.renderedPeople}</dd>
+          <dt>Paths / validated</dt><dd>{pedestrians.pendingPaths} / {pedestrians.paths}</dd>
+          <dt>Path cache · tiles / memory</dt><dd>{pedestrians.cachedTiles} / {memory(pedestrians.cachedBytes)}</dd>
+          <dt>Surface samples / ms</dt><dd>{pedestrians.surfaceSamples} / {pedestrians.surfaceMs.toFixed(2)}</dd>
+          <dt>Rejected paths / refreshes</dt><dd>{pedestrians.rejectedPaths} / {pedestrians.refreshes}</dd>
+        </dl> : <p className={styles.note}>{pedestriansEnabled ? 'Preparing nearby paths…' : 'Pedestrians are off.'}</p>}
       </section>
       <p className={styles.note}>{cacheOnlyPractice
         ? 'New 3D tile requests are blocked. Uncached views may appear incomplete.'
