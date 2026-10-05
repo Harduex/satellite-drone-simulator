@@ -9,6 +9,7 @@ import { RenderDiagnostics } from "./RenderDiagnostics";
 import { DroneAudio } from "./DroneAudio";
 import { FlightRecorder } from './FlightRecorder';
 import { TrafficController } from './TrafficController';
+import { PedestrianController } from './PedestrianController';
 import { createRecordingFrameSource } from '../world/RecordingFrameSource';
 import { useStore } from "../store";
 import { meanWindInto, resolveWindConfig } from "../core/physics/WindConfig";
@@ -34,6 +35,7 @@ export class SimSession {
   private disposed = false;
   private sessionGeneration = 0;
   private traffic: TrafficController | null = null;
+  private pedestrians: PedestrianController | null = null;
   private environmentExposure = 1;
   private trafficSettingsCleanup: (() => void) | null = null;
 
@@ -58,6 +60,7 @@ export class SimSession {
       this.renderDiagnostics?.stop();
       useStore.getState().updateRenderDiagnostics(null);
       useStore.getState().updateTrafficDiagnostics(null);
+      useStore.getState().updatePedestrianDiagnostics(null);
     }
   }
 
@@ -148,6 +151,7 @@ export class SimSession {
       this.environmentExposure = exposure;
       this.tileLoader.setEnvironmentExposure(exposure);
       this.traffic?.setEnvironmentExposure(exposure);
+      this.pedestrians?.setEnvironmentExposure(exposure);
     });
     this.cesiumManager.setEnvironmentAnchor(
       location.lon,
@@ -192,21 +196,38 @@ export class SimSession {
 
     this.gameLoop.start();
 
+    let carExclusions: readonly object[] = [];
+    let pedestrianExclusions: readonly object[] = [];
+    const updateActorExclusions = () => this.gameLoop?.setSceneExclusions([
+      ...sceneExclusions, ...carExclusions, ...pedestrianExclusions,
+    ]);
     this.traffic = new TrafficController({
       viewer, enuFrame, spawn: spawnPoint, longitude: location.lon,
       readDronePosition: () => this.gameLoop?.getDroneState().position ?? spawnPoint,
       readEnvironmentInstant: () => Cesium.JulianDate.toDate(viewer.clock.currentTime),
-      exclusionsChanged: objects => this.gameLoop?.setSceneExclusions([...sceneExclusions, ...objects]),
+      exclusionsChanged: objects => { carExclusions = objects; updateActorExclusions(); },
       readBaseExclusions: () => terrainSampler.getExclusions(),
       publish: counters => useStore.getState().updateTrafficDiagnostics(counters),
       diagnosticsEnabled: () => useStore.getState().diagnosticsVisible,
     });
-    this.gameLoop.onReset(() => this.traffic?.reset());
+    this.pedestrians = new PedestrianController({
+      viewer, enuFrame, spawn: spawnPoint,
+      readDronePosition: () => this.gameLoop?.getDroneState().position ?? spawnPoint,
+      readBaseExclusions: () => terrainSampler.getExclusions(),
+      exclusionsChanged: objects => { pedestrianExclusions = objects; updateActorExclusions(); },
+      publish: counters => useStore.getState().updatePedestrianDiagnostics(counters),
+      diagnosticsEnabled: () => useStore.getState().diagnosticsVisible,
+    });
+    this.gameLoop.onReset(() => { this.traffic?.reset(); this.pedestrians?.reset(); });
     this.traffic.setEnvironmentExposure(this.environmentExposure);
     this.traffic.setEnabled(store.roadTrafficEnabled);
     this.traffic.start();
+    this.pedestrians.setEnvironmentExposure(this.environmentExposure);
+    this.pedestrians.setEnabled(store.pedestriansEnabled);
+    this.pedestrians.start();
     this.trafficSettingsCleanup = useStore.subscribe((next, previous) => {
       if (next.roadTrafficEnabled !== previous.roadTrafficEnabled) this.traffic?.setEnabled(next.roadTrafficEnabled);
+      if (next.pedestriansEnabled !== previous.pedestriansEnabled) this.pedestrians?.setEnabled(next.pedestriansEnabled);
     });
 
     // Set up distance-based globe toggle (hide within 2km for 3D tile clarity)
@@ -339,6 +360,7 @@ export class SimSession {
   }
 
   pause(): void {
+    this.pedestrians?.pause();
     this.traffic?.pause();
     this.cesiumManager.setEnvironmentPaused(true);
     this.flightRecorder.pause();
@@ -355,6 +377,7 @@ export class SimSession {
     this.gameLoop?.applyStoreSettings();
     this.gameLoop?.start();
     this.traffic?.resume();
+    this.pedestrians?.resume();
     this.flightRecorder.resume();
     useStore.getState().setPhase("FLYING");
   }
@@ -369,8 +392,10 @@ export class SimSession {
   private async finishSession(): Promise<void> {
     this.trafficSettingsCleanup?.(); this.trafficSettingsCleanup = null;
     this.traffic?.pause();
+    this.pedestrians?.pause();
     await this.flightRecorder.stop('session_exit');
     this.traffic?.dispose(); this.traffic = null;
+    this.pedestrians?.dispose(); this.pedestrians = null;
     this.setCacheOnlyPractice(false);
     this.gameLoop?.stop();
     this.droneAudio.dispose();

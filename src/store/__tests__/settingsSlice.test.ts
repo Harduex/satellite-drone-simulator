@@ -5,6 +5,16 @@ import { createSettingsSlice, type SettingsSlice } from "../settingsSlice";
 import { SettingsPersistence } from "../SettingsPersistence";
 
 describe("environment settings", () => {
+  it('persists pedestrian preference and survives denied storage', () => {
+    const store=create<SettingsSlice>()(createSettingsSlice);
+    expect(store.getState().pedestriansEnabled).toBe(true);
+    store.getState().setPedestriansEnabled(false);
+    expect(SettingsPersistence.readPedestriansEnabled()).toBe(false);
+    vi.spyOn(Storage.prototype,'setItem').mockImplementation(()=>{throw new Error('blocked');});
+    vi.spyOn(console,'warn').mockImplementation(()=>{});
+    store.getState().setPedestriansEnabled(true);
+    expect(store.getState().pedestriansEnabled).toBe(true);
+  });
   beforeEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
   it("defaults road traffic on and keeps session state when saving is blocked", () => {
     const store = create<SettingsSlice>()(createSettingsSlice);

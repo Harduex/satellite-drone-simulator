@@ -11,6 +11,8 @@ export function FlightSettings({ onClose }: { onClose: () => void }) {
   const setRealTime = useStore(s => s.setRealTimeOfDay);
   const traffic = useStore(s => s.roadTrafficEnabled);
   const setTraffic = useStore(s => s.setRoadTrafficEnabled);
+  const pedestrians = useStore(s => s.pedestriansEnabled);
+  const setPedestrians = useStore(s => s.setPedestriansEnabled);
   return (
     <div>
       <SettingsPanelHeader title="Flight Settings" onClose={onClose} />
@@ -20,6 +22,12 @@ export function FlightSettings({ onClose }: { onClose: () => void }) {
           checked={traffic} onChange={event => setTraffic(event.target.checked)} />
       </label>
       <p className={css.hint}>Simulated cars on real roads.</p>
+      <label className={css.toggle}>
+        <span>Pedestrians</span>
+        <input type="checkbox" role="switch" aria-label="Pedestrians"
+          checked={pedestrians} onChange={event => setPedestrians(event.target.checked)} />
+      </label>
+      <p className={css.hint}>Simulated walkers on mapped footpaths.</p>
       <label className={css.toggle}>
         <span>Live stick display</span>
         <input type="checkbox" role="switch" aria-label="Live stick display"

@@ -31,6 +31,8 @@ export interface RenderDiagnosticsSnapshot {
 }
 
 export interface DiagnosticsSlice {
+  pedestrianDiagnostics: PedestrianDiagnosticsSnapshot | null;
+  updatePedestrianDiagnostics: (snapshot: PedestrianDiagnosticsSnapshot | null) => void;
   trafficDiagnostics: TrafficDiagnosticsSnapshot | null;
   updateTrafficDiagnostics: (snapshot: TrafficDiagnosticsSnapshot | null) => void;
   diagnosticsVisible: boolean;
@@ -40,6 +42,8 @@ export interface DiagnosticsSlice {
 }
 
 export const createDiagnosticsSlice: StateCreator<DiagnosticsSlice> = (set) => ({
+  pedestrianDiagnostics: null,
+  updatePedestrianDiagnostics: pedestrianDiagnostics => set({ pedestrianDiagnostics }),
   trafficDiagnostics: null,
   updateTrafficDiagnostics: trafficDiagnostics => set({ trafficDiagnostics }),
   diagnosticsVisible: false,
@@ -47,6 +51,12 @@ export const createDiagnosticsSlice: StateCreator<DiagnosticsSlice> = (set) => (
   toggleDiagnostics: () => set(state => ({ diagnosticsVisible: !state.diagnosticsVisible })),
   updateRenderDiagnostics: renderDiagnostics => set({ renderDiagnostics }),
 });
+
+export interface PedestrianDiagnosticsSnapshot {
+  people: number; renderedPeople: number; paths: number; cachedTiles: number; cachedBytes: number;
+  pendingRequests: number; requestFailures: number; refreshes: number; updateMs: number;
+  surfaceSamples: number; surfaceMs: number; pendingPaths: number; rejectedPaths: number;
+}
 
 export interface TrafficDiagnosticsSnapshot {
   cars: number; edges: number; cachedTiles: number; cachedBytes: number; pendingRequests: number;

@@ -1,8 +1,8 @@
-import type { Point3, RoadEdge, RoadGraph } from "../../traffic/TrafficTypes";
+import type { Point3, RoadEdge, SurfaceEdge } from "../../traffic/TrafficTypes";
 import { TRAFFIC } from "../../traffic/TrafficConfig";
 
-interface SurfaceJob {
-  edge: RoadEdge;
+interface SurfaceJob<E> {
+  edge: E;
   points: Point3[];
   index: number;
   attempts: number;
@@ -10,9 +10,9 @@ interface SurfaceJob {
   probe: number;
   lateral: number[];
 }
-export class TrafficSurface {
-  private queue: SurfaceJob[] = [];
-  private validated: RoadGraph = { edges: new Map() };
+export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
+  private queue: SurfaceJob<E>[] = [];
+  private validated: { edges: Map<string, E> } = { edges: new Map() };
   version = 0;
   rejectedRoads = 0;
   samples = 0;
@@ -20,11 +20,12 @@ export class TrafficSurface {
   constructor(
     private sample: (point: Point3) => number | undefined,
     private now: () => number = () => performance.now(),
+    private limits = { samples: TRAFFIC.surfaceSamples as number, ms: TRAFFIC.surfaceMs as number, spacing: 25, lateral: 6 },
   ) {}
   get pending(): number {
     return this.queue.length;
   }
-  prepare(graph: RoadGraph): void {
+  prepare(graph: { edges: Map<string, E> }): void {
     const old = this.validated.edges;
     this.validated = { edges: new Map() };
     this.queue = [];
@@ -43,7 +44,7 @@ export class TrafficSurface {
           b = edge.points[i]!;
         const count = Math.max(
           1,
-          Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 25),
+          Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / this.limits.spacing),
         );
         if (i === 1) points.push({ ...a });
         for (let j = 1; j <= count; j++)
@@ -70,8 +71,8 @@ export class TrafficSurface {
     this.samples = 0;
     while (
       this.queue.length &&
-      this.samples < TRAFFIC.surfaceSamples &&
-      this.now() - start < TRAFFIC.surfaceMs
+      this.samples < this.limits.samples &&
+      this.now() - start < this.limits.ms
     ) {
       const job = this.queue[0]!;
       if (job.readyAt > this.now()) break;
@@ -79,7 +80,7 @@ export class TrafficSurface {
       const a = job.points[0]!,
         b = job.points.at(-1)!;
       const length = Math.hypot(b.x - a.x, b.y - a.y);
-      const side = job.probe === 1 ? 6 : job.probe === 2 ? -6 : 0;
+      const side = job.probe === 1 ? this.limits.lateral : job.probe === 2 ? -this.limits.lateral : 0;
       const height = this.sample(
         side
           ? {
@@ -155,8 +156,8 @@ export class TrafficSurface {
     }
     this.sampleMs = this.now() - start;
   }
-  getValidatedGraph(): RoadGraph {
-    const edges = new Map<string, RoadEdge>();
+  getValidatedGraph(): { edges: Map<string, E> } {
+    const edges = new Map<string, E>();
     const pending = new Set(this.queue.map((job) => job.edge.id));
     for (const edge of this.validated.edges.values())
       edges.set(edge.id, {

@@ -58,6 +58,14 @@ export function mergeNumericPartial<T>(persisted: unknown, defaults: T): T {
 
 /** Storage adapter for settings persistence. Extracted for testability. */
 export const SettingsPersistence = {
+  readPedestriansEnabled(): boolean {
+    try { return typeof localStorage === 'undefined' || localStorage.getItem('fpvsim_pedestrians') !== 'false'; }
+    catch { return true; }
+  },
+  writePedestriansEnabled(enabled: boolean): void {
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('fpvsim_pedestrians', String(enabled)); }
+    catch { console.warn('Pedestrian preference could not be saved; using session setting.'); }
+  },
   isFiniteLatLng,
 
   readRoadTrafficEnabled(): boolean {

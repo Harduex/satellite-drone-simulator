@@ -154,19 +154,19 @@ export function validateTileTemplate(template: string): string {
     throw new Error("Unsupported road tile template");
   return template;
 }
-export function selectCoverageTiles(center: GeoPoint): TileKey[] {
+export function selectCoverageTiles(center: GeoPoint, limits: { zoom: number; preload: number; tilesPerRefresh: number } = TRAFFIC): TileKey[] {
   if (
     !Number.isFinite(center.latitude) ||
     !Number.isFinite(center.longitude) ||
     Math.abs(center.latitude) > 85.05112878
   )
     return [];
-  const n = 2 ** TRAFFIC.zoom;
+  const n = 2 ** limits.zoom;
   const latitude = (center.latitude * Math.PI) / 180;
   const x = ((center.longitude + 180) / 360) * n;
   const y = ((1 - Math.asinh(Math.tan(latitude)) / Math.PI) / 2) * n;
   const metersPerTile = (40075016.686 * Math.cos(latitude)) / n;
-  const radius = Math.ceil(TRAFFIC.preload / metersPerTile) + 1;
+  const radius = Math.ceil(limits.preload / metersPerTile) + 1;
   const candidates: { key: TileKey; distance: number }[] = [];
   for (let dx = -radius; dx <= radius; dx++)
     for (let dy = -radius; dy <= radius; dy++) {
@@ -175,13 +175,13 @@ export function selectCoverageTiles(center: GeoPoint): TileKey[] {
       if (ty < 0 || ty >= n) continue;
       const distance = Math.hypot(tx + 0.5 - x, ty + 0.5 - y);
       candidates.push({
-        key: { z: TRAFFIC.zoom, x: ((tx % n) + n) % n, y: ty },
+        key: { z: limits.zoom, x: ((tx % n) + n) % n, y: ty },
         distance,
       });
     }
   return candidates
     .sort((a, b) => a.distance - b.distance)
-    .slice(0, TRAFFIC.tilesPerRefresh)
+    .slice(0, limits.tilesPerRefresh)
     .map((c) => c.key);
 }
 export async function readBoundedResponse(
@@ -216,15 +216,20 @@ export async function readBoundedResponse(
   return result;
 }
 
-export class RoadSource {
+type SourceLine = { id: string; points: Point3[] };
+export class RoadSource<T extends SourceLine = RoadSegment> {
   private template: string | null = null;
-  private cache = new Map<string, { roads: RoadSegment[]; bytes: number }>();
+  private cache = new Map<string, { roads: T[]; bytes: number }>();
   cachedBytes = 0;
   pendingRequests = 0;
   requestFailures = 0;
   constructor(
     private project: (point: GeoPoint) => Point3,
     private fetcher: typeof fetch = (input, init) => fetch(input, init),
+    private options: {
+      decode?: (data: Uint8Array, key: TileKey, project: (point: GeoPoint) => Point3) => T[];
+      tilesPerRefresh: number; concurrentRequests: number; cacheTiles: number; cacheBytes: number;
+    } = TRAFFIC,
   ) {}
   get cachedTiles(): number {
     return this.cache.size;
@@ -232,7 +237,7 @@ export class RoadSource {
   async loadTiles(
     keys: readonly TileKey[],
     signal: AbortSignal,
-  ): Promise<readonly RoadSegment[]> {
+  ): Promise<readonly T[]> {
     if (!this.template) {
       const response = await this.fetcher(METADATA, {
         signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]),
@@ -244,11 +249,11 @@ export class RoadSource {
       };
       this.template = validateTileTemplate(metadata.tiles?.[0] ?? "");
     }
-    const result: RoadSegment[] = [];
+    const result: T[] = [];
     let cursor = 0;
     const worker = async () => {
       while (
-        cursor < Math.min(keys.length, TRAFFIC.tilesPerRefresh) &&
+        cursor < Math.min(keys.length, this.options.tilesPerRefresh) &&
         !signal.aborted
       ) {
         const key = keys[cursor++]!;
@@ -262,7 +267,7 @@ export class RoadSource {
         }
         this.pendingRequests++;
         try {
-          let roads: RoadSegment[] | undefined;
+          let roads: T[] | undefined;
           let bytes = 0;
           for (let attempt = 0; attempt < 2; attempt++) {
             try {
@@ -279,7 +284,7 @@ export class RoadSource {
                 response,
                 TRAFFIC.tileBytes,
               );
-              roads = this.decode(data, key);
+              roads = this.options.decode ? this.options.decode(data, key, this.project) : this.decode(data, key) as unknown as T[];
               bytes =
                 data.length +
                 roads.reduce((sum, r) => sum + r.points.length * 64 + 512, 0);
@@ -292,8 +297,8 @@ export class RoadSource {
           this.cache.set(id, { roads, bytes });
           this.cachedBytes += bytes;
           while (
-            this.cache.size > TRAFFIC.cacheTiles ||
-            this.cachedBytes > TRAFFIC.cacheBytes
+            this.cache.size > this.options.cacheTiles ||
+            this.cachedBytes > this.options.cacheBytes
           ) {
             const oldest = this.cache.keys().next().value!;
             this.cachedBytes -= this.cache.get(oldest)!.bytes;
@@ -315,7 +320,7 @@ export class RoadSource {
       }
     };
     await Promise.all(
-      Array.from({ length: TRAFFIC.concurrentRequests }, worker),
+      Array.from({ length: this.options.concurrentRequests }, worker),
     );
     return result;
   }

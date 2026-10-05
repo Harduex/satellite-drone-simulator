@@ -87,7 +87,7 @@ export function buildRoadGraph(
   return { edges };
 }
 export function poseOnEdge(
-  edge: RoadEdge,
+  edge: Pick<RoadEdge, 'points' | 'length'>,
   distance: number,
 ): { position: Point3; heading: number; pitch: number } {
   let remaining = Math.max(0, Math.min(edge.length, distance));

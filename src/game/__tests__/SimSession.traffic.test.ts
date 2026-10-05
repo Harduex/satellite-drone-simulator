@@ -36,25 +36,29 @@ function fixture() {
   const session = new SimSession(world as unknown as CesiumManager);
   const loop = { start: vi.fn(), stop: vi.fn(), applyStoreSettings: vi.fn() };
   const traffic = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn() };
+  const pedestrians = { pause: vi.fn(), resume: vi.fn(), dispose: vi.fn() };
   const subscriptionCleanup = vi.fn();
   Object.assign(session, {
     gameLoop: loop,
     traffic,
+    pedestrians,
     trafficSettingsCleanup: subscriptionCleanup,
     droneAudio: { dispose: vi.fn() },
   });
-  return { session, loop, traffic, subscriptionCleanup };
+  return { session, loop, traffic, pedestrians, subscriptionCleanup };
 }
 
 it("freezes traffic before pausing flight and resumes it after restarting the loop", async () => {
   const f = fixture();
   useStore.setState({ phase: "FLYING" });
   f.session.pause();
+  expect(f.pedestrians.pause).toHaveBeenCalledOnce();
   expect(f.traffic.pause.mock.invocationCallOrder[0]).toBeLessThan(
     f.loop.stop.mock.invocationCallOrder[0]!,
   );
   expect(useStore.getState().phase).toBe("PAUSED");
   f.session.resume();
+  expect(f.pedestrians.resume).toHaveBeenCalledOnce();
   expect(f.loop.start.mock.invocationCallOrder[0]).toBeLessThan(
     f.traffic.resume.mock.invocationCallOrder[0]!,
   );
@@ -76,8 +80,10 @@ it("keeps traffic credits alive until recording finalizes and disposes once", as
   expect(f.traffic.pause).toHaveBeenCalledOnce();
   expect(f.subscriptionCleanup).toHaveBeenCalledOnce();
   expect(f.traffic.dispose).not.toHaveBeenCalled();
+  expect(f.pedestrians.dispose).not.toHaveBeenCalled();
   release();
   await Promise.all([first, second]);
   expect(f.traffic.dispose).toHaveBeenCalledOnce();
+  expect(f.pedestrians.dispose).toHaveBeenCalledOnce();
   expect(recording.stop).toHaveBeenCalledOnce();
 });

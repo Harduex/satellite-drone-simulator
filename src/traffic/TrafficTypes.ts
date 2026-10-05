@@ -22,17 +22,19 @@ export interface RoadSegment {
   bridge: boolean;
   layer: number;
 }
-export interface RoadEdge {
+export interface SurfaceEdge {
   id: string;
   points: Point3[];
   length: number;
-  roadClass: RoadClass;
   bridge: boolean;
   layer: number;
   start: string;
   end: string;
   outgoing: string[];
   pendingContinuation?: boolean;
+}
+export interface RoadEdge extends SurfaceEdge {
+  roadClass: RoadClass;
 }
 export interface RoadGraph {
   edges: Map<string, RoadEdge>;
