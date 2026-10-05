@@ -1,6 +1,6 @@
 # Living-world and live-traffic research
 
-Assessed 2026-10-05. Research only; no simulator integration approved or implemented.
+Assessed 2026-10-05. Research and next-step direction; traffic design is in brainstorming. No simulator integration implemented or implementation design approved.
 
 ## Recommendation
 
@@ -63,7 +63,18 @@ These distinctions come from GEV’s [layer inventory](https://github.com/bilawa
 - **C4:** Open-Meteo can supply wind/gusts/cloud cover/visibility, but it combines weather-model output, not building-scale airflow measurements. Its free hosted API is non-commercial; commercial hosted access uses a subscription. Do not map forecast peak gust directly to our bounded gust-variation control. [Variables/model resolution](https://open-meteo.com/en/docs), [hosted access](https://open-meteo.com/en/pricing). P6 remains deferred.
 - **C5:** Code licensing, road-data attribution, feed permissions and vehicle-model licenses are separate. OpenFreeMap permits hosted or self-hosted use, but OSM/OpenMapTiles attribution remains relevant. Retain provider credits in screenshots/recording. [OpenFreeMap](https://openfreemap.org/), [GEV license](https://github.com/bilawalsidhu/gods-eye-view/blob/main/LICENSE).
 
-## Proposed order — all undecided
+## Selected next-step direction
+
+The selected sequence is three separate tasks: **LW1/LW2 traffic first**, **LW3 aircraft second**, **LW4 live weather third**. This selects product priorities and design constraints, not an implementation specification. Ships, transit and LW5 remain undecided. LW4 revisits deferred P6 as a later task.
+
+- **N1 — Traffic:** Simple 3D cars on real mapped roads, with simulated movement inspired by public data. Active roads and vehicles follow the drone's nearby area; cap work and rendering to protect flight performance. Whether the first version needs current congestion remains an open design question.
+- **N2 — Aircraft:** Later, simple 3D planes driven by public flight-position reports, limited to a useful viewing distance. Report age, interpolation, coverage and permission to use a feed still need validation; a free public endpoint alone is insufficient.
+- **N3 — Weather:** Later, optional live weather to support realistic atmosphere and experimentation. Keep this separate from traffic and aircraft work.
+- **N4 — Infrastructure:** Reuse Cesium, coordinate utilities, session lifecycle, settings and diagnostics wherever they fit. Prefer browser-side operation and existing APIs; avoid a new backend, paid feeds, subscriptions or elaborate external services. Flag any necessary additional source or dependency before adopting it.
+- **N5 — Data and cost:** New features should use free, publicly accessible data without additional paid API requirements. Existing Google API access does not establish that an additional product is enabled, free or suitable. Google tiles and existing location/elevation services do not supply a semantic road/lane network; a public road-geometry source needs evaluation. OpenFreeMap is a candidate: its hosted instance requires no key or registration, with attribution required. [Provider access and attribution](https://openfreemap.org/).
+- **N6 — Verification:** Set the local radius and object/work budgets during traffic design, then measure frame-time impact. Verify road-height alignment, pause/reset, location changes and request cleanup; do not claim zero performance impact before a prototype is measured.
+
+## Research proposals and recommended sequence
 
 | ID | Proposal | Recommendation |
 | --- | --- | --- |
