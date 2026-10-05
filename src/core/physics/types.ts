@@ -110,6 +110,9 @@ export interface PhysicsConfig {
   verticalDragMultiplier: number; // multiplier on Cd*A for vertical axis drag
   rotorDragCoefficient?: number; // N/(m/s) at hover RPM, body X/Y only
   gentleWind?: boolean; // fair-weather breeze; false selects calm air
+  windSpeed?: number; // m/s, mean horizontal wind
+  windDirection?: number; // meteorological from direction, clockwise from north
+  windGustStrength?: number; // m/s, maximum horizontal perturbation
   spawnAltitude: number; // m AGL
   thrustLinearization?: boolean; // apply sqrt to throttle commands for linear thrust feel
 }

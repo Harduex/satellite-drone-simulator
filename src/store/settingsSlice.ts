@@ -3,6 +3,7 @@ import type { PhysicsConfig, RatesConfig } from "../core/physics/types";
 import type { AxisMapping } from "../core/input/AxisMapper";
 import { FlightMode } from "../core/flight-controller/FlightModes";
 import { SettingsPersistence } from "./SettingsPersistence";
+import { resolveWindConfig, WIND_PRESETS } from "../core/physics/WindConfig";
 
 export interface SavedLocation {
   lat: number;
@@ -20,6 +21,9 @@ export interface SettingsSlice {
   godMode: boolean;
   audioVolume: number;
   showStickOverlay: boolean;
+  realTimeOfDay: boolean;
+  setRealTimeOfDay: (enabled: boolean) => void;
+  setWindPreset: (preset: keyof typeof WIND_PRESETS) => void;
   defaultLocation: SavedLocation | null;
   pickerInitialLocation: SavedLocation | null;
   setAxisMapping: (mapping: AxisMapping) => void;
@@ -46,6 +50,16 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   godMode: SettingsPersistence.readGodMode(),
   audioVolume: SettingsPersistence.readAudioVolume(),
   showStickOverlay: SettingsPersistence.readShowStickOverlay(),
+  realTimeOfDay: SettingsPersistence.readRealTimeOfDay(),
+  setRealTimeOfDay: (enabled) => {
+    SettingsPersistence.writeRealTimeOfDay(enabled);
+    set({ realTimeOfDay: enabled });
+  },
+  setWindPreset: (preset) => set((state) => {
+    const next = { ...state.physicsConfig, ...WIND_PRESETS[preset] };
+    SettingsPersistence.writePhysicsConfig(next);
+    return { physicsConfig: next };
+  }),
   defaultLocation: SettingsPersistence.readDefaultLocation(),
   pickerInitialLocation: null,
   setAxisMapping: (mapping) => set({ axisMapping: mapping }),
@@ -57,7 +71,8 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
     }),
   setPhysicsConfig: (config) =>
     set((state) => {
-      const next = { ...state.physicsConfig, ...config };
+      const combined = { ...state.physicsConfig, ...config };
+      const next = { ...combined, ...resolveWindConfig(combined) };
       SettingsPersistence.writePhysicsConfig(next);
       return { physicsConfig: next };
     }),

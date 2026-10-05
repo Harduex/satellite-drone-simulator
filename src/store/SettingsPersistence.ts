@@ -1,6 +1,7 @@
 import type { PhysicsConfig, RatesConfig } from "../core/physics/types";
 import { DEFAULT_DRONE_CONFIG, DEFAULT_RATES } from "../core/physics/droneConfig";
 import type { SavedLocation } from "./settingsSlice";
+import { resolveWindConfig } from "../core/physics/WindConfig";
 
 const DEFAULT_LOCATION_STORAGE_KEY = "fpvsim_default_location";
 const PHYSICS_CONFIG_STORAGE_KEY = "fpvsim_physics_config";
@@ -10,6 +11,7 @@ const CAMERA_TILT_STORAGE_KEY = "fpvsim_camera_tilt";
 const GOD_MODE_STORAGE_KEY = "fpvsim_god_mode";
 const AUDIO_VOLUME_STORAGE_KEY = "fpvsim_audio_volume";
 const SHOW_STICK_OVERLAY_STORAGE_KEY = "fpvsim_show_stick_overlay";
+const REAL_TIME_STORAGE_KEY = "fpvsim_real_time_of_day";
 export const DEFAULT_FOV = 110;
 export const DEFAULT_CAMERA_TILT = 25;
 
@@ -57,6 +59,16 @@ export function mergeNumericPartial<T>(persisted: unknown, defaults: T): T {
 /** Storage adapter for settings persistence. Extracted for testability. */
 export const SettingsPersistence = {
   isFiniteLatLng,
+
+  readRealTimeOfDay(): boolean {
+    try { return typeof localStorage !== "undefined" && localStorage.getItem(REAL_TIME_STORAGE_KEY) === "true"; }
+    catch { return false; }
+  },
+
+  writeRealTimeOfDay(enabled: boolean): void {
+    try { if (typeof localStorage !== "undefined") localStorage.setItem(REAL_TIME_STORAGE_KEY, String(enabled)); }
+    catch { console.warn("Time-of-day preference could not be saved; using this session's setting."); }
+  },
 
   readShowStickOverlay(): boolean {
     try {
@@ -115,15 +127,17 @@ export const SettingsPersistence = {
       if (typeof localStorage === "undefined") return DEFAULT_DRONE_CONFIG;
       const raw = localStorage.getItem(PHYSICS_CONFIG_STORAGE_KEY);
       if (!raw) return DEFAULT_DRONE_CONFIG;
-      return mergeNumericPartial(JSON.parse(raw), DEFAULT_DRONE_CONFIG);
+      const saved: unknown = JSON.parse(raw);
+      const wind = resolveWindConfig(saved && typeof saved === "object" ? saved as Partial<PhysicsConfig> : {});
+      return { ...mergeNumericPartial(saved, DEFAULT_DRONE_CONFIG), ...wind };
     } catch {
       return DEFAULT_DRONE_CONFIG;
     }
   },
 
   writePhysicsConfig(config: PhysicsConfig): void {
-    if (typeof localStorage === "undefined") return;
-    localStorage.setItem(PHYSICS_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    try { if (typeof localStorage !== "undefined") localStorage.setItem(PHYSICS_CONFIG_STORAGE_KEY, JSON.stringify(config)); }
+    catch { console.warn("Physics preferences could not be saved; using this session's settings."); }
   },
 
   readRates(): RatesConfig {
