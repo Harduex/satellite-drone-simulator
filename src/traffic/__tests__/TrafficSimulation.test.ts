@@ -29,6 +29,26 @@ function road(
     outgoing,
   };
 }
+it("retires the old fleet and populates roads around a new flying area", () => {
+  const simulation = new TrafficSimulation();
+  const initial = road("initial", "a", "b", 0, -450, 0, 900, []);
+  const destination = road("destination", "c", "d", 2500, -450, 0, 900, []);
+  simulation.setGraph({ edges: new Map([[initial.id, initial]]) });
+  simulation.reset({ x: 0, y: 0, z: 100 });
+  const oldIds = simulation.getFrames().map(car => car.id);
+  expect(oldIds.length).toBeGreaterThan(0);
+  simulation.setCenter({ x: 2500, y: 0, z: 100 });
+  simulation.step(0.1);
+  expect(simulation.getFrames()).toHaveLength(0);
+  simulation.setGraph({ edges: new Map([[destination.id, destination]]) });
+  for (let i = 0; i < 200; i++) simulation.step(0.1);
+  expect(simulation.getFrames().length).toBeGreaterThan(0);
+  for (const car of simulation.getFrames()) {
+    expect(oldIds).not.toContain(car.id);
+    expect(car.edgeId).toBe("destination");
+    expect(Math.hypot(car.current.position.x - 2500, car.current.position.y)).toBeLessThanOrEqual(1000);
+  }
+});
 function fleet(
   edges: RoadEdge[],
   placements: {

@@ -2,6 +2,66 @@ import { expect, it, vi } from "vitest";
 import * as Cesium from "cesium";
 import { TrafficController, advanceTrafficTime } from "../TrafficController";
 import { TrafficRenderer } from "../../world/traffic/TrafficRenderer";
+import { RoadSource } from "../../traffic/RoadSource";
+it("refreshes road coverage around the moving drone beyond the initial area", async () => {
+  const load = vi.spyOn(RoadSource.prototype, "loadTiles").mockResolvedValue([]);
+  let now = 0;
+  const clock = vi.spyOn(performance, "now").mockImplementation(() => now);
+  const event = new Cesium.Event();
+  const position = { x: 0, y: 0, z: 100 };
+  const viewer = {
+    scene: { preUpdate: event, sampleHeightSupported: false },
+    creditDisplay: { addStaticCredit: vi.fn(), removeStaticCredit: vi.fn() },
+  } as unknown as Cesium.Viewer;
+  const controller = new TrafficController({
+    viewer,
+    enuFrame: Cesium.Transforms.eastNorthUpToFixedFrame(
+      Cesium.Cartesian3.fromDegrees(2.2945, 48.8584),
+    ),
+    spawn: { ...position }, longitude: 2.2945,
+    readDronePosition: () => position,
+    readEnvironmentInstant: () => new Date("2026-10-05T12:00:00Z"),
+    readBaseExclusions: () => [], exclusionsChanged: () => {},
+    publish: () => {}, diagnosticsEnabled: () => false,
+  });
+  try {
+    controller.setEnabled(true);
+    controller.start();
+    await Promise.resolve();
+    expect(load).toHaveBeenCalledTimes(1);
+    const initialTiles = load.mock.calls[0]![0];
+    position.x = 299;
+    now = 1000;
+    event.raiseEvent();
+    expect(load).toHaveBeenCalledTimes(1);
+    position.x = 301;
+    now = 1200;
+    event.raiseEvent();
+    expect(load).toHaveBeenCalledTimes(1);
+    position.x = 500;
+    now = 1501;
+    event.raiseEvent();
+    await Promise.resolve();
+    expect(load).toHaveBeenCalledTimes(2);
+    await Promise.resolve();
+    position.x = 2700;
+    now = 2000;
+    event.raiseEvent();
+    now = 2301;
+    event.raiseEvent();
+    await Promise.resolve();
+    expect(load).toHaveBeenCalledTimes(3);
+    expect(load.mock.calls[2]![0]).not.toEqual(initialTiles);
+    expect(load.mock.calls[2]![0].length).toBeLessThanOrEqual(16);
+    now = 10000;
+    event.raiseEvent();
+    expect(load).toHaveBeenCalledTimes(3);
+  } finally {
+    controller.dispose();
+    load.mockRestore();
+    clock.mockRestore();
+  }
+});
 it.each([30, 60, 120])(
   "preserves ten-second traffic cadence at %i render Hz",
   (frequency) => {

@@ -35,6 +35,8 @@ Independent review reproduced and corrected speed inheritance, insufficient turn
 
 ### Performance method and scope
 
+**Moving coverage follow-up:** A controlled browser route moved the drone 2.5 km east from Paris at 40 m/s, then held its destination. Traffic refreshed nine times; sampled rendered cars remained within 1 km, with 12 cars at arrival and 56 after 45 seconds of further surface admission. The initial rendered car was absent from later samples. New-area coverage and population are gradual, dependent on network access and loaded, validated surfaces. No application exceptions occurred. Regression tests additionally verify the 300 m / 300 ms refresh trigger, changed destination tiles, no stationary polling, old-fleet retirement and new-area spawning. All 369 tests pass. No production behavior change was required.
+
 Use installed Chrome with hardware WebGL, 960×600 viewport and equal scene settings. Warm each location for 60 seconds, then measure three paired 60-second Off/On circular routes in Paris, San Francisco hills and London bridge surroundings. Keep the drone/camera route controlled; stop flight integration only for this comparative measurement. Off freezes traffic and hides its models while preserving warmed geometry/cache for parity; ordinary UI Off teardown is tested separately. Collect rendered frame intervals and individual 10 Hz simulation steps, excluding the same first five samples per run.
 
 The initial three-variant pack passed every pair: maximum frame median delta 0.02 ms, frame p95 delta 3.45 ms and simulation p95 0.885 ms. The five-variant pack also passed all nine pairs:
