@@ -2,3 +2,7 @@
   position: fixed;
   inset: 0;
 }
+
+.paused {
+  z-index: 20;
+}

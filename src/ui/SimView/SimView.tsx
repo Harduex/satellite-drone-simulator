@@ -12,7 +12,7 @@ interface Props {
 
 export function SimView({ session, isPaused }: Props) {
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${isPaused ? styles.paused : ''}`}>
       {/* CesiumJS canvas is behind this in #cesium-container */}
       <HUD locationName={session.getSpawnOrigin()?.name ?? ''} />
       <LiveSticks />
