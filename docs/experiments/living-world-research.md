@@ -1,6 +1,6 @@
 # Living-world and live-traffic research
 
-Assessed 2026-10-05. Research and next-step direction; [traffic V1 design](../superpowers/specs/2026-10-05-road-traffic-design.md) is approved and its [implementation plan](../superpowers/plans/2026-10-05-road-traffic.md) is ready for review. No traffic integration implemented.
+Assessed 2026-10-05. Research and next-step direction; [traffic V1 design](../superpowers/specs/2026-10-05-road-traffic-design.md) is approved and implemented locally. The [implementation record](../superpowers/plans/2026-10-05-road-traffic.md) tracks verification and delivery gates. Aircraft, live congestion and weather remain separate future tasks.
 
 ## Recommendation
 
@@ -67,7 +67,7 @@ These distinctions come from GEV’s [layer inventory](https://github.com/bilawa
 
 The selected sequence is three separate tasks: **LW1/LW2 traffic first**, **LW3 aircraft second**, **LW4 live weather third**. This selects product priorities and design constraints, not an implementation specification. Ships, transit and LW5 remain undecided. LW4 revisits deferred P6 as a later task.
 
-- **N1 — Traffic:** Simple 3D cars on real mapped roads, with simulated movement inspired by public data. Active roads and vehicles follow the drone's nearby area; cap work and rendering to protect flight performance. The V1 review draft uses estimated road-class/time demand, with live congestion deferred. D11 adds 2–3 licensed low-poly models and realistic body-color variation.
+- **N1 — Traffic:** Simple 3D cars on real mapped roads, with simulated movement inspired by public data. Active roads and vehicles follow the drone's nearby area; cap work and rendering to protect flight performance. Implemented V1 uses estimated road-class/time demand, with live congestion deferred. Five local CC0 low-poly models provide body-color variation.
 - **N2 — Aircraft:** Later, simple 3D planes driven by public flight-position reports, limited to a useful viewing distance. Report age, interpolation, coverage and permission to use a feed still need validation; a free public endpoint alone is insufficient.
 - **N3 — Weather:** Later, optional live weather to support realistic atmosphere and experimentation. Keep this separate from traffic and aircraft work.
 - **N4 — Infrastructure:** Reuse Cesium, coordinate utilities, session lifecycle, settings and diagnostics wherever they fit. Prefer browser-side operation and existing APIs; avoid a new backend, paid feeds, subscriptions or elaborate external services. Flag any necessary additional source or dependency before adopting it.
@@ -90,4 +90,18 @@ First research-to-prototype gate: choose a district with clear surface roads; ve
 
 ## Remaining uncertainties
 
-**U1:** The exact remembered product is probable, not confirmed. **U2:** Actual nearby feed coverage and end-to-end latency need a future provider probe. **U3:** The traffic module’s services/dependencies have not been integrated or benchmarked here. **U4:** Close-up road alignment and model licensing need a district prototype. Existing P3–P6 and R1–R5 decisions remain in [simulator improvement proposals](simulator-improvements.md).
+**U1:** The exact remembered product is probable, not confirmed. **U2:** Actual nearby live-feed coverage and end-to-end latency need a future provider probe. **U3:** Traffic now uses a small local adapter, rather than importing GEV's runtime; hardware measurement is recorded in the implementation plan. **U4:** Conservative height checks improve road alignment but cannot identify every flat roof or resolve all bridge approaches. Existing P3–P6 and R1–R5 decisions remain in [simulator improvement proposals](simulator-improvements.md).
+
+## Traffic V1 implementation evidence
+
+**V1 — Source:** Browser probes of public `https://tiles.openfreemap.org/planet` metadata and z14 transportation tiles succeeded without credentials in Paris, San Francisco and London. Initial 16-tile samples produced 6,100 / 6,235 / 8,775 admitted road segments respectively. Retained-data accounting was subsequently made more conservative: a Paris integration probe reported 12.05 MB, below the 24 MiB ceiling. Actual access/direction fields can be missing; the adapter treats omitted direction as two-way and rejects explicit unsupported values. Geometry is clipped to tile boundaries before topology is assembled. Only transportation is decoded; byte, feature and geometry-command limits precede allocation. This does not establish hosted-service availability guarantees. [Provider access](https://openfreemap.org/), [transportation schema](https://openmaptiles.org/schema/#transportation).
+
+**V2 — Assets:** Three locally packaged Kenney Car Kit models use CC0, shared 512×512 texture data and 2,032–2,474 triangles each. Dimensions, axis/origin corrections and body-only recoloring are recorded in the [asset manifest](../../public/models/traffic/ATTRIBUTION.md). They do not require a remote asset host.
+
+**V2-A — Approved additions:** Original CC0 Audi A3 and Mazda CX-5 representations add two texture-free variants at 832 and 884 triangles, four materials each. Blender exports and GLB accessor bounds match the manufacturer's published overall body dimensions; visual details are stylized. Actual night comparison reproduced cars missing the map's exposure grading despite having lit PBR materials. The shared environment callback now grades car diffuse/emissive materials too, retaining the current value through asynchronous loads and fleet recreation.
+
+**V3 — Integration:** The existing viewer, ENU conversion, selected clock, settings, diagnostics and recording pipeline are reused. Traffic advances at 10 Hz outside flight physics. Actual browser checks exercised autocomplete/Fly Here, HUD, smooth keyboard input, ESC pause, Road Traffic Off/On, reset and location exit. Credits remained visible in a downloaded recording. Raising a rendered car 30 m changed an unfiltered surface sample by 31.74 m; excluding the actual model restored the road sample, and the drone sampler included that exclusion.
+
+**V4 — Placement limits:** Sampling runs in `scene.preUpdate`, alongside the existing terrain sampler. A controlled comparison reproduced unrelated photogrammetry texture artifacts with traffic disabled as well as enabled. Missing surfaces, tunnels, implausible slopes and narrow rooftop ridges remain empty. Wide flat roofs, photographed stationary vehicles, approximate right-hand driving and disconnected grade-separated approaches remain V1 limitations. Model shadows are disabled; photographed shadows remain baked into Google's mesh.
+
+**V5 — Verification:** Review reproduced and corrected unstable road identities, unsafe buffered seams, async pause completion, connected-edge following, abrupt turns, speed inheritance and early junction release. Regression tests include motorway turns subdivided into short segments and blocked junction exits. Final repeated GPU measurements and their limits are maintained in the [implementation record](../superpowers/plans/2026-10-05-road-traffic.md), rather than inferred from the upstream project's object cap.

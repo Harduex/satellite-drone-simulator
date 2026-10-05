@@ -6,13 +6,52 @@
 
 **Architecture:** A Cesium-independent traffic module adapts public vector roads and advances a bounded fleet. World adapters validate surfaces and render cars; a session-owned controller coordinates requests, updates and teardown. Reuse the existing viewer, coordinates, settings, clock and diagnostics.
 
-**Tech Stack:** TypeScript, CesiumJS, React, Zustand, Vitest; proposed additional dependencies `@mapbox/vector-tile` and `pbf` for MVT decoding.
+**Tech Stack:** TypeScript, CesiumJS, React, Zustand, Vitest; `@mapbox/vector-tile` and `pbf` for MVT decoding.
 
 **Spec:** [Approved road traffic V1 design](../specs/2026-10-05-road-traffic-design.md).
 
-**Status:** Approved for native execution; implementation in progress. Source probes, model selection and benchmark results are not yet available.
+**Status:** Implemented and verified locally. Source, asset, browser lifecycle/recording/exclusion, independent review and repeated hardware performance gates passed. No publishing or pushing performed.
 
-## Global constraints
+The detailed T1–T8 steps below preserve the original plan. The execution ledger records what was actually implemented and checked; proposed fixture combinations and screen-reader use are not implicit verification claims.
+
+## Execution ledger
+
+- [x] **T1:** Public source probes in Paris, San Francisco and London; transportation fields and source/attribution boundaries validated before implementation.
+- [x] **T2:** Bounded source/cache/decoder and graph normalization; regression tests cover clipping, stable identities, direction/access, compatible endpoint snapping and grade-separated crossings.
+- [x] **T3:** Seeded following/routes, time-dependent demand, continuous turns and reservations; regressions cover short motorway approaches, slower outgoing roads, blocked exits, clearance release and the 150-car ceiling.
+- [x] **T4:** Budgeted surface admission; missing heights, roof ridges, implausible grades and rejected continuations remain empty. Actual car-under-drone exclusion verified in Cesium.
+- [x] **T5:** Three licensed Kenney variants and approved original Audi A3 / Mazda CX-5 additions; source/material/bounds checks, color variation, late-load disposal and night exposure verified. Reproducible Blender generator is development-only.
+- [x] **T6:** Session ownership, pause/resume, reset/automatic respawn, Off/On, cancellation and exit cleanup. Actual browser checks confirm no stale models/listeners/cache after exit, and recording finalizes while credits remain alive.
+- [x] **T7:** Default-on persisted accessible Road Traffic switch, Reset to Defaults and separate bounded diagnostics. Existing switch roles/labels exercised by browser automation; no claim of a real screen-reader session.
+- [x] **T8:** All 367 tests across 47 files and production build pass; browser acceptance and both baseline/five-variant repeated GPU comparisons pass. The validated ceiling remains 150 cars.
+
+### Browser and review evidence
+
+Actual Chrome on a hardware RTX 3060 exercised location autocomplete → Fly Here, HUD/telemetry, gradual keyboard throttle, ESC/menu, paused Off/On, reset and location exit. The existing connected radio was neutralized for the keyboard probe. A rendered car raised 30 m changed an unfiltered height sample by approximately 32.3 m; excluding its actual model restored the underlying road, and the drone sampler contained that exclusion. A four-second recording completed and its downloaded MP4 retained Google, road-source and car credits.
+
+No TypeError, ReferenceError or unhandled application exception occurred. Two console 404s were traced specifically to the existing missing `/favicon.ico`; they are not traffic/source/model failures. Photogrammetry texture artifacts reproduced with traffic Off and remain outside this change.
+
+Independent review reproduced and corrected speed inheritance, insufficient turn lookahead and premature junction release. The approved car follow-up regression test failed before exposure propagation existed, then passed after implementation; late model loads, loaded models, Off/re-enable and reset retain the current exposure. Actual day/night probes read exposure 1 / 0.025 on both map and car shader. A final five-model visual check caught default black vertex colors introduced by joining meshes and metalness reducing the magenta diffuse marker below the recoloring threshold. Neutral vertex colors and dielectric body paint now preserve recoloring; export assertions and repeated browser views verify the correction. Original assets are stylized, rather than exact manufacturer CAD.
+
+### Performance method and scope
+
+Use installed Chrome with hardware WebGL, 960×600 viewport and equal scene settings. Warm each location for 60 seconds, then measure three paired 60-second Off/On circular routes in Paris, San Francisco hills and London bridge surroundings. Keep the drone/camera route controlled; stop flight integration only for this comparative measurement. Off freezes traffic and hides its models while preserving warmed geometry/cache for parity; ordinary UI Off teardown is tested separately. Collect rendered frame intervals and individual 10 Hz simulation steps, excluding the same first five samples per run.
+
+The initial three-variant pack passed every pair: maximum frame median delta 0.02 ms, frame p95 delta 3.45 ms and simulation p95 0.885 ms. The five-variant pack also passed all nine pairs:
+
+| Scene | Maximum paired median delta | Maximum paired frame p95 delta | Maximum simulation p95 | Most cars observed |
+| --- | --- | --- | --- | --- |
+| Paris urban | 0.010 ms | 2.050 ms | 0.975 ms | 149 |
+| San Francisco hills | 0.005 ms | 2.605 ms | 0.800 ms | 145 |
+| London bridge surroundings | 0.005 ms | 2.290 ms | 0.440 ms | 84 |
+
+Every pair meets median delta ≤2 ms, p95 delta ≤4 ms and simulation p95 ≤1 ms. These are local measurements, not general hardware guarantees. The repeated routes used the pre-cleanup meshes. Final cleanup removed four zero-area triangles per original asset, preserved unique positions/bounds/material count, and corrected vertex colors and body metalness. Final browser checks verify colored exports; a separate 150-car render check covers the corrected materials.
+
+**Final material stress check:** With traffic simulation/surface work paused, preload 150 cars using only the two original models in a fixed visible grid. At 1280×800, warm 20 seconds and measure one paired 60-second hidden/visible run: median 16.675 → 16.695 ms (delta 0.020 ms), p95 17.255 → 18.945 ms (delta 1.690 ms). No application exceptions. This verifies renderer cost for the corrected colors at the fleet ceiling, separately from the repeated route simulation/surface measurements. Regenerating the final assets in an isolated directory produced identical hashes.
+
+Road surface preparation continues during the routes, so paired populations/validated edges can grow. Surface work is cooperative: one synchronous Cesium call can exceed the 2 ms target. Full traffic tick p95 reached 9.44 ms in the final Paris probe even while the rendered-frame gate passed. The bounded sample count does not establish a hard 2 ms wall-time ceiling. Initial network/loading spikes are outside the warmed comparison; these measurements do not certify startup latency or full admission of every nearby road.
+
+## Implementation constraints
 
 - D3/D10: active radius 1,000 m; preload target 1,500 m; refresh after 300 m with 300 ms debounce; z14; at most 16 tiles per refresh and four concurrent requests.
 - At most 150 cars, 2,500 directed edges, 32 decoded tiles and 24 MiB accounted retained road data. Partial coverage is valid; no hidden batches to exceed the refresh budget.
@@ -66,12 +105,12 @@ Cache eviction never invalidates graph geometry still in use: graph ownership re
 
 **Skills:** code-standards, deep-research for provider verification. **Reuse:** prior `rg` found no road adapter; reuse existing fetch/AbortController and Vitest patterns. **Mirror:** focused world/game tests. **Assumption:** hosted z14 tiles can be fetched in a browser without credentials; failure requires revising the source choice, not adding a backend silently.
 
-- [ ] Check official hosted-use/attribution terms, discover the public TileJSON endpoint/template and validate browser CORS on representative urban/hill/bridge tiles. Record exact endpoint, encodings, missing fields, feature counts and payload sizes. Verify documented access normalization against actual samples.
-- [ ] Establish initial admission limits: 4 MiB decoded response bytes per tile, 10,000 transportation features, 100,000 admitted geometry vertices per tile; reject larger payloads. Enforce the byte cap while reading the response, including missing/false Content-Length. Reject arbitrary metadata hosts/protocols; metadata comes only from the configured public provider. Validate representative tiles fit before adopting limits.
-- [ ] Write failing tests for directions 1/-1/0 and omitted oneway, `access=false/no/private`, supported classes, polygons/tunnels/service exclusions, malformed MVT, non-finite geometry, oversized streaming responses and abort. Explicit unknown directions reject the feature; omitted documented defaults resolve to two-way.
-- [ ] Run `npm test -- src/traffic/__tests__/RoadSource.test.ts`; require missing-behavior failures.
-- [ ] Install only the two approved decoder libraries after compatibility/license inspection. Implement normalized data with bounded decoding; cache only admitted data and maintain 32-tile/24-MiB limits including buffers/coordinates/attributes. No full-tile GeoJSON retention or renderer dependency.
-- [ ] Rerun focused tests and `npm run build`; require passes. Commit the verified source adapter and source evidence after public-safety checks.
+- Check official hosted-use/attribution terms, discover the public TileJSON endpoint/template and validate browser CORS on representative urban/hill/bridge tiles. Record exact endpoint, encodings, missing fields, feature counts and payload sizes. Verify documented access normalization against actual samples.
+- Establish initial admission limits: 4 MiB decoded response bytes per tile, 10,000 transportation features, 100,000 admitted geometry vertices per tile; reject larger payloads. Enforce the byte cap while reading the response, including missing/false Content-Length. Reject arbitrary metadata hosts/protocols; metadata comes only from the configured public provider. Validate representative tiles fit before adopting limits.
+- Write failing tests for directions 1/-1/0 and omitted oneway, `access=false/no/private`, supported classes, polygons/tunnels/service exclusions, malformed MVT, non-finite geometry, oversized streaming responses and abort. Explicit unknown directions reject the feature; omitted documented defaults resolve to two-way.
+- Run `npm test -- src/traffic/__tests__/RoadSource.test.ts`; require missing-behavior failures.
+- Install only the two approved decoder libraries after compatibility/license inspection. Implement normalized data with bounded decoding; cache only admitted data and maintain 32-tile/24-MiB limits including buffers/coordinates/attributes. No full-tile GeoJSON retention or renderer dependency.
+- Rerun focused tests and `npm run build`; require passes. Commit the verified source adapter and source evidence after public-safety checks.
 
 ### T2 — Bounded coverage and topology
 
@@ -79,11 +118,11 @@ Cache eviction never invalidates graph geometry still in use: graph ownership re
 
 **Interfaces:** Produce T1/T2 graph and coverage contracts from the interface inventory. **Skills:** code-standards. **Reuse/Mirror:** `CoordUtils` for the projection adapter, pure calculation tests beside modules. **Assumption:** topology can be conservatively reconstructed from clipped geometry; unknown crossings remain disconnected.
 
-- [ ] Write failing fixtures for adjacent tile fragments, duplicated buffers, opposite directions, layer-separated crossings, valid endpoint/interior-node junctions, antimeridian wrapping, polar bounds and more than 2,500 edges. Assert no duplicate lane, correct permitted direction, no bridge/ground intersection and at most 16 selected tiles.
-- [ ] Run `npm test -- src/traffic/__tests__/RoadGraph.test.ts src/traffic/__tests__/RoadSource.test.ts`; confirm behavioral failures.
-- [ ] Implement stable geometry-derived identities without assuming global MVT IDs, 1 m compatible-vertex snapping, 1.6 m right-hand offsets and topology-aware directed connections. Rank by distance/class/connectivity. Rejected/truncated geometry has no traversable dangling shortcut.
-- [ ] Implement cache eviction and coverage with four concurrent requests, at most one transient retry per tile within the same refresh admission set, and no periodic polling. Movement debounce starts after the 300 m trigger; continuing motion updates the center without postponing forever. Newest coverage wins via generation checks.
-- [ ] Verify coverage/fetch scheduling with fake time: a moving drone gets timely updates, a stationary drone makes no polling requests, and canceled/late results cannot publish. Rerun focused tests/build and commit after safety checks.
+- Write failing fixtures for adjacent tile fragments, duplicated buffers, opposite directions, layer-separated crossings, valid endpoint/interior-node junctions, antimeridian wrapping, polar bounds and more than 2,500 edges. Assert no duplicate lane, correct permitted direction, no bridge/ground intersection and at most 16 selected tiles.
+- Run `npm test -- src/traffic/__tests__/RoadGraph.test.ts src/traffic/__tests__/RoadSource.test.ts`; confirm behavioral failures.
+- Implement stable geometry-derived identities without assuming global MVT IDs, 1 m compatible-vertex snapping, 1.6 m right-hand offsets and topology-aware directed connections. Rank by distance/class/connectivity. Rejected/truncated geometry has no traversable dangling shortcut.
+- Implement cache eviction and coverage with four concurrent requests, at most one transient retry per tile within the same refresh admission set, and no periodic polling. Movement debounce starts after the 300 m trigger; continuing motion updates the center without postponing forever. Newest coverage wins via generation checks.
+- Verify coverage/fetch scheduling with fake time: a moving drone gets timely updates, a stationary drone makes no polling requests, and canceled/late results cannot publish. Rerun focused tests/build and commit after safety checks.
 
 ### T3 — Fleet behavior and shared-time demand
 
@@ -91,12 +130,12 @@ Cache eviction never invalidates graph geometry still in use: graph ownership re
 
 **Interfaces:** Consume normalized graph, seed and model dimensions; produce simulation/frame/demand contracts. **Skills:** code-standards. **Reuse/Mirror:** existing seeded wind/reset testing patterns; do not import WindModel or physics internals. **Assumption:** class speeds are heuristic scenery values, not measured legal limits.
 
-- [ ] Write failing tests for cap/seed/reset replay, length/class demand, noon/night multipliers, opposite lanes, acceleration/braking bounds, continuous turns, dead ends and preservation on overlapping graph refresh.
-- [ ] Pin RF3: leader just beyond an edge boundary limits follower speed; occupied exit blocks junction entry; merging requires bumper clearance; competing equal-priority approaches eventually progress; retired cars release reservations. Assert no overlap after a multi-step queue scenario.
-- [ ] Run `npm test -- src/traffic/__tests__/TrafficSimulation.test.ts`; confirm new behavioral failures.
-- [ ] Implement 10 Hz calculations, graph-aware braking lookahead, class/angle route choice, curvature approach limits and bounded fair reservations. Initial acceleration 2 m/s², braking 5 m/s² and desired gap `4 m + 1.5 s * speed`; tune only against visual/following acceptance. Baseline density weights per directed km: motorway 14, trunk 12, primary 10, secondary 8, tertiary 6, minor 4. Apply specified time multiplier; add/retire at most five cars per simulation second using safe peripheral gaps.
-- [ ] Implement `demandMultiplier` exactly as the spec's hour table; wrap 24 hours and reject non-finite inputs to noon default. Demand changes do not teleport existing cars. Frame poses include model-specific bumper dimensions.
-- [ ] Verify identical results at 30/60/120 render schedules using fixed traffic steps and smooth alpha in [0,1]. Run focused tests/build and commit verified movement.
+- Write failing tests for cap/seed/reset replay, length/class demand, noon/night multipliers, opposite lanes, acceleration/braking bounds, continuous turns, dead ends and preservation on overlapping graph refresh.
+- Pin RF3: leader just beyond an edge boundary limits follower speed; occupied exit blocks junction entry; merging requires bumper clearance; competing equal-priority approaches eventually progress; retired cars release reservations. Assert no overlap after a multi-step queue scenario.
+- Run `npm test -- src/traffic/__tests__/TrafficSimulation.test.ts`; confirm new behavioral failures.
+- Implement 10 Hz calculations, graph-aware braking lookahead, class/angle route choice, curvature approach limits and bounded fair reservations. Initial acceleration 2 m/s², braking 5 m/s² and desired gap `4 m + 1.5 s * speed`; tune only against visual/following acceptance. Baseline density weights per directed km: motorway 14, trunk 12, primary 10, secondary 8, tertiary 6, minor 4. Apply specified time multiplier; add/retire at most five cars per simulation second using safe peripheral gaps.
+- Implement `demandMultiplier` exactly as the spec's hour table; wrap 24 hours and reject non-finite inputs to noon default. Demand changes do not teleport existing cars. Frame poses include model-specific bumper dimensions.
+- Verify identical results at 30/60/120 render schedules using fixed traffic steps and smooth alpha in [0,1]. Run focused tests/build and commit verified movement.
 
 ### T4 — Prove road placement and exclusions
 
@@ -104,11 +143,11 @@ Cache eviction never invalidates graph geometry still in use: graph ownership re
 
 **Interfaces:** Consume normalized graph and actual scene; produce validated trajectories and placement contract. **Skills:** code-standards; debugger if a reproducible sample discrepancy occurs. **Reuse:** `CoordUtils`, `TerrainSampler.setExclusions`, existing Cesium mocks. **Mirror:** world tests; no private Cesium APIs. **Assumption:** surface sampling can reject uncertain routes without reliably classifying every roof.
 
-- [ ] Write failing tests for 20–30 m subdivisions, preserved sharp vertices, station interpolation, missing surfaces, abrupt vertical jumps, bridge/ground layer separation, lateral-probe budget, eight-sample cap and 2 ms yielding. Invalid sections do not create a connection across the rejection.
-- [ ] Run `npm test -- src/world/traffic/__tests__/TrafficSurface.test.ts`; require behavioral failures.
-- [ ] Implement validation using loaded 3D surfaces; no terrain-only bridge fallback. Initial rejection limits are grade greater than 25% or adjacent station grade change greater than 20 percentage points; treat these as conservative heuristic filters. Suspicious ordinary-road samples get at most two lateral probes within the shared budget. Leave uncertain sections empty.
-- [ ] Run the browser probe on urban, hill and bridge/tunnel examples; verify the lane offset stays on visible roads, deck continuity and occlusion. Confirm the chosen exclusion objects actually remove sampled traffic geometry, rather than relying on mock/parent-collection behavior. Record public-safe findings; no sample files/keys in commits.
-- [ ] If alignment is inadequate, stop expansion and revise the placement approach/spec with concrete evidence. If acceptable, run focused tests/build and commit validated placement.
+- Write failing tests for 20–30 m subdivisions, preserved sharp vertices, station interpolation, missing surfaces, abrupt vertical jumps, bridge/ground layer separation, lateral-probe budget, eight-sample cap and 2 ms yielding. Invalid sections do not create a connection across the rejection.
+- Run `npm test -- src/world/traffic/__tests__/TrafficSurface.test.ts`; require behavioral failures.
+- Implement validation using loaded 3D surfaces; no terrain-only bridge fallback. Initial rejection limits are grade greater than 25% or adjacent station grade change greater than 20 percentage points; treat these as conservative heuristic filters. Suspicious ordinary-road samples get at most two lateral probes within the shared budget. Leave uncertain sections empty.
+- Run the browser probe on urban, hill and bridge/tunnel examples; verify the lane offset stays on visible roads, deck continuity and occlusion. Confirm the chosen exclusion objects actually remove sampled traffic geometry, rather than relying on mock/parent-collection behavior. Record public-safe findings; no sample files/keys in commits.
+- If alignment is inadequate, stop expansion and revise the placement approach/spec with concrete evidence. If acceptable, run focused tests/build and commit validated placement.
 
 ### T5 — Select, package and render car variety
 
@@ -116,11 +155,11 @@ Cache eviction never invalidates graph geometry still in use: graph ownership re
 
 **Interfaces:** Consume frame poses and model indices; produce renderer/exclusion contract and a manifest with local URL, body material names, dimensions, origin correction, license/source and model index. **Skills:** code-standards; research primary asset/license sources. **Reuse/Mirror:** existing Cesium resource lifecycle, promise/generation tests and recording credit mechanism. **Assumption:** chosen assets support permitted recoloring and local redistribution.
 
-- [ ] Find 2–3 simple sedan/hatchback/SUV assets with clear license and modification/redistribution rights. Prefer CC0. Review actual geometry/materials: initial limits per model 5,000 triangles, four materials and one texture at most 512×512; prefer texture-free models. Package provenance/license before model import. If suitable assets cannot be found, report the asset issue rather than substitute GTA/proprietary files.
-- [ ] Write failing tests for stable model/color choices, per-model dimensions, body-only recoloring, interpolation through heading wrap, correct exclusions, normal depth test, disabled shadows, async load cancellation and dispose twice. Assert disposed loads cannot add primitives.
-- [ ] Run `npm test -- src/world/traffic/__tests__/TrafficRenderer.test.ts`; confirm behavioral failures.
-- [ ] Implement ordinary Cesium model primitives with shared asset/material resources where supported, calibrated contact height and local assets. Add/remove exclusions only on resource changes. Preserve actual source credits in scene/recording without introducing a second capture pipeline.
-- [ ] Browser-check the three variants at FPV distance, recoloring, road contact/pitch, building occlusion and credits in downloaded recording. Verify model sharing behavior rather than assuming one model URL means one draw call. Run focused tests/build and commit assets/renderer after license and public-safety checks.
+- Find 2–3 simple sedan/hatchback/SUV assets with clear license and modification/redistribution rights. Prefer CC0. Review actual geometry/materials: initial limits per model 5,000 triangles, four materials and one texture at most 512×512; prefer texture-free models. Package provenance/license before model import. If suitable assets cannot be found, report the asset issue rather than substitute GTA/proprietary files.
+- Write failing tests for stable model/color choices, per-model dimensions, body-only recoloring, interpolation through heading wrap, correct exclusions, normal depth test, disabled shadows, async load cancellation and dispose twice. Assert disposed loads cannot add primitives.
+- Run `npm test -- src/world/traffic/__tests__/TrafficRenderer.test.ts`; confirm behavioral failures.
+- Implement ordinary Cesium model primitives with shared asset/material resources where supported, calibrated contact height and local assets. Add/remove exclusions only on resource changes. Preserve actual source credits in scene/recording without introducing a second capture pipeline.
+- Browser-check the three variants at FPV distance, recoloring, road contact/pitch, building occlusion and credits in downloaded recording. Verify model sharing behavior rather than assuming one model URL means one draw call. Run focused tests/build and commit assets/renderer after license and public-safety checks.
 
 ### T6 — Session controller, reset and exclusion integration
 
@@ -130,11 +169,11 @@ Cache eviction never invalidates graph geometry still in use: graph ownership re
 
 **Skills:** code-standards. **Reuse:** existing SimSession generation/exit ownership, GameLoop getters, preUpdate/preRender events and recording mocks. **Mirror:** `SimSession.recording.test.ts`; avoid broad session refactoring. **Assumption:** environment clock is updated before the controller reads it; verify callback ordering in the real viewer.
 
-- [ ] Write failing RF2/RF4/RF5 tests: delayed fetch/model completion after exit, pause cancellation, resume without catch-up, two enable/disable cycles, explicit reset and auto-respawn, nearby god-mode recovery, location change, cache reuse and callback disposal. Assert current drone and environment exclusions survive fleet changes and every resume.
-- [ ] Run `npm test -- src/game/__tests__/TrafficController.test.ts src/game/__tests__/SimSession.traffic.test.ts src/game/__tests__/GameLoop.test.ts`; confirm missing behavior.
-- [ ] Implement the controller owned by SimSession, one frame callback outside physics, bounded step accumulation and time input from the existing selected viewer clock. Convert current drone position through existing coordinate utilities for coverage. Freeze all traffic work on pause; stale decode/surface/model results cannot publish after cancellation.
-- [ ] Wire settings, reset notifications, exclusions, start/end/location paths and source-independent flight launch. No unhandled promise rejection, duplicate listener or traffic failure blocking `FLYING`. Ensure deferred traffic startup cannot survive a failed/canceled flight start.
-- [ ] Rerun focused tests/build, browser-check car-under-drone isolation and repeated pause/resume/reset, then commit verified integration.
+- Write failing RF2/RF4/RF5 tests: delayed fetch/model completion after exit, pause cancellation, resume without catch-up, two enable/disable cycles, explicit reset and auto-respawn, nearby god-mode recovery, location change, cache reuse and callback disposal. Assert current drone and environment exclusions survive fleet changes and every resume.
+- Run `npm test -- src/game/__tests__/TrafficController.test.ts src/game/__tests__/SimSession.traffic.test.ts src/game/__tests__/GameLoop.test.ts`; confirm missing behavior.
+- Implement the controller owned by SimSession, one frame callback outside physics, bounded step accumulation and time input from the existing selected viewer clock. Convert current drone position through existing coordinate utilities for coverage. Freeze all traffic work on pause; stale decode/surface/model results cannot publish after cancellation.
+- Wire settings, reset notifications, exclusions, start/end/location paths and source-independent flight launch. No unhandled promise rejection, duplicate listener or traffic failure blocking `FLYING`. Ensure deferred traffic startup cannot survive a failed/canceled flight start.
+- Rerun focused tests/build, browser-check car-under-drone isolation and repeated pause/resume/reset, then commit verified integration.
 
 ### T7 — Settings and separate traffic diagnostics
 
@@ -144,10 +183,10 @@ Cache eviction never invalidates graph geometry still in use: graph ownership re
 
 **Skills:** code-standards. **Reuse/Mirror:** real-time boolean persistence and existing FlightSettings switch styling. **Assumption:** paused-flight settings are applied immediately to traffic, unlike physical configuration applied only on resume.
 
-- [ ] Write failing tests: missing/malformed/blocked storage defaults On, false persists/reloads, Reset to Defaults restores On, toggle Off stops traffic immediately while paused and re-enable does not advance paused vehicles. Assert accessible label `Road Traffic` and copy `Simulated cars on real roads.`
-- [ ] Run targeted settings/controller tests; confirm behavioral failures.
-- [ ] Implement settings using existing patterns; storage failure preserves session state. Wire a session-scoped subscription and clean it up. Publish spec traffic counters at bounded diagnostics cadence only when diagnostics are enabled; do not pollute Google tile request counts.
-- [ ] Verify keyboard/screen-reader switch behavior, paused menu stacking, reload/default reset and diagnostics disable/cleanup. Run focused tests/build and commit verified controls.
+- Write failing tests: missing/malformed/blocked storage defaults On, false persists/reloads, Reset to Defaults restores On, toggle Off stops traffic immediately while paused and re-enable does not advance paused vehicles. Assert accessible label `Road Traffic` and copy `Simulated cars on real roads.`
+- Run targeted settings/controller tests; confirm behavioral failures.
+- Implement settings using existing patterns; storage failure preserves session state. Wire a session-scoped subscription and clean it up. Publish spec traffic counters at bounded diagnostics cadence only when diagnostics are enabled; do not pollute Google tile request counts.
+- Verify keyboard/screen-reader switch behavior, paused menu stacking, reload/default reset and diagnostics disable/cleanup. Run focused tests/build and commit verified controls.
 
 ### T8 — Browser acceptance and performance delivery gate
 
@@ -155,13 +194,13 @@ Cache eviction never invalidates graph geometry still in use: graph ownership re
 
 **Skills:** verify-before-done and relevant browser/debugging tools. **Reuse:** existing RenderDiagnostics and available Playwright/DevTools; use existing browser test facilities, not new framework infrastructure. **Assumption:** comparison can hold route, viewport and warmed tile state comparable.
 
-- [ ] Run `npm test` and `npm run build`; require all pass and investigate any actual regression. These commands do not replace real browser evidence.
-- [ ] Complete repository mandatory checks at `http://localhost:5173`: load without fatal errors, autocomplete/Fly Here, HUD/telemetry, smooth keyboard ramp, ESC pause/menu and zero TypeError/ReferenceError/Error messages. If gamepad code is touched, verify polling/preset/reconnect requirements; otherwise preserve that code.
-- [ ] Compare three repeated Off/On runs of the same 60-second warmed route per urban, hilly and bridge/tunnel scene with equal viewport/quality/hardware. Capture frame intervals and traffic update/surface slices; report median and p95 deltas, counts and outliers. Exclude initial Google loading consistently, but report traffic preparation spikes separately rather than hide them.
-- [ ] Require median frame-time delta ≤2 ms, p95 delta ≤4 ms and simulation p95 ≤1 ms, with all spatial/cache/request/sample limits intact. Reduce car cap first if needed and record actual validated cap; adjust render sharing/LOD next without changing flight behavior. Performance failure remains an incomplete delivery gate.
-- [ ] Visually verify following across edges, merges/intersections, one-way direction, opposing separation, model variety/scale, occlusion, surface contact, empty unsupported bridges/tunnels and no teleportation/ghosts. Verify recorded output and car-under-drone ground-height isolation in the actual Cesium scene.
-- [ ] Verify startup while source is unavailable, malformed tile handling, repeated toggle/pause/reset/respawn/location cycles, finite counters and no stale request/resource leaks. Confirm no traffic work appears in 500 Hz steps.
-- [ ] Self-review complete diff against the approved spec, reconcile only measured delivery changes and mark completed steps. Perform required public-safety checks; commit verification/documentation locally. Report limitations and obtain publishing approval separately if requested.
+- Run `npm test` and `npm run build`; require all pass and investigate any actual regression. These commands do not replace real browser evidence.
+- Complete repository mandatory checks at `http://localhost:5173`: load without fatal errors, autocomplete/Fly Here, HUD/telemetry, smooth keyboard ramp, ESC pause/menu and zero TypeError/ReferenceError/Error messages. If gamepad code is touched, verify polling/preset/reconnect requirements; otherwise preserve that code.
+- Compare three repeated Off/On runs of the same 60-second warmed route per urban, hilly and bridge/tunnel scene with equal viewport/quality/hardware. Capture frame intervals and traffic update/surface slices; report median and p95 deltas, counts and outliers. Exclude initial Google loading consistently, but report traffic preparation spikes separately rather than hide them.
+- Require median frame-time delta ≤2 ms, p95 delta ≤4 ms and simulation p95 ≤1 ms, with all spatial/cache/request/sample limits intact. Reduce car cap first if needed and record actual validated cap; adjust render sharing/LOD next without changing flight behavior. Performance failure remains an incomplete delivery gate.
+- Visually verify following across edges, merges/intersections, one-way direction, opposing separation, model variety/scale, occlusion, surface contact, empty unsupported bridges/tunnels and no teleportation/ghosts. Verify recorded output and car-under-drone ground-height isolation in the actual Cesium scene.
+- Verify startup while source is unavailable, malformed tile handling, repeated toggle/pause/reset/respawn/location cycles, finite counters and no stale request/resource leaks. Confirm no traffic work appears in 500 Hz steps.
+- Self-review complete diff against the approved spec, reconcile only measured delivery changes and mark completed steps. Perform required public-safety checks; commit verification/documentation locally. Report limitations and obtain publishing approval separately if requested.
 
 ## Execution handoff
 

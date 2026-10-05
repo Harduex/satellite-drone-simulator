@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-05
 **Scope:** Optional nearby visual road traffic for FPV free flight.
-**Status:** Approved design; [implementation plan](../plans/2026-10-05-road-traffic.md) prepared for review. No traffic implementation or measured performance results.
+**Status:** Approved; implemented and verified locally, including the five-model/daylight follow-up. Independent review and repeated hardware performance gates passed; see the [implementation record](../plans/2026-10-05-road-traffic.md).
 
 ## TL;DR
 
@@ -107,7 +107,9 @@ Traffic rendering is excluded from both road-placement sampling and drone `Terra
 
 Package 2–3 low-poly car models locally: sedan, hatchback and SUV, with a small realistic color palette. Reuse geometry/material resources across vehicles and recolor body materials without tinting windows or tires. Vehicle choice and color are seeded. Models have realistic dimensions, approximately 4.3 m long, 1.8 m wide and 1.5 m high for a representative car, with per-model dimensions used for clearance/following.
 
-Select free assets with redistribution and modification rights; record source, license and any required credits with the packaged assets. No model has been selected or downloaded by this design. Asset vertex/material/texture budgets are validated against the fleet performance targets before selection is finalized. Models cannot depend on runtime asset-host requests or proprietary GTA assets.
+Selected assets are three CC0 cars from Kenney Car Kit, packaged locally with [provenance and calibrated dimensions](../../../public/models/traffic/ATTRIBUTION.md). Asset budgets remain subject to the fleet performance gate. Models do not depend on runtime asset-host requests or proprietary GTA assets.
+
+**Approved follow-up — LW1-A:** The fleet now also includes original CC0, stylized Audi A3 Sportback and Mazda CX-5 representations. Published body dimensions set their scale; the shapes are approximate. One manifest supplies renderer assets and simulation following lengths. All five variants receive the same environment exposure used by the map, in addition to ordinary Cesium material lighting. Off/reset and late model loads preserve the current exposure. This follow-up keeps the existing fleet and work ceilings.
 
 Cars use ordinary Cesium depth occlusion and no dynamic vehicle shadows. Buildings and terrain hide them normally. Rendering interpolates position and orientation without bypassing the 150-car/radius limits. Detailed interiors, animated wheels and vehicle sounds are deferred.
 

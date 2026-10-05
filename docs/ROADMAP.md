@@ -15,12 +15,12 @@ Updated 2026-10-05. This roadmap preserves direction and postponed ideas. Horizo
 
 Only the selected aircraft → weather sequence has user-established priority. Other rows are grouped by outcome, without invented delivery commitments.
 
-## Now — complete the bounded traffic experience
+## Now — verified bounded traffic milestone
 
 | ID | Outcome / scope | Decision status | Dependency / completion gate |
 | --- | --- | --- | --- |
-| LW1 | Nearby cars on mapped roads with bounded simulation/render work and color variation | Implemented locally; final verification in progress | [Traffic design](docs/superpowers/specs/2026-10-05-road-traffic-design.md), [execution and performance record](docs/superpowers/plans/2026-10-05-road-traffic.md) |
-| LW1-A | Add lightweight Audi A3 and Mazda CX-5 representations; align car appearance with scene daylight/night exposure | In progress; approved | Existing traffic asset/shader pipeline; asset provenance, day/night comparison and performance verification |
+| LW1 | Nearby cars on mapped roads with bounded simulation/render work and color variation | Implemented and verified locally | [Traffic design](superpowers/specs/2026-10-05-road-traffic-design.md), [execution and performance record](superpowers/plans/2026-10-05-road-traffic.md) |
+| LW1-A | Lightweight Audi A3 and Mazda CX-5 representations; car appearance follows scene daylight/night exposure | Implemented and verified locally | [Asset provenance](../public/models/traffic/ATTRIBUTION.md); day/night, lifecycle and repeated performance gates passed |
 
 ## Next — aircraft, then optional weather
 
@@ -29,7 +29,7 @@ Only the selected aircraft → weather sequence has user-established priority. O
 | LW3 | Nearby simple aircraft driven by public flight-position reports | Selected next; scope pending | After traffic. Verify free access, product-use permission, browser integration, freshness/coverage, distance cap and stale-data behavior before implementation |
 | LW4 / P6 | Optional weather-driven atmosphere and wind for experimentation | Selected after LW3; deferred implementation | Reuse wind/daylight controls. Verify free-use terms, forecast resolution, failure fallback and choice of moderated versus actual conditions |
 
-Aircraft is the selected part of LW3; vessels and transit remain separate undecided proposals. Provider research and constraints: [living-world research](docs/experiments/living-world-research.md).
+Aircraft is the selected part of LW3; vessels and transit remain separate undecided proposals. Provider research and constraints: [living-world research](experiments/living-world-research.md).
 
 ## Later — flight realism and practice
 
@@ -45,7 +45,7 @@ Aircraft is the selected part of LW3; vessels and transit remain separate undeci
 | R5 | Graphics quality and memory presets | Proposed | Measured budgets across hardware; intentional 6 GiB cache remains the baseline |
 | F3 | Make crash grace/confirmation independent of render FPS | Proposed; reproduced, fix not approved | Elapsed simulation time independent of HUD publication; retain terrain-sample protection and god-mode separation |
 
-Evidence and detailed limits: [simulator improvement proposals](docs/experiments/simulator-improvements.md).
+Evidence and detailed limits: [simulator improvement proposals](experiments/simulator-improvements.md).
 
 ## Later — richer living-world simulation
 
@@ -54,10 +54,10 @@ Evidence and detailed limits: [simulator improvement proposals](docs/experiments
 | LW2 | Use live congestion to influence simulated speeds and spacing | Proposed | LW1; lawful/free provider access, region/request budget and simulated-data labeling |
 | LW2-G | Evaluate Google traffic categories as the LW2 input | Proposed; provider undecided | Evaluate Routes coverage, billing and allowed reuse; no scraping TrafficLayer colors or assuming individual-car positions |
 | LW5 | Richer junction/demand behavior with SUMO | Proposed; undecided | Consider a prepared district only if lightweight traffic is inadequate; separate runtime is new infrastructure |
-| LW1-D | Detailed car interiors, animated wheels and vehicle sounds | Deferred | Independent visual/audio budgets and optional controls; [traffic design](docs/superpowers/specs/2026-10-05-road-traffic-design.md) |
+| LW1-D | Detailed car interiors, animated wheels and vehicle sounds | Deferred | Independent visual/audio budgets and optional controls; [traffic design](superpowers/specs/2026-10-05-road-traffic-design.md) |
 | LW3-VT | Public-data vessels or transit | Proposed; outside selected aircraft task | Feed-specific permission, freshness, locality and infrastructure feasibility |
 
-Detailed research: [living-world sources and constraints](docs/experiments/living-world-research.md).
+Detailed research: [living-world sources and constraints](experiments/living-world-research.md).
 
 ## Later — map packs and fallback rendering
 
@@ -80,16 +80,16 @@ Detailed research: [living-world sources and constraints](docs/experiments/livin
 | GFX-R6 | Hillshade overlay | Not selected for normal Google flight | Limited benefit while globe is hidden nearby; provider access, attribution and requests remain costs |
 | GFX-POST | Optional AO, bloom or depth-of-field experiments | Deferred; lower priority | AO can double-darken photographed shadows; visibility and FPV control take priority over cinematic effects |
 
-Map evidence: [offline/custom maps](docs/experiments/offline-maps.md). Rendering IDs are namespaced because the historical audit also uses R1–R6: [current assessment](docs/audits/quick-wins-2026-10.md), [archived proposals](docs/experiments/rendering-roadmap.md). Historical API/quota claims are superseded by the assessment.
+Map evidence: [offline/custom maps](experiments/offline-maps.md). Rendering IDs are namespaced because the historical audit also uses R1–R6: [current assessment](audits/quick-wins-2026-10.md), [archived proposals](experiments/rendering-roadmap.md). Historical API/quota claims are superseded by the assessment.
 
 ## Implemented foundation
 
 | ID | Outcome | Evidence |
 | --- | --- | --- |
-| P1 | Wind presets/direction/gusts and subtle rotor airflow texture without independent wind hiss | [Wind/daylight design](docs/superpowers/specs/2026-10-05-wind-daylight-design.md), [verification](docs/superpowers/plans/2026-10-05-wind-daylight.md) |
+| P1 | Wind presets/direction/gusts and subtle rotor airflow texture without independent wind hiss | [Wind/daylight design](superpowers/specs/2026-10-05-wind-daylight-design.md), [verification](superpowers/plans/2026-10-05-wind-daylight.md) |
 | P2 | Real-time Sun/Moon and pleasant default daylight | Same design/verification; photographed Google shadows remain a limitation |
-| Q4 | Corner minimap with heading, home guidance and bounded trail | [Rendering assessment](docs/audits/quick-wins-2026-10.md) |
-| F4 | Cache documentation matches intentional 6 GiB plus view overflow | [README](README.md) |
+| Q4 | Corner minimap with heading, home guidance and bounded trail | [Rendering assessment](audits/quick-wins-2026-10.md) |
+| F4 | Cache documentation matches intentional 6 GiB plus view overflow | [README](../README.md) |
 
 ## Maintaining this roadmap
 

@@ -12,7 +12,7 @@
 * Browser FPV drone sim. Google 3D Tiles (CesiumJS), 500Hz custom physics, Web Gamepad API.
 
 ## Documentation Map
-* [ROADMAP.md](ROADMAP.md) tracks outcomes, horizons, decision status and postponed ideas. Update it when an idea is deferred or its status changes; roadmap entries do not authorize implementation.
+* [docs/ROADMAP.md](docs/ROADMAP.md) tracks outcomes, horizons, decision status and postponed ideas. Update it when an idea is deferred or its status changes; roadmap entries do not authorize implementation.
 * Start with [docs/README.md](docs/README.md) for product references and experiment findings; follow [docs/AGENTS.md](docs/AGENTS.md) when editing documentation.
 * Offline/custom-map evidence and deferred brainstorming: [docs/experiments/offline-maps.md](docs/experiments/offline-maps.md). Google remains the default; local probes do not constitute a shipped offline mode.
 

@@ -65,6 +65,28 @@ The picker and minimap share one Google Maps instance across flight and pause.
 Moving into new areas can still fetch map imagery; navigation itself needs no
 Places or Elevation queries. Offline/custom-map support remains experimental.
 
+### Road traffic
+
+**Settings → Flight → Road Traffic** enables simulated cars on public mapped
+roads. It defaults on and remembers your choice. Cars use five locally packaged
+CC0 models, including stylized Audi A3 and Mazda CX-5 representations, with varied
+body colors. Their lighting follows the scene's daylight/night exposure; demand
+follows the displayed simulator time.
+This represents plausible traffic, without live congestion or real vehicle positions.
+
+Traffic stays within 1 km of the drone, with a 150-car ceiling and separate bounded
+road cache. It updates at 10 Hz, freezes on pause, rebuilds on reset and cleans up
+when leaving a location. Roads appear gradually as loaded 3D surfaces are checked.
+Missing or rejected surfaces remain empty; tunnels are excluded. Lane direction
+uses available map tags and approximate right-hand driving. Bridges and road/mesh
+alignment are best effort; height probes cannot identify every flat roof.
+
+Road geometry comes from OpenFreeMap/OpenMapTiles, based on OpenStreetMap. No extra
+key or backend is needed. Provider credits appear in the flight and recording.
+The developer overlay exposes traffic counters separately from Google tile counters.
+See the [design](docs/superpowers/specs/2026-10-05-road-traffic-design.md) and
+[verification record](docs/superpowers/plans/2026-10-05-road-traffic.md).
+
 ## Controls
 
 ### Flight recording
