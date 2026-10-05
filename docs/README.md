@@ -17,6 +17,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 |---|---|
 | [Offline and custom maps](experiments/offline-maps.md) | Helsinki and textured Grove Street feasibility findings; future brainstorming questions |
 | [Archived rendering roadmap](experiments/rendering-roadmap.md) | Six recovered proposals; historical assumptions corrected in the audit below |
+| [Simulator improvements](experiments/simulator-improvements.md) | Wind/daylight scope, deferred proposals and reproduced crash-timing evidence |
 
 ## Audits
 
@@ -30,5 +31,6 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | --- | --- |
 | [Flight video recording](superpowers/specs/2026-10-04-flight-recording-design.md) | Implemented locally; Chrome capture/playback verified; provider video-use permission remains unresolved |
 | [Flight recording implementation plan](superpowers/plans/2026-10-04-flight-recording.md) | Implementation and verification record, including browser coverage limits |
+| [Wind and daylight design](superpowers/specs/2026-10-05-wind-daylight-design.md) | P1/P2 scope approved; detailed design awaiting review; not implemented |
 
 Keep experiment findings under `experiments/`. Add further categories when there is a document to place in them. Local assets, screenshots and logs remain outside this tracked documentation tree.

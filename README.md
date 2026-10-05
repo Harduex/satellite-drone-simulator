@@ -119,7 +119,7 @@ MSAA remains in use where supported. Tile-detail settings are unchanged.
 
 Keep the app tab open between flights. Resetting, pausing, and changing locations
 reuse the same Google tileset and its loaded tiles. The tileset retains up to
-1.5 GiB of tile content, with another 0.5 GiB available for the current view.
+6 GiB of tile content, with another 0.5 GiB available for the current view.
 Cesium may evict older tiles when this budget fills. Unseen sibling tiles are
 not speculatively downloaded; turning toward a new area can require streaming.
 
