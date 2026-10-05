@@ -31,6 +31,8 @@ export interface RenderDiagnosticsSnapshot {
 }
 
 export interface DiagnosticsSlice {
+  trafficDiagnostics: TrafficDiagnosticsSnapshot | null;
+  updateTrafficDiagnostics: (snapshot: TrafficDiagnosticsSnapshot | null) => void;
   diagnosticsVisible: boolean;
   renderDiagnostics: RenderDiagnosticsSnapshot | null;
   toggleDiagnostics: () => void;
@@ -38,8 +40,16 @@ export interface DiagnosticsSlice {
 }
 
 export const createDiagnosticsSlice: StateCreator<DiagnosticsSlice> = (set) => ({
+  trafficDiagnostics: null,
+  updateTrafficDiagnostics: trafficDiagnostics => set({ trafficDiagnostics }),
   diagnosticsVisible: false,
   renderDiagnostics: null,
   toggleDiagnostics: () => set(state => ({ diagnosticsVisible: !state.diagnosticsVisible })),
   updateRenderDiagnostics: renderDiagnostics => set({ renderDiagnostics }),
 });
+
+export interface TrafficDiagnosticsSnapshot {
+  cars: number; edges: number; cachedTiles: number; cachedBytes: number; pendingRequests: number;
+  requestFailures: number; refreshes: number; updateMs: number; surfaceSamples: number;
+  surfaceMs: number; pendingSurfaceRoads: number; rejectedRoads: number;
+}

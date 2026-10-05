@@ -6,6 +6,16 @@ import { SettingsPersistence } from "../SettingsPersistence";
 
 describe("environment settings", () => {
   beforeEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
+  it("defaults road traffic on and keeps session state when saving is blocked", () => {
+    const store = create<SettingsSlice>()(createSettingsSlice);
+    expect(store.getState().roadTrafficEnabled).toBe(true);
+    store.getState().setRoadTrafficEnabled(false);
+    expect(SettingsPersistence.readRoadTrafficEnabled()).toBe(false);
+    vi.spyOn(Storage.prototype,"setItem").mockImplementation(()=>{throw new Error('blocked');});
+    vi.spyOn(console,"warn").mockImplementation(()=>{});
+    store.getState().setRoadTrafficEnabled(true);
+    expect(store.getState().roadTrafficEnabled).toBe(true);
+  });
   it("migrates saved calm before default merging", () => {
     localStorage.setItem("fpvsim_physics_config", JSON.stringify({ gentleWind: false }));
     expect(SettingsPersistence.readPhysicsConfig().windSpeed).toBe(0);

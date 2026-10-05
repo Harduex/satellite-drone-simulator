@@ -9,9 +9,17 @@ export function FlightSettings({ onClose }: { onClose: () => void }) {
   const setShowSticks = useStore(s => s.setShowStickOverlay);
   const realTime = useStore(s => s.realTimeOfDay);
   const setRealTime = useStore(s => s.setRealTimeOfDay);
+  const traffic = useStore(s => s.roadTrafficEnabled);
+  const setTraffic = useStore(s => s.setRoadTrafficEnabled);
   return (
     <div>
       <SettingsPanelHeader title="Flight Settings" onClose={onClose} />
+      <label className={css.toggle}>
+        <span>Road Traffic</span>
+        <input type="checkbox" role="switch" aria-label="Road Traffic"
+          checked={traffic} onChange={event => setTraffic(event.target.checked)} />
+      </label>
+      <p className={css.hint}>Simulated cars on real roads.</p>
       <label className={css.toggle}>
         <span>Live stick display</span>
         <input type="checkbox" role="switch" aria-label="Live stick display"

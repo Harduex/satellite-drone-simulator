@@ -8,6 +8,7 @@ import { GameLoop } from "./GameLoop";
 import { RenderDiagnostics } from "./RenderDiagnostics";
 import { DroneAudio } from "./DroneAudio";
 import { FlightRecorder } from './FlightRecorder';
+import { TrafficController } from './TrafficController';
 import { createRecordingFrameSource } from '../world/RecordingFrameSource';
 import { useStore } from "../store";
 import { meanWindInto, resolveWindConfig } from "../core/physics/WindConfig";
@@ -32,6 +33,8 @@ export class SimSession {
   private exitPromise: Promise<void> | null = null;
   private disposed = false;
   private sessionGeneration = 0;
+  private traffic: TrafficController | null = null;
+  private trafficSettingsCleanup: (() => void) | null = null;
 
   constructor(cesiumManager: CesiumManager) {
     this.cesiumManager = cesiumManager;
@@ -53,6 +56,7 @@ export class SimSession {
     } else {
       this.renderDiagnostics?.stop();
       useStore.getState().updateRenderDiagnostics(null);
+      useStore.getState().updateTrafficDiagnostics(null);
     }
   }
 
@@ -182,6 +186,22 @@ export class SimSession {
     });
 
     this.gameLoop.start();
+
+    this.traffic = new TrafficController({
+      viewer, enuFrame, spawn: spawnPoint, longitude: location.lon,
+      readDronePosition: () => this.gameLoop?.getDroneState().position ?? spawnPoint,
+      readEnvironmentInstant: () => Cesium.JulianDate.toDate(viewer.clock.currentTime),
+      exclusionsChanged: objects => this.gameLoop?.setSceneExclusions([...sceneExclusions, ...objects]),
+      readBaseExclusions: () => terrainSampler.getExclusions(),
+      publish: counters => useStore.getState().updateTrafficDiagnostics(counters),
+      diagnosticsEnabled: () => useStore.getState().diagnosticsVisible,
+    });
+    this.gameLoop.onReset(() => this.traffic?.reset());
+    this.traffic.setEnabled(store.roadTrafficEnabled);
+    this.traffic.start();
+    this.trafficSettingsCleanup = useStore.subscribe((next, previous) => {
+      if (next.roadTrafficEnabled !== previous.roadTrafficEnabled) this.traffic?.setEnabled(next.roadTrafficEnabled);
+    });
 
     // Set up distance-based globe toggle (hide within 2km for 3D tile clarity)
     const spawnEcef = enuToEcef(spawnPoint, enuFrame);
@@ -313,6 +333,7 @@ export class SimSession {
   }
 
   pause(): void {
+    this.traffic?.pause();
     this.cesiumManager.setEnvironmentPaused(true);
     this.flightRecorder.pause();
     const recording = useStore.getState().recording;
@@ -327,6 +348,7 @@ export class SimSession {
     this.cesiumManager.setEnvironmentPaused(false);
     this.gameLoop?.applyStoreSettings();
     this.gameLoop?.start();
+    this.traffic?.resume();
     this.flightRecorder.resume();
     useStore.getState().setPhase("FLYING");
   }
@@ -339,7 +361,10 @@ export class SimSession {
   }
 
   private async finishSession(): Promise<void> {
+    this.trafficSettingsCleanup?.(); this.trafficSettingsCleanup = null;
+    this.traffic?.pause();
     await this.flightRecorder.stop('session_exit');
+    this.traffic?.dispose(); this.traffic = null;
     this.setCacheOnlyPractice(false);
     this.gameLoop?.stop();
     this.droneAudio.dispose();

@@ -55,6 +55,7 @@ export class GameLoop {
   private terrainSampler: TerrainSampler;
   private preUpdateListener: Cesium.Event.RemoveCallback | null = null;
   private sceneExclusions: object[];
+  private resetListener: (() => void) | null = null;
 
   private spawnAltitude: number;
   private spawnPosition: Vector3;
@@ -112,6 +113,14 @@ export class GameLoop {
   /** Register a callback for crash events */
   onCrash(callback: () => void): void {
     this.crashDetector.setOnCrash(callback);
+  }
+
+  onReset(callback: () => void): void { this.resetListener = callback; }
+
+  setSceneExclusions(objects: readonly object[]): void {
+    this.sceneExclusions = [...objects];
+    const drone = this.droneRenderer.getEntity();
+    this.terrainSampler.setExclusions(drone ? [...objects, drone] : [...objects]);
   }
 
   /** Push current store settings into all live subsystems (call on resume) */
@@ -172,6 +181,7 @@ export class GameLoop {
 
   reset(): void {
     this.resetAtPosition(this.spawnPosition);
+    this.resetListener?.();
   }
 
   private resetAtPosition(position: Vector3): void {

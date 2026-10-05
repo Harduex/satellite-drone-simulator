@@ -19,9 +19,11 @@ export function PhysicsSettings({ onClose }: Props) {
 
   const setWindPreset = useStore(s => s.setWindPreset);
   const setRealTime = useStore(s => s.setRealTimeOfDay);
+  const setTraffic = useStore(s => s.setRoadTrafficEnabled);
 
   const handleReset = () => {
     setRealTime(false);
+    setTraffic(true);
     setConfig(DEFAULT_DRONE_CONFIG);
     setFov(DEFAULT_FOV);
     setCameraTilt(DEFAULT_CAMERA_TILT);

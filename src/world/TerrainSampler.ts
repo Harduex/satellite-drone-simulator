@@ -55,6 +55,8 @@ export class TerrainSampler {
     this.objectsToExclude = objects.filter(Boolean);
   }
 
+  getExclusions(): readonly object[] { return this.objectsToExclude; }
+
   /** Get the cached ground height in ENU Z coordinates */
   getGroundHeight(): number {
     return this.cachedGroundHeight;

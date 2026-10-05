@@ -22,6 +22,8 @@ export interface SettingsSlice {
   audioVolume: number;
   showStickOverlay: boolean;
   realTimeOfDay: boolean;
+  roadTrafficEnabled: boolean;
+  setRoadTrafficEnabled: (enabled: boolean) => void;
   setRealTimeOfDay: (enabled: boolean) => void;
   setWindPreset: (preset: keyof typeof WIND_PRESETS) => void;
   defaultLocation: SavedLocation | null;
@@ -51,6 +53,11 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   audioVolume: SettingsPersistence.readAudioVolume(),
   showStickOverlay: SettingsPersistence.readShowStickOverlay(),
   realTimeOfDay: SettingsPersistence.readRealTimeOfDay(),
+  roadTrafficEnabled: SettingsPersistence.readRoadTrafficEnabled(),
+  setRoadTrafficEnabled: enabled => {
+    SettingsPersistence.writeRoadTrafficEnabled(enabled);
+    set({ roadTrafficEnabled: enabled });
+  },
   setRealTimeOfDay: (enabled) => {
     SettingsPersistence.writeRealTimeOfDay(enabled);
     set({ realTimeOfDay: enabled });

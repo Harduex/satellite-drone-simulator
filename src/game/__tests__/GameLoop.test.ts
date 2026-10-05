@@ -53,6 +53,11 @@ describe("GameLoop wall-clock integration", () => {
     vi.restoreAllMocks();
   });
 
+  it("notifies spawn reset once so session-owned traffic can rebuild", () => {
+    let resets=0;loop.onReset(()=>resets++);loop.reset();expect(resets).toBe(1);
+    expect(loop.getDroneState().position).toEqual({x:0,y:0,z:100});
+  });
+
   it("applies gentle weather and honors Calm on resume", () => {
     const originalConfig = useStore.getState().physicsConfig;
     useStore.setState({ physicsConfig: { ...DEFAULT_DRONE_CONFIG, gentleWind: true } });

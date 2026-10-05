@@ -60,6 +60,15 @@ export function mergeNumericPartial<T>(persisted: unknown, defaults: T): T {
 export const SettingsPersistence = {
   isFiniteLatLng,
 
+  readRoadTrafficEnabled(): boolean {
+    try { return typeof localStorage === 'undefined' || localStorage.getItem('fpvsim_road_traffic') !== 'false'; }
+    catch { return true; }
+  },
+  writeRoadTrafficEnabled(enabled: boolean): void {
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('fpvsim_road_traffic', String(enabled)); }
+    catch { console.warn('Road traffic preference could not be saved; using session setting.'); }
+  },
+
   readRealTimeOfDay(): boolean {
     try { return typeof localStorage !== "undefined" && localStorage.getItem(REAL_TIME_STORAGE_KEY) === "true"; }
     catch { return false; }

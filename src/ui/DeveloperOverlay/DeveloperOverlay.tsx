@@ -10,6 +10,8 @@ function memory(bytes: number): string {
 export function DeveloperOverlay({ session }: { session: SimSession }) {
   const visible = useStore(state => state.diagnosticsVisible);
   const snapshot = useStore(state => state.renderDiagnostics);
+  const traffic = useStore(state => state.trafficDiagnostics);
+  const trafficEnabled = useStore(state => state.roadTrafficEnabled);
   const cacheOnlyPractice = useStore(state => state.cacheOnlyPractice);
   const phase = useStore(state => state.phase);
 
@@ -105,6 +107,17 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
           </dl>
         </>
       )}
+      <section aria-label="Traffic diagnostics">
+        <div className={styles.status}>TRAFFIC · SIMULATED</div>
+        {traffic ? <dl className={styles.metrics}>
+          <dt>Cars / validated roads</dt><dd>{traffic.cars} / {traffic.edges}</dd>
+          <dt>Road cache · tiles / memory</dt><dd>{traffic.cachedTiles} / {memory(traffic.cachedBytes)}</dd>
+          <dt>Road requests / failures</dt><dd>{traffic.pendingRequests} / {traffic.requestFailures}</dd>
+          <dt>Surface pending / rejected</dt><dd>{traffic.pendingSurfaceRoads} / {traffic.rejectedRoads}</dd>
+          <dt>Update / surface ms</dt><dd>{traffic.updateMs.toFixed(2)} / {traffic.surfaceMs.toFixed(2)}</dd>
+          <dt>Surface samples / refreshes</dt><dd>{traffic.surfaceSamples} / {traffic.refreshes}</dd>
+        </dl> : <p className={styles.note}>{trafficEnabled ? 'Preparing nearby roads…' : 'Road traffic is off.'}</p>}
+      </section>
       <p className={styles.note}>{cacheOnlyPractice
         ? 'New 3D tile requests are blocked. Uncached views may appear incomplete.'
         : 'Tile requests only; unknown sources may use the API. Turning or altitude changes can fetch more detail.'}</p>
