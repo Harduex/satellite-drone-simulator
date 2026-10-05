@@ -141,7 +141,7 @@ Recommended execution: native in the current session, followed by one independen
 - V5: Independent whole-change review found a center-horizon visibility jump. A separate reproduction confirmed it; a real WebGL pixel changed by 35 levels over 3 ms. Per-ray horizon clipping fixes partial-disc visibility; the same test now gives identical pixels. Reviewer approved the correction.
 - V6: Browser settings checks cover custom direction via keyboard, mute control, narrow viewport, reload persistence and Reset to Defaults. The narrow browser check reproduced minimap interception of settings; elevating the paused view fixes it, with a passing click/persistence/reset rerun and independent approval. Physical radio hardware and subjective sound realism were not tested; existing controller suites and audio parameter tests pass. Coasting/wind behavior is covered numerically rather than a measured browser flight comparison.
 
-Local screenshots, video, automation and logs remain untracked. P3–P6, R1–R5 and F3 remain deferred in [simulator improvement proposals](../../experiments/simulator-improvements.md). No weather service or new dependency was added.
+Local screenshots, video, automation and logs remain untracked. P3–P6, R1–R5 and F3 decisions remain in [the product roadmap](../../ROADMAP.md). No weather service or new dependency was added.
 
 
 ### Audio refinement

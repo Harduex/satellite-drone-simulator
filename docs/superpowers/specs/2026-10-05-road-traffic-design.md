@@ -111,7 +111,7 @@ Selected assets are three CC0 cars from Kenney Car Kit, packaged locally with [p
 
 **Approved follow-up — LW1-A:** The fleet now also includes original CC0, stylized Audi A3 Sportback and Mazda CX-5 representations. Published body dimensions set their scale; the shapes are approximate. One manifest supplies renderer assets and simulation following lengths. All five variants receive the same environment exposure used by the map, in addition to ordinary Cesium material lighting. Off/reset and late model loads preserve the current exposure. This follow-up keeps the existing fleet and work ceilings.
 
-Cars use ordinary Cesium depth occlusion and no dynamic vehicle shadows. Buildings and terrain hide them normally. Rendering interpolates position and orientation without bypassing the 150-car/radius limits. Detailed interiors, animated wheels and vehicle sounds are deferred.
+Cars use ordinary Cesium depth occlusion and no dynamic vehicle shadows. Buildings and terrain hide them normally. Rendering interpolates position and orientation without bypassing the 150-car/radius limits. Follow-up visual/audio scope is tracked as LW1-D in [the roadmap](../../ROADMAP.md).
 
 ## Resolution / flow
 
@@ -203,4 +203,4 @@ Visual acceptance requires correct one-way travel, separated opposing lanes, sta
 - Aircraft and live weather; these remain later separate tasks.
 - Backend services, paid feeds and automatic FPS-driven population scaling.
 
-Broader source findings and deferred priorities remain in [living-world research](../../experiments/living-world-research.md).
+Future priorities are maintained in [the product roadmap](../../ROADMAP.md); source evidence remains in [living-world research](../../experiments/living-world-research.md).

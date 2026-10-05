@@ -168,7 +168,7 @@ The existing `gentleWind` setting establishes the integration surfaces below.
 
 ## Out of scope
 
-Deferred proposals and F3 crash timing are tracked in [simulator improvements](../../experiments/simulator-improvements.md).
+Deferred proposals and F3 crash timing are tracked in [the product roadmap](../../ROADMAP.md); [crash evidence](../../experiments/simulator-improvements.md) remains separate.
 Real-flight calibration, propwash, ground/wall effects, live weather, battery limits, new collision geometry, training and controller/graphics profiles remain separate work.
 
 ## References

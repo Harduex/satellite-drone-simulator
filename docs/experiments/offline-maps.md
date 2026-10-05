@@ -2,14 +2,9 @@
 
 Status: feasibility demonstrated; product design deferred for later brainstorming.
 
-## Intended experience
+## Roadmap
 
-| ID | Direction |
-|---|---|
-| D1 | Keep the current Google map mode working and selected by default. |
-| D2 | Add an optional map source setting for local/offline maps. |
-| D3 | Let players load supported map packs: real places or fictional game worlds. |
-| D4 | Explore a browsable map index with clear compatibility, size and licensing information. An index has not been selected or built. |
+Map-source directions D1–D4 and brainstorming B1–B6 are consolidated under MAP IDs in [the product roadmap](../ROADMAP.md). Google remains the default.
 
 “Offline” means an independent dataset with its own assets, not downloading Google tiles for permanent reuse. Serving assets from localhost proves local rendering; it does not establish a hosted game's offline installation or storage behavior.
 
@@ -43,17 +38,8 @@ San Andreas source: [tostiman/dv_san_andreas](https://git.tostiman.com/tostiman/
 
 Local, untracked artifacts remain under `.local/helsinki/` and `.local/san-andreas/`; Helsinki content is under `public/experiments/helsinki/`. With the development server running, open `/.local/helsinki/probe.html` or `/.local/san-andreas/probe.html`. The San Andreas directory contains conversion scripts, a Blender checkpoint, the GLB, tileset manifest and checksum/bounds report. These files are not shipped with the repository; a fresh clone will not contain the experiments.
 
-## Resume brainstorming here
+## Further work
 
-Recommendation: use the working Grove Street experiment to define a small map-pack contract before building a catalog or full-world converter.
+The map-pack contract, import/storage, lifecycle, coverage, chunking, catalog and reconstruction decisions are maintained in [the roadmap](../ROADMAP.md).
 
-| ID | Topic to resolve |
-|---|---|
-| B1 | Pack metadata: version, entry point, units, axes, bounds, spawn points, credits and license. Start with 3D Tiles and prepared GLB assets; decide conversion requirements for other formats separately. |
-| B2 | Import and storage: local folder/archive versus downloaded packs; browser quota, persistence, progress, removal and whether the app shell itself works offline. |
-| B3 | Map lifecycle: switch sources cleanly, release renderer resources, reset coordinates/spawn, and prevent remote dependencies in offline mode. Keep Google behavior intact. |
-| B4 | Flight boundaries and collision: warn before leaving coverage; distinguish visual mesh height sampling from dedicated collision geometry. |
-| B5 | Larger worlds: spatial chunking, LOD, texture budgets and loading nearby regions instead of one city-sized GLB. |
-| B6 | Catalog: choose an openly licensed sample pack, validate source/licensing metadata and broken links, then decide whether a curated index is worthwhile. |
-
-AI reconstruction from images/video remains a separate research direction. These experiments demonstrate conventional textured meshes, not an AI-generated worldwide map.
+These experiments demonstrate conventional textured meshes, not an AI-generated worldwide map.

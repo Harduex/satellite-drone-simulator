@@ -5,7 +5,7 @@
 Build a browser-based FPV drone simulator from scratch per `SATELLITE_DRONE_SIM_PRD.md`. The project is completely greenfield — no source code, no `package.json`, nothing exists yet beyond the PRD and dotagents config (`agents.toml`). The user picks any real-world location via Google Maps, then flies over it in FPV using a real radio controller via USB. Physics should feel like Liftoff — realistic motor thrust, drag, inertia, ground effect.
 
 **Stack:** Vite + TypeScript + React (minimal UI) + CesiumJS + Zustand + Google Maps/3D Tiles
-**Physics:** Custom quadrotor force model at 500Hz, Euler integrator (upgrade to RK4 later if needed)
+**Physics:** Custom quadrotor force model at 500Hz, Euler integrator (integration experiments tracked as PHY-INTEGRATOR in docs/ROADMAP.md)
 **Input:** Web Gamepad API for real FPV radio controllers + keyboard fallback for dev
 **Package manager:** npm
 **Testing:** vitest from the start
@@ -151,7 +151,7 @@ m4 = throttle - roll - pitch - yaw   (back-left, CW)
 **Goal:** Refined FPV feel, crash handling, final experience.
 
 - FPV camera tilt offset (25-35° configurable) — real FPV cameras are angled up
-- Geometric drone model: box body + 4 arms + motor discs via Cesium primitives (not visible in FPV, for future 3rd-person)
+- Geometric drone model: box body + 4 arms + motor discs via Cesium primitives (not visible in FPV; camera candidates tracked in docs/ROADMAP.md)
 - **Crash handling:** AGL < 0.5m → red flash (200ms) → 1s freeze → respawn at spawn
 - ESC pause: freeze physics, keep Cesium rendering
 - Debug FPS + physics-Hz counter (F3 toggle)

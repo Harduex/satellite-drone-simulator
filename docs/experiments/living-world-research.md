@@ -4,7 +4,7 @@ Assessed 2026-10-05. Research and next-step direction; [traffic V1 design](../su
 
 ## Recommendation
 
-**W1:** Use **God’s Eye View**, formerly WorldView, as the main reference. Adapt selected data-source and scene-lifecycle patterns into the existing Cesium simulator. Start with believable local road traffic; add live feeds after road placement works. Do not replace the simulator with an intelligence dashboard.
+**W1:** Use **God’s Eye View**, formerly WorldView, as the main reference. Adapt selected data-source and scene-lifecycle patterns into the existing Cesium simulator. The implemented traffic adapter follows those patterns; further feed choices are tracked in [the roadmap](../ROADMAP.md). Do not replace the simulator with an intelligence dashboard.
 
 The exact remembered product cannot be established without a screenshot/link, but God’s Eye View is the strongest match to a photorealistic live globe with road traffic. Its [original repository](https://github.com/bilawalsidhu/gods-eye-view) identifies Bilawal Sidhu’s WorldView as its predecessor. Source inspection pinned upstream revision `b74a0233d9b94bd48329e60009d3877532e04ab2`, package version 0.2.1. Read upstream documentation and selected implementation files directly; no third-party application was installed or executed.
 
@@ -41,7 +41,7 @@ These distinctions come from GEV’s [layer inventory](https://github.com/bilawa
 
 **T3:** Road placement is a major integration problem. Upstream subdivides long roads, acquires rendered-surface heights, rejects unrelated foreground depth hits and waits for usable surface frames. Its dot height offset is 3 m; this should not become a car’s ground-contact height. Its 6,000-dot cap and bounded caches are upstream design limits, not measured performance promises for this simulator. [Surface acquisition](https://github.com/bilawalsidhu/gods-eye-view/blob/b74a0233d9b94bd48329e60009d3877532e04ab2/src/layers/traffic/surface.js), [policy](https://github.com/bilawalsidhu/gods-eye-view/blob/b74a0233d9b94bd48329e60009d3877532e04ab2/src/layers/traffic/policy.js).
 
-**T4:** For stronger traffic behavior, [Eclipse SUMO](https://eclipse.dev/sumo/) is the relevant separate reference. It imports [OSM road networks](https://sumo.dlr.de/docs/Networks/Import/OpenStreetMap.html) and models [junction signals](https://sumo.dlr.de/docs/Simulation/Traffic_Lights.html). Real signal programs/demand still require calibration. Recommendation: consider an offline-generated district scenario or separate simulation process later; a worldwide SUMO runtime is disproportionate to the first feature.
+**T4:** For stronger traffic behavior, [Eclipse SUMO](https://eclipse.dev/sumo/) is the relevant separate reference. It imports [OSM road networks](https://sumo.dlr.de/docs/Networks/Import/OpenStreetMap.html) and models [junction signals](https://sumo.dlr.de/docs/Simulation/Traffic_Lights.html). Real signal programs/demand still require calibration. A worldwide SUMO runtime would introduce substantially more infrastructure than the existing local adapter.
 
 ## Fit with this simulator
 
@@ -63,34 +63,21 @@ These distinctions come from GEV’s [layer inventory](https://github.com/bilawa
 - **C4:** Open-Meteo can supply wind/gusts/cloud cover/visibility, but it combines weather-model output, not building-scale airflow measurements. Its free hosted API is non-commercial; commercial hosted access uses a subscription. Do not map forecast peak gust directly to our bounded gust-variation control. [Variables/model resolution](https://open-meteo.com/en/docs), [hosted access](https://open-meteo.com/en/pricing). P6 remains deferred.
 - **C5:** Code licensing, road-data attribution, feed permissions and vehicle-model licenses are separate. OpenFreeMap permits hosted or self-hosted use, but OSM/OpenMapTiles attribution remains relevant. Retain provider credits in screenshots/recording. [OpenFreeMap](https://openfreemap.org/), [GEV license](https://github.com/bilawalsidhu/gods-eye-view/blob/main/LICENSE).
 
-## Selected next-step direction
+## Roadmap and lasting constraints
 
-The selected sequence is three separate tasks: **LW1/LW2 traffic first**, **LW3 aircraft second**, **LW4 live weather third**. This selects product priorities and design constraints, not an implementation specification. Ships, transit and LW5 remain undecided. LW4 revisits deferred P6 as a later task.
+Living-world initiatives LW1–LW5 and LW2-G are maintained only in [the product roadmap](../ROADMAP.md), including their decision status and sequence.
 
-- **N1 — Traffic:** Simple 3D cars on real mapped roads, with simulated movement inspired by public data. Active roads and vehicles follow the drone's nearby area; cap work and rendering to protect flight performance. Implemented V1 uses estimated road-class/time demand, with live congestion deferred. Five local CC0 low-poly models provide body-color variation.
-- **N2 — Aircraft:** Later, simple 3D planes driven by public flight-position reports, limited to a useful viewing distance. Report age, interpolation, coverage and permission to use a feed still need validation; a free public endpoint alone is insufficient.
-- **N3 — Weather:** Later, optional live weather to support realistic atmosphere and experimentation. Keep this separate from traffic and aircraft work.
-- **N4 — Infrastructure:** Reuse Cesium, coordinate utilities, session lifecycle, settings and diagnostics wherever they fit. Prefer browser-side operation and existing APIs; avoid a new backend, paid feeds, subscriptions or elaborate external services. Flag any necessary additional source or dependency before adopting it.
-- **N5 — Data and cost:** New features should use free, publicly accessible data without additional paid API requirements. Existing Google API access does not establish that an additional product is enabled, free or suitable. Google tiles and existing location/elevation services do not supply a semantic road/lane network; a public road-geometry source needs evaluation. OpenFreeMap is a candidate: its hosted instance requires no key or registration, with attribution required. [Provider access and attribution](https://openfreemap.org/).
-- **N6 — Verification:** Set the local radius and object/work budgets during traffic design, then measure frame-time impact. Verify road-height alignment, pause/reset, location changes and request cleanup; do not claim zero performance impact before a prototype is measured.
+- Reuse Cesium, coordinates, session ownership, settings and diagnostics. Prefer browser-side operation, free public data and local assets; a new backend, paid feed or service requires its own decision.
+- Existing Google API access does not establish that another product is enabled, free or suitable. Tiles and location/elevation services do not provide a semantic lane network.
+- Geographic/object/request/work budgets require measured frame-time, placement, pause/reset, location cleanup and recording checks.
 
-## Research proposals and recommended sequence
+### Google congestion evidence
 
-| ID | Proposal | Recommendation |
-| --- | --- | --- |
-| LW1 | Optional local simulated road traffic | First: one validated district, 3D cars, lane direction, basic following/intersections, smooth movement, pause/reset and bounded rendering cost. This most directly improves ordinary low-altitude flight. |
-| LW2 | Live congestion controlling simulated traffic | After LW1; obtain access and label cars as simulated. Start with a single region and explicit request budget. |
-| LW3 | Live aircraft, vessels or transit | One feed at a time. Choose aircraft for aviation scenery, ships for harbors, transit for a well-supported city; verify reuse permission and timestamps first. |
-| LW4 | Optional weather-driven atmosphere/wind | Extend deferred P6 when approved. Keep pleasant defaults and an explicit choice between realistic conditions and moderated flight conditions. |
-| LW5 | Richer traffic behavior via SUMO | Later, if lightweight traffic fails close-up quality goals. Start with a prepared district and known demand, not the entire planet. |
-
-**LW2-G — Google congestion source, undecided:** Consider Google traffic conditions as an input to LW2: adjust simulated vehicle speeds and spacing, with vehicle counts estimated from road class and congestion. This would approximate the traffic scene; it would not locate individual real vehicles or measure their count. Google Routes API exposes `NORMAL`, `SLOW` and `TRAFFIC_JAM` categories along requested route polylines. The Maps JavaScript TrafficLayer displays traffic rather than providing a documented raw city-wide congestion feed. Evaluate route sampling coverage, billing and permitted simulator use before selecting Google as the provider; do not scrape map colors. No API integration is approved by this proposal. [Routes traffic intervals](https://developers.google.com/maps/documentation/routes/traffic_on_polylines), [TrafficLayer](https://developers.google.com/maps/documentation/javascript/trafficlayer).
-
-First research-to-prototype gate: choose a district with clear surface roads; verify road alignment and occlusion; render a small fleet; compare frame time against the unchanged scene; check pause/location teardown and recording. Include a bridge/tunnel case before claiming general coverage. No integration or performance benchmark was conducted in this research.
+Google Routes exposes `NORMAL`, `SLOW` and `TRAFFIC_JAM` intervals along requested route polylines; Maps JavaScript TrafficLayer is a display layer, rather than a documented raw city-wide congestion feed. Those categories do not locate individual vehicles or measure their count. Coverage, billing and permitted reuse remain provider constraints. [Routes intervals](https://developers.google.com/maps/documentation/routes/traffic_on_polylines), [TrafficLayer](https://developers.google.com/maps/documentation/javascript/trafficlayer).
 
 ## Remaining uncertainties
 
-**U1:** The exact remembered product is probable, not confirmed. **U2:** Actual nearby live-feed coverage and end-to-end latency need a future provider probe. **U3:** Traffic now uses a small local adapter, rather than importing GEV's runtime; hardware measurement is recorded in the implementation plan. **U4:** Conservative height checks improve road alignment but cannot identify every flat roof or resolve all bridge approaches. Existing P3–P6 and R1–R5 decisions remain in [simulator improvement proposals](simulator-improvements.md).
+**U1:** The exact remembered product is probable, not confirmed. **U2:** Actual nearby live-feed coverage and end-to-end latency need a future provider probe. **U3:** Traffic now uses a small local adapter, rather than importing GEV's runtime; hardware measurement is recorded in the implementation plan. **U4:** Conservative height checks improve road alignment but cannot identify every flat roof or resolve all bridge approaches. Related flight-improvement decisions are maintained in [the roadmap](../ROADMAP.md).
 
 ## Traffic V1 implementation evidence
 

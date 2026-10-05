@@ -10,25 +10,13 @@ Assessed 2026-10-05. Statuses distinguish locally implemented features from defe
 | P2 | Real-time Sun/Moon, time-dependent environment, pleasant default daylight | Same design implemented locally; verification in the [plan](../superpowers/plans/2026-10-05-wind-daylight.md) |
 | F4 | Tile-cache documentation | README corrected to the configured 6 GiB, plus 0.5 GiB view overflow. This budget is intentional. |
 
-## Deferred proposals
+## Roadmap
 
-Every entry below requires a separate scope decision before implementation.
-
-| ID | Proposal | Constraint |
-| --- | --- | --- |
-| P3 | True 3D collisions, impact-based landing/crash detection | Deferred. Current collision floor comes from height samples; walls and overhangs need richer geometry handling. |
-| P4 | Battery discharge, voltage sag and current limits | Excluded from current work. Any future battery simulation is optional; default play remains unlimited. |
-| P5 | Self-level mode, practice gates, timed challenges and flight-state replay | Deferred. Acro remains the current mode; video recording is already available. |
-| P6 | Optional live weather | Deferred. Regional weather data cannot specify exact airflow around individual buildings. |
-| R1 | Real-flight calibration of drag, rotor response and flight envelope | Proposed, undecided. Current drag and inertia coefficients include estimates; numerical consistency does not establish flight-data accuracy. |
-| R2 | Propwash and descent thrust loss | Proposed, undecided. The current inflow model retains static thrust during descent. |
-| R3 | Ground effect and wall/building aerodynamic effects | Proposed, undecided. Needs reliable surface clearance and geometry before adding proximity-dependent forces. |
-| R4 | Controller profiles per device | Proposed, undecided. Current saved mapping uses one shared storage key. |
-| R5 | Graphics quality and memory presets | Proposed, undecided. The current 6 GiB cache budget remains unchanged. |
+Deferred P3–P6, proposed R1–R5 and F3 are maintained only in [the product roadmap](../ROADMAP.md). This document retains implementation and crash-timing evidence.
 
 ## F3: frame-dependent crash timing
 
-Status: reproduced; fix not approved.
+Reproduced timing evidence; decision status and correction scope: [F3 in the roadmap](../ROADMAP.md).
 
 `TelemetryPublisher.maybePublish()` publishes every sixth render frame. `GameLoop.tick()` calls `CrashDetector.check()` only on those frames.
 `CrashDetector` counts 30 checks for spawn grace, then three consecutive low-clearance checks before respawn.
@@ -46,9 +34,6 @@ Method: feed a grounded `createDefaultDroneState(0)` through the actual publishe
 The first crash occurs on render frame 198. These values exclude loading and pause time.
 Ground contact still executes in the 500 Hz physics loop; the discrepancy concerns crash declaration, flash and automatic respawn.
 After grace expires, confirmation takes three checks: approximately 1.8 seconds at 10 FPS versus 0.3 seconds at 60 FPS.
-
-Proposed correction: measure grace and contact confirmation in elapsed simulation time, independently of HUD publication.
-Preserve the protection against transient terrain samples and keep god-mode recovery separate.
 
 Evidence: [publisher](../../src/game/TelemetryPublisher.ts), [detector](../../src/game/CrashDetector.ts), [integration](../../src/game/GameLoop.ts).
 

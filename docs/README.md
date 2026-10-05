@@ -8,24 +8,24 @@ Start here for project knowledge. Agent instructions for documentation live in [
 |---|---|
 | [Project README](../README.md) | Setup, controls, current behavior and technical overview |
 | [Product roadmap](ROADMAP.md) | Outcomes, Now/Next/Later horizons, dependencies and decision status; central index of postponed ideas and undecided proposals |
-| [Product requirements](../SATELLITE_DRONE_SIM_PRD.md) | Original product requirements |
+| [Product requirements](../SATELLITE_DRONE_SIM_PRD.md) | Historical MVP requirements; future candidates moved to the product roadmap |
 | [Design](../DESIGN.md) | Existing design reference |
-| [Implementation plan](../PLAN.md) | Original implementation plan; verify current status against code |
+| [Implementation plan](../PLAN.md) | Historical implementation plan; verify current status against code |
 
 ## Experiments
 
 | Document | Status |
 |---|---|
-| [Offline and custom maps](experiments/offline-maps.md) | Helsinki and textured Grove Street feasibility findings; future brainstorming questions |
-| [Archived rendering roadmap](experiments/rendering-roadmap.md) | Six recovered proposals; historical assumptions corrected in the audit below |
-| [Simulator improvements](experiments/simulator-improvements.md) | Wind/daylight scope, deferred proposals and reproduced crash-timing evidence |
+| [Offline and custom maps](experiments/offline-maps.md) | Helsinki and textured Grove Street feasibility evidence; future scope lives in the roadmap |
+| [Simulator improvements](experiments/simulator-improvements.md) | Wind/daylight scope and reproduced crash-timing evidence; decisions live in the roadmap |
 | [Living-world and traffic research](experiments/living-world-research.md) | Verified sources and free-data/reuse constraints; road traffic implemented locally, aircraft and weather deferred |
 
 ## Audits
 
 | Document | Scope |
 |---|---|
-| [Rendering quick wins — October 2026](audits/quick-wins-2026-10.md) | Current renderer evidence, ranked experiments and assessment of the six rendering proposals |
+| [Public-repository safety](audits/public-safety-2026-10-05.md) | Outgoing branch/history disclosure checks, scanner self-tests and local stash metadata advisory |
+| [Rendering quick wins — October 2026](audits/quick-wins-2026-10.md) | Source-confirmed renderer corrections and minimap evidence; candidates live in the roadmap |
 
 ## Feature designs
 

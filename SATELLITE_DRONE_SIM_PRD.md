@@ -25,14 +25,9 @@ A browser-based FPV drone simulator where the world IS the map. User picks any r
 - Collision: terrain height sampling (no full mesh collision for MVP — drone resets on ground contact)
 - HUD: minimal — throttle bar, battery % (simulated drain), speed, altitude AGL
 
-### Out of scope (v0.2+)
-- Multiple drones
-- Wind simulation
-- Prop wash / turbulence
-- Multiplayer
-- DVR recording
-- Custom drone builder
-- Weather / time of day
+### Roadmap
+
+This is the original MVP requirements record, not a current delivery promise. Post-MVP candidates and verified completed features are consolidated in [docs/ROADMAP.md](docs/ROADMAP.md). The original speculative version schedule is retired.
 
 ---
 
@@ -69,7 +64,7 @@ A browser-based FPV drone simulator where the world IS the map. User picks any r
 - Torques: differential thrust (yaw), gyroscopic effect (simplified)
 - Drag: velocity-proportional, uses projected area approximation
 
-**Add Rapier in v0.2** if terrain mesh collision (trees, buildings) is needed.
+Collision-engine evaluation belongs to P3 in [the roadmap](docs/ROADMAP.md); no engine or release version is selected.
 
 ### 4.3 Maps: Google Maps JS API + Map Tiles API
 - **Location picker:** Google Maps JS API with Places Autocomplete
@@ -125,7 +120,7 @@ src/
 │
 ├── camera/
 │   ├── FPVCamera.ts            # Sets Cesium camera from drone state each frame
-│   └── CameraConfig.ts         # FOV, lens distortion params (future)
+│   └── CameraConfig.ts         # FOV configuration; future candidates in docs/ROADMAP.md
 │
 ├── game/
 │   ├── GameLoop.ts             # Master loop: input → physics → render sync
@@ -357,7 +352,7 @@ class GameLoop {
 - Gamepad connected indicator (green dot + device name)
 - 4-step axis wizard with live axis visualizer
 - Rates config: max roll/pitch rate (100–900 deg/s), expo (0–1)
-- Mode select: Acro / Angle (Horizon in v0.2)
+- Historical mode sketch: Acro / Angle; current self-level scope is tracked as P5 in docs/ROADMAP.md
 - Save → localStorage `fpvsim_controller_config`
 
 ---
@@ -487,13 +482,9 @@ export const DEFAULT_RATES = {
 
 ---
 
-## 16. Future Roadmap (Post-MVP)
+## 16. Roadmap
 
-- **v0.2:** Wind system (Dryden turbulence model), prop wash, Rapier mesh collision for buildings
-- **v0.3:** Drone builder (motor KV, frame, battery config → physics params)
-- **v0.4:** Ghost replay (record + replay FPV run)
-- **v0.5:** Multiplayer (WebRTC peer positions, no shared physics)
-- **v1.0:** FPV goggle mode (WebXR), DVR recording (MediaRecorder API)
+See [the central product roadmap](docs/ROADMAP.md). It preserves proposed scope and current decisions without promising the original speculative version dates.
 
 ---
 
