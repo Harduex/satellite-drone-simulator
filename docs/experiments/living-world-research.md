@@ -1,6 +1,6 @@
 # Living-world and live-traffic research
 
-Assessed 2026-10-05. Research and next-step direction; [traffic V1 design](../superpowers/specs/2026-10-05-road-traffic-design.md) is ready for review. No simulator integration implemented or implementation design approved.
+Assessed 2026-10-05. Research and next-step direction; [traffic V1 design](../superpowers/specs/2026-10-05-road-traffic-design.md) is approved and its [implementation plan](../superpowers/plans/2026-10-05-road-traffic.md) is ready for review. No traffic integration implemented.
 
 ## Recommendation
 

@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-05
 **Scope:** Optional nearby visual road traffic for FPV free flight.
-**Status:** Design for review; no traffic implementation or measured performance results.
+**Status:** Approved design; [implementation plan](../plans/2026-10-05-road-traffic.md) prepared for review. No traffic implementation or measured performance results.
 
 ## TL;DR
 

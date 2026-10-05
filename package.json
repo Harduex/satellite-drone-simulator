@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
+    "@mapbox/vector-tile": "^3.0.0",
     "cesium": "^1.139.1",
+    "pbf": "^5.1.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "zustand": "^5.0.12"
