@@ -30,8 +30,8 @@ export function resolveWindConfig(input: Partial<PhysicsConfig>): WindConfig {
 
 export function meanWindInto(config: WindConfig, out: Vector3): Vector3 {
   const radians = config.windDirection * Math.PI / 180;
-  out.x = -config.windSpeed * Math.sin(radians);
-  out.y = -config.windSpeed * Math.cos(radians);
+  out.x = -config.windSpeed * Math.sin(radians) || 0;
+  out.y = -config.windSpeed * Math.cos(radians) || 0;
   out.z = 0;
   return out;
 }

@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { WindModel } from "../WindModel";
 
 describe("fair-weather wind", () => {
+  it("supports Calm and bounds configured gusts around the mean", () => {
+    const model = new WindModel({ windSpeed: 4, windDirection: 0, windGustStrength: 1 }, 7);
+    const out = { x: 0, y: 0, z: 0 };
+    for (let i = 0; i < 60000; i++) {
+      model.updateInto(0.002, out);
+      expect(Math.hypot(out.x, out.y + 4)).toBeLessThanOrEqual(1 + 1e-9);
+      expect(Math.abs(out.z)).toBeLessThanOrEqual(0.1 + 1e-9);
+    }
+    model.setConfig({ windSpeed: 0, windDirection: 90, windGustStrength: 0 });
+    model.updateInto(0.002, out);
+    expect(out).toEqual({ x: 0, y: 0, z: 0 });
+  });
   it("stays near a gentle breeze with small, smooth vertical variation", () => {
     const model = new WindModel();
     const out = { x: 0, y: 0, z: 0 };

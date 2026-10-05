@@ -1,6 +1,7 @@
 import * as Cesium from "cesium";
 import { DronePhysics } from "../core/physics/DronePhysics";
 import { WindModel } from "../core/physics/WindModel";
+import { resolveWindConfig } from "../core/physics/WindConfig";
 import { FlightController } from "../core/flight-controller/FlightController";
 import { GamepadManager } from "../core/input/GamepadManager";
 import { KeyboardInput } from "../core/input/KeyboardInput";
@@ -41,7 +42,6 @@ export class GameLoop {
   private physics: DronePhysics;
   private readonly windModel = new WindModel();
   private readonly windVelocity: Vector3 = { x: 0, y: 0, z: 0 };
-  private gentleWind: boolean;
   private flightController: FlightController;
   private gamepadManager: GamepadManager;
   private keyboardInput: KeyboardInput;
@@ -81,7 +81,7 @@ export class GameLoop {
     this.audio = params.audio;
 
     this.physics = new DronePhysics(params.physicsConfig);
-    this.gentleWind = params.physicsConfig.gentleWind !== false;
+    this.windModel.setConfig(resolveWindConfig(params.physicsConfig));
     this.flightController = new FlightController(
       params.ratesConfig,
     );
@@ -118,7 +118,7 @@ export class GameLoop {
   applyStoreSettings(): void {
     const store = useStore.getState();
     this.physics.updateConfig(store.physicsConfig);
-    this.gentleWind = store.physicsConfig.gentleWind !== false;
+    this.windModel.setConfig(resolveWindConfig(store.physicsConfig));
     this.flightController.updateRates(store.rates);
     this.fpvCamera.setFov(store.fov);
     this.fpvCamera.setTiltDegrees(store.cameraTilt);
@@ -179,6 +179,7 @@ export class GameLoop {
     Object.assign(this.lastSafePosition, position);
     this.physics.reset();
     this.windModel.reset();
+    this.windModel.updateInto(0, this.windVelocity);
     this.flightController.reset();
     this.telemetryPublisher.reset();
     this.crashDetector.reset();
@@ -245,7 +246,7 @@ export class GameLoop {
         this.PHYSICS_DT,
         groundHeight,
         this.droneStateBuffer,
-        this.gentleWind ? this.windVelocity : undefined,
+        this.windVelocity,
       );
       // Swap references (zero allocation ping-pong)
       const tmp = this.droneState;

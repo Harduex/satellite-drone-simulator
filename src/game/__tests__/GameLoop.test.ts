@@ -61,7 +61,7 @@ describe("GameLoop wall-clock integration", () => {
     preUpdate.raiseEvent();
     expect(loop.getDroneState().velocity.x).toBeGreaterThan(0);
     loop.stop();
-    useStore.setState({ physicsConfig: { ...DEFAULT_DRONE_CONFIG, gentleWind: false } });
+    useStore.setState({ physicsConfig: { ...DEFAULT_DRONE_CONFIG, windSpeed: 0, windGustStrength: 0 } });
     loop.applyStoreSettings();
     loop.reset();
     loop.start();
