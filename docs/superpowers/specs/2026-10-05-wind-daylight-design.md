@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-05
 **Scope:** P1/P2: configurable gentle weather and location-correct daylight for free-flight pilots.
-**Status:** Proposed design; feature scope approved; implementation has not started.
+**Status:** Approved design; implementation has not started.
 
 ## TL;DR
 

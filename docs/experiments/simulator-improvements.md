@@ -6,8 +6,8 @@ Assessed 2026-10-05. These statuses describe scope decisions, not shipped featur
 
 | ID | Scope | Status |
 | --- | --- | --- |
-| P1 | Wind presets, direction, bounded gusts, wind indication and airspeed-driven sound | Implementation scope approved; [detailed design](../superpowers/specs/2026-10-05-wind-daylight-design.md) awaiting review |
-| P2 | Real-time Sun/Moon, time-dependent environment, pleasant default daylight | Implementation scope approved; same design awaiting review |
+| P1 | Wind presets, direction, bounded gusts, wind indication and airspeed-driven sound | [Detailed design](../superpowers/specs/2026-10-05-wind-daylight-design.md) approved; implementation pending |
+| P2 | Real-time Sun/Moon, time-dependent environment, pleasant default daylight | Same design approved; implementation pending |
 | F4 | Tile-cache documentation | README corrected to the configured 6 GiB, plus 0.5 GiB view overflow. This budget is intentional. |
 
 ## Deferred proposals
