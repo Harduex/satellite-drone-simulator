@@ -1,6 +1,7 @@
 import * as Cesium from "cesium";
 import { initTerrainProvider } from "./TerrainProviderFactory";
-import { createDaylightPanorama } from "./DaylightSky";
+import { createEnvironmentSky, type EnvironmentSky } from "./DaylightSky";
+import { createDaylightState, selectPleasantDay, updateDaylightInto } from "./DaylightEnvironment";
 
 const CLOUD_LAYOUT = [
   { east: -3400, north: 4200, up: 1400, width: 2200, height: 820, depth: 11, brightness: 0.96 },
@@ -24,14 +25,21 @@ const CLOUD_LAYOUT = [
 export class CesiumManager {
   private viewer: Cesium.Viewer | null = null;
   private globeToggleCleanup: Cesium.Event.RemoveCallback | null = null;
-  private cloudDriftCleanup: Cesium.Event.RemoveCallback | null = null;
   private renderResolutionCleanup: Cesium.Event.RemoveCallback | null = null;
   private cloudCollection: Cesium.CloudCollection | null = null;
-  private daylightPanorama: Cesium.CubeMapPanorama | null = null;
-  private cloudDriftStart = performance.now();
+  private environmentSky: EnvironmentSky | null = null;
+  private environmentCleanup: Cesium.Event.RemoveCallback | null = null;
+  private environmentLongitude = 0;
+  private environmentLatitude = 0;
+  private environmentFrame = new Cesium.Matrix4();
+  private realTimeOfDay = false;
+  private environmentPaused = false;
+  private meanWind = new Cesium.Cartesian3(1.2, 0.9, 0);
+  private daylight = createDaylightState();
+  private light = new Cesium.DirectionalLight({ direction: new Cesium.Cartesian3(0, 0, -1) });
+  private exposureListener: ((exposure: number) => void) | null = null;
   private cloudDriftLastUpdate = 0;
   private cloudDriftScratch = new Cesium.Cartesian3();
-  private cloudPositionScratch = new Cesium.Cartesian3();
   private cloudVelocity = new Cesium.Cartesian3();
   private driftingClouds: { cloud: Cesium.CumulusCloud; origin: Cesium.Cartesian3 }[] = [];
 
@@ -55,7 +63,7 @@ export class CesiumManager {
       navigationHelpButton: false,
       scene3DOnly: true,
       requestRenderMode: false,
-      skyBox: false, // disable space/stars — drone sims always fly in daylight
+      skyBox: false,
       shadows: true,
     });
 
@@ -87,9 +95,10 @@ export class CesiumManager {
       this.viewer.scene.skyAtmosphere.saturationShift = 0.04;
       this.viewer.scene.skyAtmosphere.brightnessShift = 0.02;
     }
-    // Disabling the default star sky also disables Viewer creation of the sun.
-    this.viewer.scene.sun = new Cesium.Sun();
+    // Celestial discs share the local sky geometry to avoid far-plane clipping.
+    this.viewer.scene.sun = undefined;
     if (this.viewer.scene.moon) this.viewer.scene.moon.show = false;
+    if (this.viewer.scene.skyAtmosphere) this.viewer.scene.skyAtmosphere.show = false;
     this.viewer.scene.backgroundColor = new Cesium.Color(0.38, 0.62, 0.82, 1.0);
     const shadows = this.viewer.scene.shadowMap;
     shadows.softShadows = true;
@@ -146,11 +155,17 @@ export class CesiumManager {
       this.globeToggleCleanup();
       this.globeToggleCleanup = null;
     }
-    if (this.cloudDriftCleanup) {
-      this.cloudDriftCleanup();
-      this.cloudDriftCleanup = null;
-    }
+    this.environmentCleanup?.();
+    this.environmentCleanup = null;
     if (this.viewer) {
+      if (this.environmentSky) {
+        for (const primitive of this.environmentSky.primitives) this.viewer.scene.primitives.remove(primitive);
+        this.environmentSky.destroy();
+        this.environmentSky = null;
+      }
+      this.cloudCollection?.removeAll();
+      this.driftingClouds.length = 0;
+      this.exposureListener = null;
       this.viewer.scene.globe.show = true;
     }
   }
@@ -186,18 +201,49 @@ export class CesiumManager {
       }
     });
 
-    // Cloud drift runs as a separate, lightweight listener
-    this.cloudDriftCleanup?.();
-    this.cloudDriftCleanup = this.viewer.scene.preRender.addEventListener(() => {
-      const now = performance.now();
-      if (now - this.cloudDriftLastUpdate < 100) return;
-      this.cloudDriftLastUpdate = now;
-      Cesium.Cartesian3.multiplyByScalar(this.cloudVelocity, (now - this.cloudDriftStart) / 1000, this.cloudDriftScratch);
-      for (const { cloud, origin } of this.driftingClouds) {
-        Cesium.Cartesian3.add(origin, this.cloudDriftScratch, this.cloudPositionScratch);
-        cloud.position = this.cloudPositionScratch;
-      }
-    });
+  }
+
+  setEnvironmentExposureListener(listener: (exposure: number) => void): void {
+    this.exposureListener = listener;
+    listener(this.daylight.exposure);
+  }
+
+  setEnvironmentOptions(realTimeOfDay: boolean, windEast: number, windNorth: number): void {
+    const changed = this.realTimeOfDay !== realTimeOfDay;
+    this.realTimeOfDay = realTimeOfDay;
+    this.meanWind.x = Number.isFinite(windEast) ? windEast : 0;
+    this.meanWind.y = Number.isFinite(windNorth) ? windNorth : 0;
+    Cesium.Matrix4.multiplyByPointAsVector(this.environmentFrame, this.meanWind, this.cloudVelocity);
+    if (changed && !realTimeOfDay && this.viewer) {
+      this.viewer.clock.currentTime = Cesium.JulianDate.fromDate(selectPleasantDay(new Date(), this.environmentLongitude, this.environmentLatitude));
+    }
+    this.updateEnvironment();
+  }
+
+  setEnvironmentPaused(paused: boolean): void {
+    this.environmentPaused = paused;
+    this.cloudDriftLastUpdate = performance.now();
+  }
+
+  private updateEnvironment(): void {
+    if (!this.viewer || !this.environmentSky) return;
+    const viewer = this.viewer;
+    if (this.realTimeOfDay) Cesium.JulianDate.fromDate(new Date(), viewer.clock.currentTime);
+    updateDaylightInto(viewer.clock.currentTime, this.environmentLongitude, this.environmentLatitude, this.daylight);
+    this.environmentSky.update(this.daylight, viewer.camera.positionWC);
+    const sunIntensity = 1.5 * this.daylight.daylight;
+    const moonIntensity = this.daylight.moonLightIntensity;
+    const direction = this.light.direction;
+    direction.x = -(sunIntensity * this.daylight.sunDirection.x + moonIntensity * this.daylight.moonDirection.x);
+    direction.y = -(sunIntensity * this.daylight.sunDirection.y + moonIntensity * this.daylight.moonDirection.y);
+    direction.z = -(sunIntensity * this.daylight.sunDirection.z + moonIntensity * this.daylight.moonDirection.z);
+    if (Cesium.Cartesian3.magnitudeSquared(direction) > 1e-12) Cesium.Cartesian3.normalize(direction, direction);
+    else Cesium.Cartesian3.negate(this.daylight.up, direction);
+    this.light.intensity = sunIntensity + moonIntensity;
+    viewer.scene.light = this.light;
+    if (viewer.scene.fog) viewer.scene.fog.minimumBrightness = 0.05 + 0.85 * this.daylight.daylight;
+    for (const { cloud } of this.driftingClouds) cloud.brightness = this.daylight.cloudBrightness;
+    this.exposureListener?.(this.daylight.exposure);
   }
 
   setEnvironmentAnchor(
@@ -209,23 +255,22 @@ export class CesiumManager {
 
     this.cloudCollection.removeAll();
     this.cloudCollection.show = true;
-    this.cloudDriftStart = performance.now();
-    this.cloudDriftLastUpdate = this.cloudDriftStart;
+    this.cloudDriftLastUpdate = performance.now();
     this.driftingClouds.length = 0;
 
-    const today = new Date();
-    // Mean solar time shifts by four minutes per degree of longitude.
-    const afternoon = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 13, 30)
-      - longitude * 4 * 60 * 1000);
-    this.viewer.clock.currentTime = Cesium.JulianDate.fromDate(afternoon);
+    this.environmentLongitude = longitude;
+    this.environmentLatitude = latitude;
+    this.viewer.clock.currentTime = Cesium.JulianDate.fromDate(this.realTimeOfDay ? new Date() : selectPleasantDay(new Date(), longitude, latitude));
     this.viewer.clock.shouldAnimate = false;
-
-    if (this.daylightPanorama) this.viewer.scene.primitives.remove(this.daylightPanorama);
-    this.daylightPanorama = this.viewer.scene.primitives.add(createDaylightPanorama(longitude, latitude));
-
+    if (this.environmentSky) {
+      for (const primitive of this.environmentSky.primitives) this.viewer.scene.primitives.remove(primitive);
+      this.environmentSky.destroy();
+    }
+    this.environmentSky = createEnvironmentSky(longitude, latitude);
+    for (const primitive of this.environmentSky.primitives) this.viewer.scene.primitives.add(primitive);
     const origin = Cesium.Cartesian3.fromDegrees(longitude, latitude, terrainHeight);
-    const enuFrame = Cesium.Transforms.eastNorthUpToFixedFrame(origin);
-    Cesium.Matrix4.multiplyByPointAsVector(enuFrame, new Cesium.Cartesian3(2.4, 0.8, 0), this.cloudVelocity);
+    const enuFrame = Cesium.Transforms.eastNorthUpToFixedFrame(origin, Cesium.Ellipsoid.WGS84, this.environmentFrame);
+    Cesium.Matrix4.multiplyByPointAsVector(enuFrame, this.meanWind, this.cloudVelocity);
 
     for (const cloud of CLOUD_LAYOUT) {
       const position = Cesium.Matrix4.multiplyByPoint(
@@ -246,8 +291,22 @@ export class CesiumManager {
         brightness: cloud.brightness,
         slice: -1,
       });
-      this.driftingClouds.push({ cloud: renderedCloud, origin: position });
+      this.driftingClouds.push({ cloud: renderedCloud, origin: Cesium.Cartesian3.clone(position) });
     }
+    this.environmentCleanup?.();
+    this.environmentCleanup = this.viewer.scene.preRender.addEventListener(() => {
+      this.updateEnvironment();
+      const now = performance.now();
+      const dt = Math.max(0, (now - this.cloudDriftLastUpdate) / 1000);
+      this.cloudDriftLastUpdate = now;
+      if (this.environmentPaused) return;
+      Cesium.Cartesian3.multiplyByScalar(this.cloudVelocity, dt, this.cloudDriftScratch);
+      for (const { cloud, origin: position } of this.driftingClouds) {
+        Cesium.Cartesian3.add(position, this.cloudDriftScratch, position);
+        cloud.position = position;
+      }
+    });
+    this.updateEnvironment();
   }
 
   getViewer(): Cesium.Viewer {
@@ -271,17 +330,22 @@ export class CesiumManager {
     return this.cloudCollection;
   }
 
+  getEnvironmentPrimitives(): readonly Cesium.Primitive[] {
+    return this.environmentSky?.primitives ?? [];
+  }
+
   destroy(): void {
     this.renderResolutionCleanup?.();
     this.renderResolutionCleanup = null;
     this.globeToggleCleanup?.();
     this.globeToggleCleanup = null;
-    this.cloudDriftCleanup?.();
-    this.cloudDriftCleanup = null;
+    this.environmentCleanup?.();
+    this.environmentCleanup = null;
     this.viewer?.destroy();
     this.viewer = null;
     this.cloudCollection = null;
-    this.daylightPanorama = null;
+    this.environmentSky = null;
+    this.exposureListener = null;
     this.driftingClouds.length = 0;
   }
 }

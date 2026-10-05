@@ -13,7 +13,8 @@ vi.mock('../../world/TileLoader', () => ({ TileLoader: class { setCacheOnlyPract
 afterEach(() => { vi.clearAllMocks(); useStore.setState({ phase: 'PICKER', recording: { ...INITIAL_RECORDING } }); });
 
 function fixture() {
-  const world = { getViewer: vi.fn(() => ({})), teardownGlobeToggle: vi.fn(), hideContainer: vi.fn(), showContainer: vi.fn() };
+  const world = { getViewer: vi.fn(() => ({})), teardownGlobeToggle: vi.fn(), hideContainer: vi.fn(), showContainer: vi.fn(),
+    setEnvironmentOptions: vi.fn(), setEnvironmentPaused: vi.fn(), setEnvironmentExposureListener: vi.fn() };
   const session = new SimSession(world as unknown as CesiumManager);
   const loop = { start: vi.fn(), stop: vi.fn(), reset: vi.fn(), applyStoreSettings: vi.fn() };
   const audio = { dispose: vi.fn(), unlock: vi.fn() };
@@ -41,6 +42,9 @@ describe('session recording lifecycle', () => {
     f.session.pause(); expect(recording.pause).toHaveBeenCalledOnce();
     expect(recording.pause.mock.invocationCallOrder[0]).toBeLessThan(f.loop.stop.mock.invocationCallOrder[0]!);
     f.session.resume(); expect(f.loop.start.mock.invocationCallOrder[0]).toBeLessThan(recording.resume.mock.invocationCallOrder[0]!);
+    expect(f.world.setEnvironmentPaused).toHaveBeenCalledWith(true);
+    expect(f.world.setEnvironmentPaused).toHaveBeenCalledWith(false);
+    expect(f.world.setEnvironmentOptions).toHaveBeenCalled();
     f.session.reset(); expect(recording.discard).not.toHaveBeenCalled();
     await f.session.stopRecording(); f.session.downloadRecording(); f.session.discardRecording();
     expect(recording.download).toHaveBeenCalledOnce(); expect(recording.discard).toHaveBeenCalledOnce();

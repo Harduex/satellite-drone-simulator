@@ -10,6 +10,7 @@ import { DroneAudio } from "./DroneAudio";
 import { FlightRecorder } from './FlightRecorder';
 import { createRecordingFrameSource } from '../world/RecordingFrameSource';
 import { useStore } from "../store";
+import { meanWindInto, resolveWindConfig } from "../core/physics/WindConfig";
 import type { SavedLocation } from "../store/settingsSlice";
 
 export interface SpawnOrigin {
@@ -136,6 +137,9 @@ export class SimSession {
       name: location.name,
     };
 
+    this.applyEnvironmentSettings();
+    this.cesiumManager.setEnvironmentPaused(false);
+    this.cesiumManager.setEnvironmentExposureListener(exposure => this.tileLoader.setEnvironmentExposure(exposure));
     this.cesiumManager.setEnvironmentAnchor(
       location.lon,
       location.lat,
@@ -155,7 +159,7 @@ export class SimSession {
     if (generation !== this.sessionGeneration) return;
 
     // Start game loop with terrain sampler for real-time ground collision
-    const sceneExclusions: object[] = [];
+    const sceneExclusions: object[] = [...this.cesiumManager.getEnvironmentPrimitives()];
     const cloudCollection = this.cesiumManager.getCloudCollection();
     if (cloudCollection) {
       sceneExclusions.push(cloudCollection);
@@ -302,7 +306,14 @@ export class SimSession {
     await this.endSession();
   }
 
+  private applyEnvironmentSettings(): void {
+    const settings = useStore.getState();
+    const mean = meanWindInto(resolveWindConfig(settings.physicsConfig), { x: 0, y: 0, z: 0 });
+    this.cesiumManager.setEnvironmentOptions(settings.realTimeOfDay, mean.x, mean.y);
+  }
+
   pause(): void {
+    this.cesiumManager.setEnvironmentPaused(true);
     this.flightRecorder.pause();
     const recording = useStore.getState().recording;
     if (recording.status === 'finalizing' && recording.stopReason === null) void this.flightRecorder.stop();
@@ -312,6 +323,8 @@ export class SimSession {
 
   resume(): void {
     if (this.exitPromise || this.disposed) return;
+    this.applyEnvironmentSettings();
+    this.cesiumManager.setEnvironmentPaused(false);
     this.gameLoop?.applyStoreSettings();
     this.gameLoop?.start();
     this.flightRecorder.resume();

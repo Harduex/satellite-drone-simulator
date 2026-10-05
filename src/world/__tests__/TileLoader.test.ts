@@ -19,6 +19,16 @@ function fetchTile(host = 'tile.googleapis.com') {
 }
 
 describe('cache-only practice', () => {
+  it('updates exposure on the owned shader without rebuilding it', () => {
+    const shader = new Cesium.CustomShader({ uniforms: { u_environmentExposure: { type: Cesium.UniformType.FLOAT, value: 1 } } });
+    const loader = new TileLoader();
+    const tileset = { customShader: shader };
+    Object.assign(loader, { tileset });
+    loader.setEnvironmentExposure(0.05);
+    expect(shader.uniforms.u_environmentExposure!.value).toBe(0.05);
+    expect(tileset.customShader).toBe(shader);
+    shader.destroy();
+  });
   it('blocks tile fetches, leaves other servers alone, and resumes streaming', async () => {
     const fetch = vi.fn(async () => new Response(new Uint8Array([1, 2, 3])));
     vi.stubGlobal('fetch', fetch);

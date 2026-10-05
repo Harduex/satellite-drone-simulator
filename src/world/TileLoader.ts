@@ -100,6 +100,11 @@ export class TileLoader {
     return tileset;
   }
 
+  setEnvironmentExposure(exposure: number): void {
+    if (!Number.isFinite(exposure)) return;
+    this.tileset?.customShader?.setUniform("u_environmentExposure", Math.max(0.01, Math.min(1, exposure)));
+  }
+
   getTileset(): Cesium.Cesium3DTileset | null {
     return this.tileset;
   }
@@ -195,6 +200,7 @@ function createTileColorGradingShader(): Cesium.CustomShader {
   return new Cesium.CustomShader({
     mode: Cesium.CustomShaderMode.MODIFY_MATERIAL,
     uniforms: {
+      u_environmentExposure: { type: Cesium.UniformType.FLOAT, value: 1 },
       u_saturation: { type: Cesium.UniformType.FLOAT, value: 1.2 },
       u_contrast: { type: Cesium.UniformType.FLOAT, value: 1.08 },
       u_aoStrength: { type: Cesium.UniformType.FLOAT, value: 0.4 },
@@ -216,6 +222,8 @@ function createTileColorGradingShader(): Cesium.CustomShader {
         float ao = 0.5 + 0.5 * dot(fsInput.attributes.normalEC, vec3(0.0, 0.0, 1.0));
         ao = pow(ao, u_aoStrength);
         material.occlusion *= ao;
+        material.diffuse *= u_environmentExposure;
+        material.emissive *= u_environmentExposure;
       }
     `,
   });
