@@ -7,6 +7,9 @@ interface Props {
 }
 
 export function HUD({ locationName }: Props) {
+  const windSpeed = useStore(s => s.windSpeed);
+  const windTravelHeading = useStore(s => s.windTravelHeading);
+  const heading = useStore(s => s.navigation?.heading ?? 0);
   const speed = useStore((s) => s.speed);
   const altitudeAGL = useStore((s) => s.altitudeAGL);
   const throttle = useStore((s) => s.throttle);
@@ -17,6 +20,11 @@ export function HUD({ locationName }: Props) {
       {/* Top-left: location name */}
       <div className={css.locationName}>{locationName}</div>
       {cacheOnlyPractice && <div className={css.practiceBadge}>Cache-only practice · 3D streaming off</div>}
+
+      <div className={css.windIndicator} aria-label={`Airflow travel: ${windSpeed.toFixed(1)} meters per second`}>
+        {windSpeed > 0.05 && <span className={css.windArrow} aria-hidden="true" style={{ transform: `rotate(${windTravelHeading - heading}deg)` }}>&#8593;</span>}
+        <span>Airflow {windSpeed.toFixed(1)} m/s</span>
+      </div>
 
       {/* Bottom-left: throttle bar */}
       <div className={css.throttleGroup}>

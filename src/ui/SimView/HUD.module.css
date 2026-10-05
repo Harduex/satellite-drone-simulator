@@ -106,3 +106,5 @@
   font-size: 0.65rem;
   opacity: 0.3;
 }
+.windIndicator { position: absolute; left: 20px; top: 65px; display: flex; align-items: center; gap: 8px; color: var(--color-on-surface); font-size: 12px; text-shadow: 0 1px 3px #000; }
+.windArrow { display: inline-block; font-size: 22px; }

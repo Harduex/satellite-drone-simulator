@@ -75,3 +75,6 @@
   width: 100%;
   margin-top: var(--space-md);
 }
+.windPresets { display: flex; gap: 8px; margin-bottom: 16px; }
+.windPresets button { flex: 1; padding: 8px; border: 1px solid var(--color-outline-variant); border-radius: 6px; background: var(--color-surface-container-high); color: var(--color-on-surface); cursor: pointer; }
+.windPresets button:hover { border-color: var(--color-primary); }

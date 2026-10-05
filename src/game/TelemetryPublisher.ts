@@ -1,10 +1,12 @@
-import type { DroneState } from "../core/physics/types";
+import type { DroneState, Vector3 } from "../core/physics/types";
 import { v3Magnitude } from "../core/physics/types";
 
 export interface TelemetryData {
   speed: number;
   altitudeAGL: number;
   throttle: number;
+  windSpeed: number;
+  windTravelHeading: number;
 }
 
 const PUBLISH_INTERVAL = 6; // frames (~10Hz at 60fps)
@@ -27,6 +29,7 @@ export class TelemetryPublisher {
     droneState: DroneState,
     throttle: number,
     groundHeight: number,
+    wind?: Vector3,
   ): boolean {
     this.frameCount++;
     if (this.frameCount % PUBLISH_INTERVAL !== 0) return false;
@@ -36,6 +39,8 @@ export class TelemetryPublisher {
         speed: v3Magnitude(droneState.velocity),
         altitudeAGL: Math.max(0, droneState.position.z - groundHeight),
         throttle,
+        windSpeed: wind ? Math.hypot(wind.x, wind.y) : 0,
+        windTravelHeading: wind && (wind.x !== 0 || wind.y !== 0) ? (Math.atan2(wind.x, wind.y) * 180 / Math.PI + 360) % 360 : 0,
       });
     }
 

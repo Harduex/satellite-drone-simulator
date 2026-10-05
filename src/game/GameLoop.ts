@@ -262,7 +262,9 @@ export class GameLoop {
       this.recoverNearHit(groundHeight);
     }
     const audioSettings = useStore.getState();
-    this.audio?.update(this.physics.getMotorModel().state.rpm, audioSettings.audioVolume, audioSettings.physicsConfig.maxThrottleRpm);
+    this.audio?.update(this.physics.getMotorModel().state.rpm, audioSettings.audioVolume, audioSettings.physicsConfig.maxThrottleRpm,
+      Math.hypot(this.droneState.velocity.x - this.windVelocity.x,
+        this.droneState.velocity.y - this.windVelocity.y, this.droneState.velocity.z - this.windVelocity.z));
     if (useStore.getState().showStickOverlay) {
       useStore.getState().updateLiveSticks(this.stickInputs);
     }
@@ -279,6 +281,7 @@ export class GameLoop {
       this.droneState,
       this.stickInputs.throttle,
       groundHeight,
+      this.windVelocity,
     );
 
     // 7. Crash detection (only on telemetry frames to avoid spam)

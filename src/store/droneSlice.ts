@@ -7,6 +7,8 @@ export interface DroneTelemetry {
   speed: number; // m/s
   altitudeAGL: number; // m
   throttle: number; // 0-1
+  windSpeed: number;
+  windTravelHeading: number;
 }
 
 export interface DroneSlice extends DroneTelemetry {
@@ -24,6 +26,8 @@ const INITIAL_TELEMETRY: DroneTelemetry = {
   speed: 0,
   altitudeAGL: 0,
   throttle: 0,
+  windSpeed: 0,
+  windTravelHeading: 0,
 };
 
 let crashFlashTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -47,6 +51,8 @@ export const createDroneSlice: StateCreator<DroneSlice> = (set) => ({
     if (telemetry.speed !== undefined && Math.abs(telemetry.speed - state.speed) > 0.05) changed = true;
     if (telemetry.altitudeAGL !== undefined && Math.abs(telemetry.altitudeAGL - state.altitudeAGL) > 0.05) changed = true;
     if (telemetry.throttle !== undefined && Math.abs(telemetry.throttle - state.throttle) > 0.005) changed = true;
+    if (telemetry.windSpeed !== undefined && Math.abs(telemetry.windSpeed - state.windSpeed) > 0.01) changed = true;
+    if (telemetry.windTravelHeading !== undefined && Math.abs(telemetry.windTravelHeading - state.windTravelHeading) > 0.5) changed = true;
     return changed ? telemetry : {};
   }),
   resetTelemetry: () => set({ ...INITIAL_TELEMETRY, crashFlashActive: false }),

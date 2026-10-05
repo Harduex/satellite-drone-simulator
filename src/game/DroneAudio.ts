@@ -85,7 +85,7 @@ export class DroneAudio {
     this.unlock();
   }
 
-  update(rpms: readonly number[], volume: number, maxRpm = DEFAULT_DRONE_CONFIG.maxThrottleRpm): void {
+  update(rpms: readonly number[], volume: number, maxRpm = DEFAULT_DRONE_CONFIG.maxThrottleRpm, airspeed = 0): void {
     if (!this.context || !this.master || !this.active) return;
     const now = this.context.currentTime;
     const safeVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0;
@@ -102,8 +102,9 @@ export class DroneAudio {
       motor.gain.gain.setTargetAtTime(0.065 * Math.pow(level, 1.1), now, 0.02);
       airflow += Math.pow(level, 1.8) / 4;
     }
-    this.airflow?.gain.setTargetAtTime(airflow * 0.055, now, 0.025);
-    this.airFilter?.frequency.setTargetAtTime(1800 + airflow * 1800, now, 0.025);
+    const relativeFlow = Number.isFinite(airspeed) ? Math.min(1, Math.max(0, airspeed) / 30) : 0;
+    this.airflow?.gain.setTargetAtTime(airflow * 0.055 + relativeFlow * 0.09, now, 0.025);
+    this.airFilter?.frequency.setTargetAtTime(1800 + airflow * 1800 + relativeFlow * 2400, now, 0.025);
   }
 
   pause(): void {

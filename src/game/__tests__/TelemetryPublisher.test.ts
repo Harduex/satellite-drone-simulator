@@ -3,6 +3,13 @@ import { TelemetryPublisher } from "../TelemetryPublisher";
 import { createDefaultDroneState } from "../../core/physics/types";
 
 describe("TelemetryPublisher", () => {
+  it("publishes horizontal airflow travel direction", () => {
+    const publisher = new TelemetryPublisher();
+    const callback = vi.fn();
+    publisher.setOnPublish(callback);
+    for (let i = 0; i < 6; i++) publisher.maybePublish(createDefaultDroneState(10), 0, 0, { x: 0, y: -4, z: 1 });
+    expect(callback.mock.calls[0]![0]).toMatchObject({ windSpeed: 4, windTravelHeading: 180 });
+  });
   function createPublisher() {
     const publisher = new TelemetryPublisher();
     const callback = vi.fn();
@@ -50,6 +57,8 @@ describe("TelemetryPublisher", () => {
       speed: 5,
       altitudeAGL: 15, // 20 - 5
       throttle: 0.7,
+      windSpeed: 0,
+      windTravelHeading: 0,
     });
   });
 

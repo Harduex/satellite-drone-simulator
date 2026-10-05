@@ -23,6 +23,19 @@ function audioContext() {
 }
 
 describe("drone audio lifecycle", () => {
+  it("increases airflow with relative airspeed without changing motor pitch", () => {
+    const { context, gains, oscillators } = audioContext();
+    const audio = new DroneAudio(() => context);
+    audio.play();
+    audio.update([8400, 8400, 8400, 8400], 1, 24000, 0);
+    const quiet = gains[5]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0];
+    audio.update([8400, 8400, 8400, 8400], 1, 24000, 20);
+    expect(gains[5]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBeGreaterThan(quiet);
+    expect(oscillators[0]!.frequency.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(420);
+    audio.update([8400, 8400, 8400, 8400], 0, 24000, 20);
+    expect(gains[0]!.gain.setTargetAtTime.mock.calls.at(-1)?.[0]).toBe(0);
+    audio.dispose();
+  });
   it('disposes only the recording branch and permits recording again', () => {
     const { context, gains, recordingDestination, track } = audioContext();
     const audio = new DroneAudio(() => context);

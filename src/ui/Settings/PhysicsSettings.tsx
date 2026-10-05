@@ -17,7 +17,11 @@ export function PhysicsSettings({ onClose }: Props) {
   const godMode = useStore((s) => s.godMode);
   const setGodMode = useStore((s) => s.setGodMode);
 
+  const setWindPreset = useStore(s => s.setWindPreset);
+  const setRealTime = useStore(s => s.setRealTimeOfDay);
+
   const handleReset = () => {
+    setRealTime(false);
     setConfig(DEFAULT_DRONE_CONFIG);
     setFov(DEFAULT_FOV);
     setCameraTilt(DEFAULT_CAMERA_TILT);
@@ -28,24 +32,14 @@ export function PhysicsSettings({ onClose }: Props) {
     <div>
       <SettingsPanelHeader title="Physics Settings" onClose={onClose} />
 
-      <label className={css.godMode}>
-        <span className={css.godModeCopy}>
-          <span>Gentle breeze</span>
-          <span id="weather-description" className={css.godModeHint}>
-            Light wind with smooth gusts. Turn off for calm air.
-          </span>
-        </span>
-        <input
-          className={css.godModeInput}
-          type="checkbox"
-          role="switch"
-          aria-label="Gentle breeze"
-          aria-describedby="weather-description"
-          checked={config.gentleWind !== false}
-          onChange={(e) => setConfig({ gentleWind: e.target.checked })}
-        />
-        <span className={css.godModeTrack} aria-hidden="true" />
-      </label>
+      <div className={css.windPresets} role="group" aria-label="Wind presets">
+        {(['calm', 'light', 'breezy'] as const).map(preset => (
+          <button key={preset} onClick={() => setWindPreset(preset)}>{preset === 'calm' ? 'Calm' : preset === 'light' ? 'Light' : 'Breezy'}</button>
+        ))}
+      </div>
+      <Slider label="Wind speed" value={config.windSpeed ?? 1.5} min={0} max={8} step={0.1} unit="m/s" onChange={v => setConfig({ windSpeed: v })} />
+      <Slider label="Wind from" value={config.windDirection ?? 233} min={0} max={360} step={1} unit="deg" onChange={v => setConfig({ windDirection: v })} />
+      <Slider label="Gust strength" value={config.windGustStrength ?? 0.35} min={0} max={2} step={0.05} unit="m/s" onChange={v => setConfig({ windGustStrength: v })} />
 
       <label className={css.godMode}>
         <span className={css.godModeCopy}>
