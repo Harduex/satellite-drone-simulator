@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-05
 **Scope:** P1/P2: configurable gentle weather and location-correct daylight for free-flight pilots.
-**Status:** Approved design; implementation has not started.
+**Status:** Implemented locally; numerical, lifecycle and browser verification recorded in the [implementation plan](../plans/2026-10-05-wind-daylight.md).
 
 ## TL;DR
 

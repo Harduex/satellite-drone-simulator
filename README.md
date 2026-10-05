@@ -115,6 +115,24 @@ Rendering follows display density up to 1.5 pixels per CSS pixel, limiting
 high-DPI rendering to 2.25 times the baseline pixel count. Cesium's default 4×
 MSAA remains in use where supported. Tile-detail settings are unchanged.
 
+### Time of day
+
+Flight Settings → **Real time of day** uses the machine's current UTC instant
+at the selected flying location. Default is frozen solar noon, corrected for
+longitude and the equation of time. Low winter sunlight uses summer noon so
+default flying remains bright, including polar locations.
+
+Sky colors, Sun/Moon directions, lunar phase, clouds, fog and tile exposure
+follow the same environment state. Physics and clouds freeze on pause;
+real-time daylight continues. Settings changes apply when resuming. Physics
+Settings → Reset to Defaults restores Light wind and pleasant daylight.
+
+The local sky fits the 30 km FPV camera range. Sun/Moon positions use Cesium
+astronomy with its supported approximate Earth-fixed transform. Lit geometry
+uses directional lighting and shadows; Google photogrammetry retains its
+photographed shadows and uses exposure grading for night. Moving building
+shadows, artificial city lights and live weather are not simulated.
+
 ## Tile reuse during practice
 
 Keep the app tab open between flights. Resetting, pausing, and changing locations
@@ -180,7 +198,8 @@ src/
 - Direction-dependent translational drag (3x vertical multiplier for downwash)
 - Frame drag and propeller inflow use air-relative velocity (drone velocity minus wind).
 - Lateral rotor drag scales with loaded motor RPM; conservative hover coefficient 0.025 N/(m/s).
-- Gentle breeze defaults to 1.5 m/s with smooth horizontal variation below 0.4 m/s and vertical variation below 0.05 m/s. Physics Settings → Gentle breeze off selects calm air.
+- Physics Settings offers Calm (0 m/s), Light (1.5 m/s, default) and Breezy (4 m/s), plus mean speed, wind-from direction and gust controls. Direction is clockwise from north; the HUD airflow arrow points where the air travels relative to the drone heading.
+- Gust strength bounds horizontal velocity variation; vertical variation stays within 10% of that value. Light uses 0.35 m/s gust strength, Breezy 1 m/s. Cloud drift follows the configured mean wind; airflow sound follows air-relative speed.
 - Wind advances with simulation time, freezes on pause, and resets with the flight. The bounded wind model and rotor-drag coefficient are flight-feel approximations, not measured weather or flight-data calibration.
 
 - Asymmetric motor spin-up/down (spin-down 1.3x slower)

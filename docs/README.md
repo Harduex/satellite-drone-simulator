@@ -31,7 +31,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | --- | --- |
 | [Flight video recording](superpowers/specs/2026-10-04-flight-recording-design.md) | Implemented locally; Chrome capture/playback verified; provider video-use permission remains unresolved |
 | [Flight recording implementation plan](superpowers/plans/2026-10-04-flight-recording.md) | Implementation and verification record, including browser coverage limits |
-| [Wind and daylight design](superpowers/specs/2026-10-05-wind-daylight-design.md) | P1/P2 design approved; not implemented |
-| [Wind and daylight implementation plan](superpowers/plans/2026-10-05-wind-daylight.md) | Implementation sequence and acceptance checks; awaiting review |
+| [Wind and daylight design](superpowers/specs/2026-10-05-wind-daylight-design.md) | P1/P2 implemented locally; Google photographed-shadow limitations documented |
+| [Wind and daylight implementation plan](superpowers/plans/2026-10-05-wind-daylight.md) | Completed implementation and verification record |
 
 Keep experiment findings under `experiments/`. Add further categories when there is a document to place in them. Local assets, screenshots and logs remain outside this tracked documentation tree.

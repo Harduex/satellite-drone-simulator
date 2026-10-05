@@ -1,13 +1,13 @@
 # Simulator improvement proposals
 
-Assessed 2026-10-05. These statuses describe scope decisions, not shipped features.
+Assessed 2026-10-05. Statuses distinguish locally implemented features from deferred proposals.
 
 ## Current work
 
 | ID | Scope | Status |
 | --- | --- | --- |
-| P1 | Wind presets, direction, bounded gusts, wind indication and airspeed-driven sound | [Detailed design](../superpowers/specs/2026-10-05-wind-daylight-design.md) approved; implementation pending |
-| P2 | Real-time Sun/Moon, time-dependent environment, pleasant default daylight | Same design approved; implementation pending |
+| P1 | Wind presets, direction, bounded gusts, wind indication and airspeed-driven sound | [Detailed design](../superpowers/specs/2026-10-05-wind-daylight-design.md) implemented locally; verification in the [plan](../superpowers/plans/2026-10-05-wind-daylight.md) |
+| P2 | Real-time Sun/Moon, time-dependent environment, pleasant default daylight | Same design implemented locally; verification in the [plan](../superpowers/plans/2026-10-05-wind-daylight.md) |
 | F4 | Tile-cache documentation | README corrected to the configured 6 GiB, plus 0.5 GiB view overflow. This budget is intentional. |
 
 ## Deferred proposals
