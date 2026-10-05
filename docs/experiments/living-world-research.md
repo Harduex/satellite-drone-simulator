@@ -73,6 +73,8 @@ These distinctions come from GEV’s [layer inventory](https://github.com/bilawa
 | LW4 | Optional weather-driven atmosphere/wind | Extend deferred P6 when approved. Keep pleasant defaults and an explicit choice between realistic conditions and moderated flight conditions. |
 | LW5 | Richer traffic behavior via SUMO | Later, if lightweight traffic fails close-up quality goals. Start with a prepared district and known demand, not the entire planet. |
 
+**LW2-G — Google congestion source, undecided:** Consider Google traffic conditions as an input to LW2: adjust simulated vehicle speeds and spacing, with vehicle counts estimated from road class and congestion. This would approximate the traffic scene; it would not locate individual real vehicles or measure their count. Google Routes API exposes `NORMAL`, `SLOW` and `TRAFFIC_JAM` categories along requested route polylines. The Maps JavaScript TrafficLayer displays traffic rather than providing a documented raw city-wide congestion feed. Evaluate route sampling coverage, billing and permitted simulator use before selecting Google as the provider; do not scrape map colors. No API integration is approved by this proposal. [Routes traffic intervals](https://developers.google.com/maps/documentation/routes/traffic_on_polylines), [TrafficLayer](https://developers.google.com/maps/documentation/javascript/trafficlayer).
+
 First research-to-prototype gate: choose a district with clear surface roads; verify road alignment and occlusion; render a small fleet; compare frame time against the unchanged scene; check pause/location teardown and recording. Include a bridge/tunnel case before claiming general coverage. No integration or performance benchmark was conducted in this research.
 
 ## Remaining uncertainties
