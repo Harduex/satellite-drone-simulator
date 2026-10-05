@@ -18,6 +18,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | [Offline and custom maps](experiments/offline-maps.md) | Helsinki and textured Grove Street feasibility findings; future brainstorming questions |
 | [Archived rendering roadmap](experiments/rendering-roadmap.md) | Six recovered proposals; historical assumptions corrected in the audit below |
 | [Simulator improvements](experiments/simulator-improvements.md) | Wind/daylight scope, deferred proposals and reproduced crash-timing evidence |
+| [Living-world and traffic research](experiments/living-world-research.md) | God’s Eye View identification, verified traffic limitations and proposed simulator integrations; not implemented |
 
 ## Audits
 
