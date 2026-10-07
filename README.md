@@ -98,8 +98,8 @@ spawn attempts every 0.2 seconds. Time-of-day demand and safe spawn gaps can red
 actual counts.
 
 Pedestrians use mapped outdoor footways, pedestrian streets and explicitly walkable
-paths within 400 m of the drone. Their target is one person per 7.5 m of eligible
-path, capped at 160. Access restrictions, indoor/elevated paths and segments within
+paths within 400 m of the drone. Their target is one person per 11.25 m of eligible
+path, capped at 110. Access restrictions, indoor/elevated paths and segments within
 4 m of mapped roads or railways are excluded. Paths also require valid 3D surface
 heights and gentle, continuous slopes; ordinary roadside sidewalks are not generated.
 People spawn at random path positions at least 2 m apart, walk at 1–1.6 m/s and

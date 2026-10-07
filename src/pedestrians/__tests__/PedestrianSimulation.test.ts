@@ -2,12 +2,12 @@ import { expect, it } from 'vitest';
 import { PedestrianSimulation } from '../PedestrianSimulation';
 import { buildPedestrianGraph } from '../PedestrianGraph';
 const graphAt = (x = 0) => buildPedestrianGraph(Array.from({ length: 12 }, (_, i) => ({ id: String(i), pathClass: 'footway' as const, points: [{ x, y: i * 10, z: 5 }, { x: x + 300, y: i * 10, z: 5 }] })), { x, y: 0, z: 0 });
-it('populates a 300-metre path with 40 people and keeps spawn separation', () => {
+it('populates a 300-metre path with 26 people and keeps spawn separation', () => {
     const sim = new PedestrianSimulation();
     sim.setGraph(buildPedestrianGraph([{ id: 'density', pathClass: 'footway', points: [{ x: -150, y: 0, z: 5 }, { x: 150, y: 0, z: 5 }] }], { x: 0, y: 0, z: 0 }));
     for (let i = 0; i < 10; i++) sim.step(.1);
     const people = sim.getFrames();
-    expect(people).toHaveLength(40);
+    expect(people).toHaveLength(26);
     sim.reset({ x: 0, y: 0, z: 0 });
     sim.setGraph(graphAt());
     const spawned = sim.getFrames();
@@ -24,7 +24,7 @@ it('bounds people, maintains height and advances walked distance deterministical
     }
     expect(a.getFrames()).toEqual(b.getFrames());
     expect(a.getFrames().length).toBeGreaterThan(0);
-    expect(a.getFrames()).toHaveLength(160);
+    expect(a.getFrames()).toHaveLength(110);
     const before = a.getFrames().map(f => ({ id: f.id, walked: f.walked }));
     a.step(.1);
     for (const f of a.getFrames()) {
