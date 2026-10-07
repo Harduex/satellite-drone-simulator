@@ -1,6 +1,6 @@
 # Product roadmap
 
-Updated 2026-10-05. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
+Updated 2026-10-07. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
 
 ## Outcomes and constraints
 
@@ -13,7 +13,7 @@ Updated 2026-10-05. This roadmap preserves direction and postponed ideas. Horizo
 
 **In progress** = authorized work underway. **Selected next** = preferred direction awaiting its own researched scope. **Deferred** = explicitly postponed. **Proposed** = discussed, undecided. **Implemented locally** = code exists locally; not a deployment claim. **Not selected** = recorded assessment recommends against current adoption.
 
-Pedestrians are the current selected direction after documentation consolidation and public-safety checks. The previously selected aircraft → weather sequence remains subsequent work. Other rows are grouped by outcome without invented delivery commitments.
+Pedestrians and increased population density are implemented locally. Combined flight performance and visible placement remain the immediate verification gate before the selected aircraft → weather sequence. Other rows are grouped by outcome without invented delivery commitments.
 
 ## Now — verified bounded traffic milestone
 
@@ -26,8 +26,8 @@ Pedestrians are the current selected direction after documentation consolidation
 
 | ID | Outcome / scope | Decision status | Dependency / next decision |
 | --- | --- | --- | --- |
-| LW6 | Nearby people walking on verified footpaths and pedestrian streets, with varied clothing and simple animation | Selected for implementation; source/placement scope pending | First verify pedestrian geometry in the existing public source; reuse nearby coverage, surface validation, scene lighting and lifecycle. Set an independent cap/viewing distance and measure combined car/pedestrian cost. No backend or paid feed. Crossings and car interaction are separate follow-ups |
-| LW3 | Nearby simple aircraft driven by public flight-position reports | Selected after LW6; scope pending | After the current pedestrian task. Verify free access, product-use permission, browser integration, freshness/coverage, distance cap and stale-data behavior before implementation |
+| LW6 | Nearby people walking on verified footpaths and pedestrian streets, with varied clothing and simple animation | Implemented locally; combined flight-performance gate pending | [Current placement rules](../README.md#road-traffic). Caps are 300 cars and 160 people. Missing 3D surfaces retry without discarding completed probes; geometric rejection remains strict. Automated checks and bounded local browser flights do not establish full-cap GPU performance or visibility beneath scanned vegetation. Crossings and car interaction remain separate follow-ups |
+| LW3 | Nearby simple aircraft driven by public flight-position reports | Selected after LW6 performance gate; scope pending | Verify free access, product-use permission, browser integration, freshness/coverage, distance cap and stale-data behavior before implementation |
 | LW4 / P6 | Optional weather-driven atmosphere and wind for experimentation | Selected after LW3; deferred implementation | Reuse wind/daylight controls. Verify free-use terms, forecast resolution, failure fallback and choice of moderated versus actual conditions |
 
 Aircraft is the selected part of LW3; vessels and transit remain separate undecided proposals. Provider research and constraints: [living-world research](experiments/living-world-research.md).

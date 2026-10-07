@@ -12,6 +12,8 @@ interface SurfaceJob<E> {
 }
 export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
   private queue: SurfaceJob<E>[] = [];
+  private cursor = 0;
+  private nextReadyAt = 0;
   private validated: { edges: Map<string, E> } = { edges: new Map() };
   version = 0;
   rejectedRoads = 0;
@@ -29,6 +31,8 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
     const old = this.validated.edges;
     this.validated = { edges: new Map() };
     this.queue = [];
+    this.cursor = 0;
+    this.nextReadyAt = 0;
     for (const edge of graph.edges.values()) {
       const retained = old.get(edge.id);
       if (retained) {
@@ -69,16 +73,20 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
   processFrame(): void {
     const start = this.now();
     this.samples = 0;
+    this.sampleMs = 0;
+    if (start < this.nextReadyAt) return;
     let skipped = 0;
+    let earliestRetry = Infinity;
     while (
       this.queue.length &&
       skipped < this.queue.length &&
       this.samples < this.limits.samples &&
       this.now() - start < this.limits.ms
     ) {
-      const job = this.queue[0]!;
+      const job = this.queue[this.cursor]!;
       if (job.readyAt > this.now()) {
-        this.queue.push(this.queue.shift()!);
+        earliestRetry = Math.min(earliestRetry, job.readyAt);
+        this.cursor = (this.cursor + 1) % this.queue.length;
         skipped++;
         continue;
       }
@@ -99,20 +107,13 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
       );
       this.samples++;
       if (height === undefined || !Number.isFinite(height)) {
-        this.queue.shift();
-        job.attempts++;
-        if (job.attempts < 3) {
-          job.readyAt = this.now() + 1000;
-          job.index = 0;
-          job.probe = 0;
-          job.lateral = [];
-          this.queue.push(job);
-        } else {
-          this.rejectedRoads++;
-          this.version++;
-        }
+        // Unloaded tiles are temporary; retain completed stations until the view covers them.
+        job.attempts = Math.min(job.attempts + 1, 4);
+        job.readyAt = this.now() + Math.min(5000, 1000 * 2 ** (job.attempts - 1));
+        this.cursor = (this.cursor + 1) % this.queue.length;
         continue;
       }
+      job.attempts = 0;
       if (job.probe === 0) point.z = height;
       else job.lateral.push(height);
       if (!job.edge.bridge && this.limits.lateral > 0 && job.probe < 2) {
@@ -120,7 +121,7 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
         continue;
       }
       if (job.lateral.length && point.z > Math.min(...job.lateral) + 2) {
-        this.queue.shift();
+        this.removeCurrentJob();
         this.rejectedRoads++;
         this.version++;
         continue;
@@ -144,7 +145,7 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
         previous &&
         (Math.abs(grade) > 0.25 || Math.abs(grade - previousGrade) > 0.2)
       ) {
-        this.queue.shift();
+        this.removeCurrentJob();
         this.rejectedRoads++;
         this.version++;
         continue;
@@ -157,11 +158,16 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
           ...job.edge,
           points: job.points,
         });
-        this.queue.shift();
+        this.removeCurrentJob();
         this.version++;
       }
     }
+    this.nextReadyAt = skipped === this.queue.length ? earliestRetry : 0;
     this.sampleMs = this.now() - start;
+  }
+  private removeCurrentJob(): void {
+    this.queue.splice(this.cursor, 1);
+    if (this.cursor >= this.queue.length) this.cursor = 0;
   }
   getValidatedGraph(): { edges: Map<string, E> } {
     const edges = new Map<string, E>();
@@ -181,6 +187,8 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
   }
   dispose(): void {
     this.queue = [];
+    this.cursor = 0;
+    this.nextReadyAt = 0;
     this.validated = { edges: new Map() };
     this.version++;
   }

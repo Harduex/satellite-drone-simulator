@@ -60,5 +60,7 @@ Run affected automated tests for code changes and `npm run build` for TypeScript
 5.  **Pause:** ESC toggles menu.
 6.  **Console:** Zero `TypeError`, `ReferenceError`, or `Error` messages.
 * **Gamepad specific:** Verify 500Hz polling, `RadioPresets.ts` matching (e.g., "betafpv"), clear cached mappers on reconnect.
+* **Flight/population/performance changes:** Verify controlled takeoff, horizontal travel and a turn using HUD distance, altitude and heading. Startup, spinning and actor counters alone do not establish usable flight or visible placement. Check nearby actors visually and distinguish simulated/rendered counts from actors visible on screen.
+* A connected radio takes priority over keyboard input. Preserve custom mappings; request disconnection if independent keyboard testing is needed. Use short inputs and counter-steer in Acro mode; released sticks do not level the drone. Pause while inspecting code. Measure performance in a foreground browser and distinguish active flight, tile loading and paused rendering.
 * If a required browser check is blocked by unavailable tools, authentication or provider access, report the observed blocker and unverified checks explicitly; do not claim they passed.
 * Documentation/harness-only edits require checking referenced files, commands and consistency; they do not require launching a flight.

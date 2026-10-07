@@ -78,7 +78,9 @@ This represents plausible traffic, without live congestion or real vehicle posit
 Traffic stays within 1 km of the drone, with a 300-car ceiling and separate bounded
 road cache. It updates at 10 Hz, freezes on pause, rebuilds on reset and cleans up
 when leaving a location. Roads appear gradually as loaded 3D surfaces are checked.
-Missing or rejected surfaces remain empty; tunnels are excluded. Lane direction
+Missing surfaces wait for loaded 3D tiles and retry with bounded backoff; rejected
+surfaces remain empty. Completed height probes are retained while waiting. Tunnels
+are excluded. Lane direction
 uses available map tags and approximate right-hand driving. Bridges and road/mesh
 alignment are best effort; height probes cannot identify every flat roof.
 
