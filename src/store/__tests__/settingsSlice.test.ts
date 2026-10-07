@@ -16,6 +16,27 @@ describe("environment settings", () => {
     expect(store.getState().pedestriansEnabled).toBe(true);
   });
   beforeEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
+  it("remembers both minimap states after recreating the store", () => {
+    const store = create<SettingsSlice>()(createSettingsSlice);
+    expect(store.getState().minimapCollapsed).toBe(false);
+    store.getState().setMinimapCollapsed(true);
+    const reloaded = create<SettingsSlice>()(createSettingsSlice);
+    expect(reloaded.getState().minimapCollapsed).toBe(true);
+    reloaded.getState().setMinimapCollapsed(false);
+    expect(create<SettingsSlice>()(createSettingsSlice).getState().minimapCollapsed).toBe(false);
+  });
+  it("defaults the minimap open on invalid or denied storage and still toggles in memory", () => {
+    localStorage.setItem("fpvsim_minimap_collapsed", "invalid");
+    expect(create<SettingsSlice>()(createSettingsSlice).getState().minimapCollapsed).toBe(false);
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("blocked"); });
+    const store = create<SettingsSlice>()(createSettingsSlice);
+    expect(store.getState().minimapCollapsed).toBe(false);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked"); });
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    store.getState().setMinimapCollapsed(true);
+    expect(store.getState().minimapCollapsed).toBe(true);
+    expect(warning).toHaveBeenCalledOnce();
+  });
   it("defaults road traffic on and keeps session state when saving is blocked", () => {
     const store = create<SettingsSlice>()(createSettingsSlice);
     expect(store.getState().roadTrafficEnabled).toBe(true);

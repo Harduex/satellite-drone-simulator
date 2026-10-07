@@ -70,7 +70,7 @@ export class PedestrianSimulation {
     }
     private populate(): void {
         const near = this.edges.filter(e => this.nearby(poseOnEdge(e, e.length / 2).position));
-        const target = Math.min(PEDESTRIANS.people, Math.floor(near.reduce((sum, e) => sum + e.length, 0) / 2 / 15));
+        const target = Math.min(PEDESTRIANS.people, Math.floor(near.reduce((sum, e) => sum + e.length, 0) / 2 / PEDESTRIANS.spacing));
         if (this.people.length >= target) {
             if (this.people.length > target)
                 this.people.pop();

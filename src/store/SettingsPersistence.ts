@@ -12,6 +12,7 @@ const GOD_MODE_STORAGE_KEY = "fpvsim_god_mode";
 const AUDIO_VOLUME_STORAGE_KEY = "fpvsim_audio_volume";
 const SHOW_STICK_OVERLAY_STORAGE_KEY = "fpvsim_show_stick_overlay";
 const REAL_TIME_STORAGE_KEY = "fpvsim_real_time_of_day";
+const MINIMAP_COLLAPSED_STORAGE_KEY = "fpvsim_minimap_collapsed";
 export const DEFAULT_FOV = 110;
 export const DEFAULT_CAMERA_TILT = 25;
 
@@ -58,6 +59,14 @@ export function mergeNumericPartial<T>(persisted: unknown, defaults: T): T {
 
 /** Storage adapter for settings persistence. Extracted for testability. */
 export const SettingsPersistence = {
+  readMinimapCollapsed(): boolean {
+    try { return typeof localStorage !== "undefined" && localStorage.getItem(MINIMAP_COLLAPSED_STORAGE_KEY) === "true"; }
+    catch { return false; }
+  },
+  writeMinimapCollapsed(collapsed: boolean): void {
+    try { if (typeof localStorage !== "undefined") localStorage.setItem(MINIMAP_COLLAPSED_STORAGE_KEY, String(collapsed)); }
+    catch { console.warn("Minimap preference could not be saved; using session setting."); }
+  },
   readPedestriansEnabled(): boolean {
     try { return typeof localStorage === 'undefined' || localStorage.getItem('fpvsim_pedestrians') !== 'false'; }
     catch { return true; }

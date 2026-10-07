@@ -80,6 +80,18 @@ function fleet(
   );
   return { simulation, frames };
 }
+it.each([
+  ["motorway", 28], ["trunk", 24], ["primary", 20],
+  ["secondary", 16], ["tertiary", 12], ["minor", 8],
+] as const)("populates a kilometre of %s at the denser target", (roadClass, count) => {
+  const edges = Array.from({ length: 100 }, (_, i) =>
+    road(String(i), "a" + i, "b" + i, (i % 10) * 40 - 200, Math.floor(i / 10) * 40 - 200, 10, 0, [], roadClass),
+  );
+  const simulation = new TrafficSimulation();
+  simulation.setGraph({ edges: new Map(edges.map(edge => [edge.id, edge])) });
+  simulation.reset({ x: 0, y: 0, z: 0 });
+  expect(simulation.getFrames()).toHaveLength(count);
+});
 it("adopts the slower road speed before leaving a motorway", () => {
   const { simulation, frames } = fleet(
     [
@@ -196,7 +208,7 @@ it("demand follows noon and quiet nighttime without invalid multipliers", () => 
   expect(demandMultiplier(2)).toBe(0.35);
   expect(demandMultiplier(NaN)).toBe(1);
 });
-it("fills but never exceeds the 150-car ceiling on abundant roads", () => {
+it("fills but never exceeds the 300-car ceiling on abundant roads", () => {
   const roads = Array.from({ length: 28 }, (_, row) => ({
     id: "row" + row,
     roadClass: "motorway" as const,
@@ -211,11 +223,11 @@ it("fills but never exceeds the 150-car ceiling on abundant roads", () => {
   const simulation = new TrafficSimulation(42);
   simulation.setGraph(buildRoadGraph(roads, { x: 0, y: 0, z: 0 }));
   simulation.reset({ x: 0, y: 0, z: 0 });
-  expect(simulation.getFrames()).toHaveLength(150);
+  expect(simulation.getFrames()).toHaveLength(300);
   expect(new Set(simulation.getFrames().map(car => car.modelIndex))).toEqual(new Set([0, 1, 2, 3, 4]));
   for (let i = 0; i < 100; i++) {
     simulation.step(0.1);
-    expect(simulation.getFrames().length).toBeLessThanOrEqual(150);
+    expect(simulation.getFrames().length).toBeLessThanOrEqual(300);
   }
 });
 it("brakes for a leader immediately across an edge boundary", () => {
@@ -284,7 +296,7 @@ it("preserves seeded cars across graph refresh and respects the population cap",
   a.setGraph(graph);
   expect(a.getFrames().map((f) => f.id)).toEqual(ids);
   for (let i = 0; i < 100; i++) a.step(0.1);
-  expect(a.getFrames().length).toBeLessThanOrEqual(150);
+  expect(a.getFrames().length).toBeLessThanOrEqual(300);
 });
 it("traverses multiple short continuation edges without exceeding their length", () => {
   const points = Array.from({ length: 101 }, (_, i) => ({ x: 0, y: i, z: 0 }));

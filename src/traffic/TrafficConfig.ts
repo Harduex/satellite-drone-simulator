@@ -20,7 +20,7 @@ export const TRAFFIC = {
   tileFeatures: 10000,
   tileVertices: 100000,
   edges: 2500,
-  cars: 150,
+  cars: 300,
   step: 0.1,
   surfaceSamples: 8,
   surfaceMs: 2,
@@ -34,10 +34,10 @@ export const ROAD_SPEED = {
   minor: 7,
 };
 export const ROAD_DENSITY = {
-  motorway: 14,
-  trunk: 12,
-  primary: 10,
-  secondary: 8,
-  tertiary: 6,
-  minor: 4,
+  motorway: 28,
+  trunk: 24,
+  primary: 20,
+  secondary: 16,
+  tertiary: 12,
+  minor: 8,
 };

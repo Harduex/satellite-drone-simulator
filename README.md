@@ -59,7 +59,8 @@ Never commit real keys or tokens.
 
 The bottom-right satellite minimap shows the drone's heading, launch point (H),
 and recent flight trail. Its footer shows horizontal distance and direction home.
-Use −/+ to collapse or expand it. Navigation updates at 5 Hz; the trail retains
+Use −/+ to collapse or expand it; that preference persists across flights and reloads.
+Navigation updates at 5 Hz; the trail retains
 up to 300 points, sampled after at least 2 m of horizontal travel, and clears on reset.
 The picker and minimap share one Google Maps instance across flight and pause.
 Moving into new areas can still fetch map imagery; navigation itself needs no
@@ -74,7 +75,7 @@ body colors. Their lighting follows the scene's daylight/night exposure; demand
 follows the displayed simulator time.
 This represents plausible traffic, without live congestion or real vehicle positions.
 
-Traffic stays within 1 km of the drone, with a 150-car ceiling and separate bounded
+Traffic stays within 1 km of the drone, with a 300-car ceiling and separate bounded
 road cache. It updates at 10 Hz, freezes on pause, rebuilds on reset and cleans up
 when leaving a location. Roads appear gradually as loaded 3D surfaces are checked.
 Missing or rejected surfaces remain empty; tunnels are excluded. Lane direction
@@ -86,6 +87,17 @@ key or backend is needed. Provider credits appear in the flight and recording.
 The developer overlay exposes traffic counters separately from Google tile counters.
 See the [design](docs/superpowers/specs/2026-10-05-road-traffic-design.md) and
 [verification record](docs/superpowers/plans/2026-10-05-road-traffic.md).
+
+At noon, target density ranges from 8 cars per kilometre of directed minor road
+to 28 on motorways. Time-of-day demand and safe spawn gaps can reduce actual counts.
+
+Pedestrians use mapped outdoor footways, pedestrian streets and explicitly walkable
+paths within 400 m of the drone. Their target is one person per 7.5 m of eligible
+path, capped at 160. Access restrictions, indoor/elevated paths and segments within
+4 m of mapped roads or railways are excluded. Paths also require valid 3D surface
+heights and gentle, continuous slopes; ordinary roadside sidewalks are not generated.
+People spawn at random path positions at least 2 m apart, walk at 1–1.6 m/s and
+randomly choose connected paths. Dead ends and leaving the radius retire them.
 
 ## Controls
 

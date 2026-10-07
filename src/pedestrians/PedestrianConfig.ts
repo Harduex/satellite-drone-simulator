@@ -1,5 +1,5 @@
 export const PEDESTRIANS = {
-    people: 80, radius: 400, preload: 700, refreshDistance: 150, debounceMs: 300,
+    people: 160, spacing: 7.5, radius: 400, preload: 700, refreshDistance: 150, debounceMs: 300,
     zoom: 14, tilesPerRefresh: 9, concurrentRequests: 2, cacheTiles: 16,
     cacheBytes: 12 * 1024 * 1024, edges: 800, candidateSpans: 10000,
     surfaceSamples: 16, surfaceMs: 2, step: 0.1, roadClearance: 4,

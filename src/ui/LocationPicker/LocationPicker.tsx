@@ -42,7 +42,8 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = useStore(s => s.minimapCollapsed);
+  const setCollapsed = useStore(s => s.setMinimapCollapsed);
   const navigation = useStore(s => s.navigation);
 
   useEffect(() => {
@@ -136,7 +137,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
         <div ref={mapContainerRef} className={compact ? minimapCss.map : minimapCss.mapFull} />
       </div>
 
-      {compact && <FlightMinimap collapsed={collapsed} onToggle={() => setCollapsed(value => !value)} error={mapError} />}
+      {compact && <FlightMinimap collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} error={mapError} />}
       <div hidden={compact}>
 
       {mapError && (

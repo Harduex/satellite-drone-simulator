@@ -21,6 +21,8 @@ export interface SettingsSlice {
   godMode: boolean;
   audioVolume: number;
   showStickOverlay: boolean;
+  minimapCollapsed: boolean;
+  setMinimapCollapsed: (collapsed: boolean) => void;
   realTimeOfDay: boolean;
   roadTrafficEnabled: boolean;
   pedestriansEnabled: boolean;
@@ -54,6 +56,11 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   godMode: SettingsPersistence.readGodMode(),
   audioVolume: SettingsPersistence.readAudioVolume(),
   showStickOverlay: SettingsPersistence.readShowStickOverlay(),
+  minimapCollapsed: SettingsPersistence.readMinimapCollapsed(),
+  setMinimapCollapsed: (collapsed) => {
+    SettingsPersistence.writeMinimapCollapsed(collapsed);
+    set({ minimapCollapsed: collapsed });
+  },
   realTimeOfDay: SettingsPersistence.readRealTimeOfDay(),
   roadTrafficEnabled: SettingsPersistence.readRoadTrafficEnabled(),
   pedestriansEnabled: SettingsPersistence.readPedestriansEnabled(),
