@@ -5,8 +5,7 @@
 * Use a verified public author identity and privacy-preserving commit email (such as GitHub's noreply address). Do not include personal contact details in commit metadata or messages.
 * Commit each significant, verified change locally after the public-safety checks. Pushing or publishing still requires explicit approval.
 * When reporting information to me, be extremely concise. Sacrifice grammar for the sake of concision and clarity.
-* When your context hits over 75%, use your compact tool to compact the context.
-* After the final implementation of the task, before ending the chat session, use your 'Ask Questions' tool to ask me: "Would you like me to apply any corrections, or should we conclude the session now?"
+* Use the environment's supported context compaction or handoff mechanism when needed; do not assume a manual compaction tool exists.
 
 ## Overview
 * Browser FPV drone sim. Google 3D Tiles (CesiumJS), 500Hz custom physics, Web Gamepad API.
@@ -19,11 +18,12 @@
 ## Architecture & Constraints
 
 * `core/`: Pure TS. Physics, PID, input. **ZERO** external deps.
-* `world/`: CesiumJS only. Tiles, terrain, render.
+* `world/`: CesiumJS rendering, tiles, terrain and scene environment.
 * `camera/`: Physics → Cesium sync.
-* `game/`: Integrator (500Hz sim, 60Hz render). Imports core/world/camera/store.
-* `store/`: Zustand state. Imports core/types only.
-* `ui/`: React + store. `theme.css` for CSS custom properties. `theme.ts` for JS-only tokens (`colors`, `gradients`). No core/Cesium imports.
+* `game/`: Session integration; 500Hz flight simulation, display-driven rendering, and 10Hz traffic/pedestrian updates. Coordinates core/world/camera/store and living-world modules.
+* `traffic/`, `pedestrians/`: Mapped geometry, graph building and actor simulation. Vector-tile decoding uses `@mapbox/vector-tile` and `pbf`; Cesium actor rendering stays in `world/`.
+* `store/`: Zustand state and preference persistence. May import core types, defaults and pure configuration helpers; no Cesium or rendering dependencies.
+* `ui/`: React + store. `theme.css` for CSS custom properties. `theme.ts` for JS-only tokens (`colors`, `gradients`). Settings reuse core defaults and input helpers; `ServiceProvider.tsx` owns world-service wiring. Keep Cesium scene operations out of UI components.
 
 ## Tech Decisions & Physics Invariants
 
@@ -47,12 +47,12 @@
 * **Gamepad:** Web Gamepad API auto-detects presets.
 
 ## Agents & Skills
-* Managed via `dotagents`. `agents.toml` → `allow_all = true`.
-* **Skills:** `dotagents` (manager), `grill-me` (stress-test), `improve-codebase-architecture` (refactoring), `frontend-design` (UI/UX), `debugger` (local, scientific debugging), `code-standards` (local, code quality).
-* **MCP Servers:** `playwright` (E2E browser testing), `chrome-devtools` (DevTools debugging).
+* `agents.toml` is the `dotagents` dependency manifest; `agents.lock` is generated. Managed skills live in `.agents/skills`; `.claude/skills` links there. `code-standards` is a tracked local skill outside the manifest.
+* **Skills:** `dotagents` (manager), `grill-me` (stress-test), `improve-codebase-architecture` (refactoring), `frontend-design` (UI/UX), `debugger` (local, scientific debugging), `code-standards` (local, code quality). Use the most specific applicable skill available in the session.
+* **Browser tools:** `agents.toml` declares Playwright and Chrome DevTools; generated `.mcp.json` currently exposes Chrome DevTools. Configuration does not guarantee session availability. Inspect exposed tools and use an available supported browser API; do not improvise a replacement protocol.
 
-## Testing Protocol (Mandatory Agent Self-Test)
-Chrome DevTools / Playwright testing on `http://localhost:5173` required after implementation:
+## Testing Protocol
+Run affected automated tests for code changes and `npm run build` for TypeScript/UI changes. Runtime changes also require browser checks on `http://localhost:5173` using an available supported browser tool:
 1.  **Loads:** No fatal errors.
 2.  **Search:** Autocomplete → "Fly Here" activates.
 3.  **Sim:** HUD visible, no crash/promise rejections.
@@ -60,3 +60,5 @@ Chrome DevTools / Playwright testing on `http://localhost:5173` required after i
 5.  **Pause:** ESC toggles menu.
 6.  **Console:** Zero `TypeError`, `ReferenceError`, or `Error` messages.
 * **Gamepad specific:** Verify 500Hz polling, `RadioPresets.ts` matching (e.g., "betafpv"), clear cached mappers on reconnect.
+* If a required browser check is blocked by unavailable tools, authentication or provider access, report the observed blocker and unverified checks explicitly; do not claim they passed.
+* Documentation/harness-only edits require checking referenced files, commands and consistency; they do not require launching a flight.
