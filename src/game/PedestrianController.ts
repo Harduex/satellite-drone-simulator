@@ -130,7 +130,7 @@ export class PedestrianController {
             if (now - this.triggeredAt >= PEDESTRIANS.debounceMs)
                 void this.refresh(position);
         }
-        this.surface.processFrame();
+        this.surface.processFrame(position);
         if (this.surfaceVersion !== this.surface.version && now - this.lastGraphUpdate >= 500) {
             this.simulation.setGraph(this.surface.getValidatedGraph());
             this.surfaceVersion = this.surface.version;

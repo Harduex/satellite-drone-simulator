@@ -1,6 +1,51 @@
 import { expect, it } from "vitest";
 import { TrafficSurface } from "../TrafficSurface";
 import { buildRoadGraph } from "../../../traffic/RoadGraph";
+it("finishes an overlapping road while coverage keeps refreshing", () => {
+  const graph = buildRoadGraph([{ id: "overlap", roadClass: "primary", oneway: 1,
+    bridge: false, layer: 0, points: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 100, z: 0 }],
+  }], { x: 0, y: 0, z: 0 });
+  let firstStationSamples = 0;
+  const surface = new TrafficSurface(point => {
+    if (point.y === 0) firstStationSamples++;
+    return 0;
+  }, () => 0, { samples: 1, ms: 2, spacing: 25, lateral: 0 });
+  for (let frame = 0; frame < 60; frame++) {
+    if (frame % 3 === 0) surface.prepare(graph);
+    surface.processFrame();
+  }
+  expect(surface.getValidatedGraph().edges.size).toBe(1);
+  expect(firstStationSamples).toBe(1);
+});
+it("keeps missing-surface backoff across overlapping coverage refreshes", () => {
+  const graph = buildRoadGraph([{ id: "missing", roadClass: "primary", oneway: 1,
+    bridge: false, layer: 0, points: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 100, z: 0 }],
+  }], { x: 0, y: 0, z: 0 });
+  let now = 0, calls = 0;
+  const surface = new TrafficSurface(() => { calls++; return undefined; }, () => now);
+  surface.prepare(graph);
+  surface.processFrame();
+  now = 500;
+  surface.prepare(graph);
+  surface.processFrame();
+  expect(calls).toBe(1);
+  surface.prepare({ edges: new Map() });
+  expect(surface.pending).toBe(0);
+});
+it("checks surfaces near the moving drone before distant ones", () => {
+  const graph = buildRoadGraph([0, 700].map(x => ({ id: String(x), roadClass: "primary" as const,
+    oneway: 1 as const, bridge: false, layer: 0,
+    points: [{ x, y: 0, z: 0 }, { x, y: 100, z: 0 }],
+  })), { x: 0, y: 0, z: 0 });
+  const sampled: number[] = [];
+  const surface = new TrafficSurface(point => { sampled.push(point.x); return 0; },
+    () => 0, { samples: 1, ms: 2, spacing: 25, lateral: 0 });
+  surface.prepare(graph);
+  surface.processFrame({ x: 700, y: 0, z: 50 });
+  expect(sampled).toEqual([700]);
+  surface.processFrame({ x: 0, y: 0, z: 50 });
+  expect(sampled).toEqual([700, 0]);
+});
 it("validates an initially missing surface after its 3D tiles become available", () => {
   const graph = buildRoadGraph([{ id: "late", roadClass: "minor", oneway: 1,
     bridge: false, layer: 0, points: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 50, z: 0 }],

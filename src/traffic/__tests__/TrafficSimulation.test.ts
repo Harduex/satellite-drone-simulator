@@ -49,6 +49,33 @@ it("retires the old fleet and populates roads around a new flying area", () => {
     expect(Math.hypot(car.current.position.x - 2500, car.current.position.y)).toBeLessThanOrEqual(1000);
   }
 });
+it("populates newly validated central streets within five seconds", () => {
+  const simulation = new TrafficSimulation();
+  simulation.setGraph({ edges: new Map() });
+  simulation.reset({ x: 0, y: 0, z: 30 });
+  const streets = Array.from({ length: 50 }, (_, i) => ({
+    ...road(String(i), "a" + i, "b" + i, (i % 10) * 40 - 200,
+      Math.floor(i / 10) * 40 - 100, 20, 0, [], "primary"),
+    pendingContinuation: true,
+  }));
+  simulation.setGraph({ edges: new Map(streets.map(edge => [edge.id, edge])) });
+  for (let i = 0; i < 50; i++) simulation.step(0.1);
+  expect(simulation.getFrames().length).toBeGreaterThanOrEqual(18);
+  expect(simulation.getFrames().length).toBeLessThanOrEqual(20);
+});
+it("allocates cars by road length and class rather than segment count", () => {
+  const boulevard = road("boulevard", "a", "b", -500, -100, 1000, 0, [], "primary");
+  const streets = Array.from({ length: 50 }, (_, i) =>
+    road(String(i), "a" + i, "b" + i, (i % 10) * 40 - 200,
+      Math.floor(i / 10) * 40 + 100, 20, 0, [], "minor"),
+  );
+  const simulation = new TrafficSimulation();
+  simulation.setGraph({ edges: new Map([boulevard, ...streets].map(edge => [edge.id, edge])) });
+  simulation.reset({ x: 0, y: 0, z: 30 });
+  expect(simulation.getFrames()).toHaveLength(28);
+  expect(simulation.getFrames().filter(car => car.edgeId === "boulevard").length)
+    .toBeGreaterThanOrEqual(15);
+});
 function fleet(
   edges: RoadEdge[],
   placements: {

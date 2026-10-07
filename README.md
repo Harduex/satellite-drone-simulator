@@ -79,7 +79,8 @@ Traffic stays within 1 km of the drone, with a 300-car ceiling and separate boun
 road cache. It updates at 10 Hz, freezes on pause, rebuilds on reset and cleans up
 when leaving a location. Roads appear gradually as loaded 3D surfaces are checked.
 Missing surfaces wait for loaded 3D tiles and retry with bounded backoff; rejected
-surfaces remain empty. Completed height probes are retained while waiting. Tunnels
+surfaces remain empty. Completed height probes and pending retries survive overlapping
+coverage refreshes. Validation prioritizes surfaces near the moving drone. Tunnels
 are excluded. Lane direction
 uses available map tags and approximate right-hand driving. Bridges and road/mesh
 alignment are best effort; height probes cannot identify every flat roof.
@@ -91,7 +92,10 @@ See the [design](docs/superpowers/specs/2026-10-05-road-traffic-design.md) and
 [verification record](docs/superpowers/plans/2026-10-05-road-traffic.md).
 
 At noon, target density ranges from 8 cars per kilometre of directed minor road
-to 28 on motorways. Time-of-day demand and safe spawn gaps can reduce actual counts.
+to 28 on motorways. Placement is weighted by road length and this density, so short
+segments do not dominate long boulevards. Newly validated roads receive up to eight
+spawn attempts every 0.2 seconds. Time-of-day demand and safe spawn gaps can reduce
+actual counts.
 
 Pedestrians use mapped outdoor footways, pedestrian streets and explicitly walkable
 paths within 400 m of the drone. Their target is one person per 7.5 m of eligible

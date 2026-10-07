@@ -37,10 +37,11 @@ export class TrafficSimulation {
   private randomState: number;
   private nextId = 0;
   private populationAccumulator = 0;
-  private spawnAttempts = 0;
   private reservations = new Map<string, number>();
   private clearing = new Map<string, number>();
   private edgeList: RoadEdge[] = [];
+  private spawnEdges: { edge: RoadEdge; cumulativeWeight: number }[] = [];
+  private spawnWeight = 0;
   private contestedNodes = new Set<string>();
   private populationTarget = 0;
   private targetCenter: Point3 = { x: Infinity, y: Infinity, z: 0 };
@@ -114,24 +115,28 @@ export class TrafficSimulation {
     this.randomState = this.seed;
     this.nextId = 0;
     this.populationAccumulator = 0;
-    this.spawnAttempts = 0;
     this.refreshTarget();
     const target = this.target();
     for (let i = 0; i < target * 5 && this.cars.length < target; i++)
-      this.spawn(false);
+      this.spawn();
   }
   getFrames(): readonly VehicleFrame[] {
     return this.cars;
   }
   private refreshTarget(): void {
     let value = 0;
+    this.spawnEdges = [];
+    this.spawnWeight = 0;
     for (const edge of this.edgeList) {
       const mid = poseOnEdge(edge, edge.length / 2).position;
       if (
         Math.hypot(mid.x - this.center.x, mid.y - this.center.y) <
         TRAFFIC.radius
-      )
+      ) {
         value += (edge.length / 1000) * ROAD_DENSITY[edge.roadClass];
+        this.spawnWeight += edge.length * ROAD_DENSITY[edge.roadClass];
+        this.spawnEdges.push({ edge, cumulativeWeight: this.spawnWeight });
+      }
     }
     this.populationTarget = Math.min(
       TRAFFIC.cars,
@@ -142,25 +147,18 @@ export class TrafficSimulation {
   private target(): number {
     return this.populationTarget;
   }
-  private spawn(peripheral: boolean): void {
-    const edges = this.edgeList;
+  private spawn(): void {
+    const edges = this.spawnEdges;
     if (!edges.length) return;
-    const edge = edges[Math.floor(this.random() * edges.length)]!;
+    const weight = this.random() * this.spawnWeight;
+    const edge = edges.find(item => item.cumulativeWeight > weight)!.edge;
     const distance = this.random() * edge.length,
       pose = poseOnEdge(edge, distance);
     const radius = Math.hypot(
       pose.position.x - this.center.x,
       pose.position.y - this.center.y,
     );
-    this.spawnAttempts++;
-    // Partial surface coverage can be entirely central; periodically admit a safe central gap.
-    if (
-      radius > TRAFFIC.radius ||
-      (peripheral &&
-        radius < TRAFFIC.radius * 0.65 &&
-        this.spawnAttempts % 5 !== 0)
-    )
-      return;
+    if (radius > TRAFFIC.radius) return;
     const length =
       this.lengths[Math.floor(this.random() * this.lengths.length)]!;
     const gap = 4 + ROAD_SPEED[edge.roadClass] * 1.5 + length;
@@ -290,7 +288,14 @@ export class TrafficSimulation {
     this.populationAccumulator += dt;
     if (this.populationAccumulator >= 0.2) {
       this.populationAccumulator -= 0.2;
-      if (this.cars.length < this.target()) this.spawn(true);
+      if (this.cars.length < this.target()) {
+        for (
+          let attempt = 0;
+          attempt < 8 && this.cars.length < this.target();
+          attempt++
+        )
+          this.spawn();
+      }
       else if (this.cars.length > this.target()) {
         const index = this.cars.findIndex(
           (car) =>

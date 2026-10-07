@@ -234,7 +234,7 @@ export class TrafficController {
       if (now - this.coverageTriggeredAt >= TRAFFIC.debounceMs)
         void this.refresh(position);
     }
-    this.surface.processFrame();
+    this.surface.processFrame(position);
     if (
       this.surface.version !== this.surfaceVersion &&
       now - this.lastGraphUpdate >= 500

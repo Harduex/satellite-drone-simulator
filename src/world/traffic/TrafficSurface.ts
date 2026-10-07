@@ -14,6 +14,7 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
   private queue: SurfaceJob<E>[] = [];
   private cursor = 0;
   private nextReadyAt = 0;
+  private priorityCenter: Point3 | null = null;
   private validated: { edges: Map<string, E> } = { edges: new Map() };
   version = 0;
   rejectedRoads = 0;
@@ -29,10 +30,12 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
   }
   prepare(graph: { edges: Map<string, E> }): void {
     const old = this.validated.edges;
+    const pending = new Map(this.queue.map((job) => [job.edge.id, job]));
     this.validated = { edges: new Map() };
     this.queue = [];
     this.cursor = 0;
     this.nextReadyAt = 0;
+    this.priorityCenter = null;
     for (const edge of graph.edges.values()) {
       const retained = old.get(edge.id);
       if (retained) {
@@ -40,6 +43,12 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
           ...edge,
           points: retained.points,
         });
+        continue;
+      }
+      const unfinished = pending.get(edge.id);
+      if (unfinished) {
+        unfinished.edge = edge;
+        this.queue.push(unfinished);
         continue;
       }
       const points: Point3[] = [];
@@ -70,10 +79,23 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
     }
     this.version++;
   }
-  processFrame(): void {
+  processFrame(center?: Point3): void {
     const start = this.now();
     this.samples = 0;
     this.sampleMs = 0;
+    if (
+      center &&
+      (!this.priorityCenter ||
+        Math.hypot(center.x - this.priorityCenter.x, center.y - this.priorityCenter.y) >= 50)
+    ) {
+      this.priorityCenter = { ...center };
+      const distance = (job: SurfaceJob<E>) => {
+        const point = job.points[job.index]!;
+        return (point.x - center.x) ** 2 + (point.y - center.y) ** 2;
+      };
+      this.queue.sort((a, b) => distance(a) - distance(b));
+      this.cursor = 0;
+    }
     if (start < this.nextReadyAt) return;
     let skipped = 0;
     let earliestRetry = Infinity;
@@ -189,6 +211,7 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
     this.queue = [];
     this.cursor = 0;
     this.nextReadyAt = 0;
+    this.priorityCenter = null;
     this.validated = { edges: new Map() };
     this.version++;
   }
