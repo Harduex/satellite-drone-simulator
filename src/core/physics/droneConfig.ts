@@ -53,7 +53,7 @@ export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
   propwashTurbulence: 0.012,
   groundEffectStrength: 0.15,
   rotorDiameter: 0.1295, // 5.1-inch T5147-3 propeller
-  rotorInertia: 2.2e-5, // 5.1" tri-blade prop + 2207 bell rotational inertia estimate
+  rotorInertia: 4.5e-6, // 4.2g T5147-3 tri-blade prop + 11g 2207 bell rotational inertia
 };
 
 export const DEFAULT_RATES: RatesConfig = {

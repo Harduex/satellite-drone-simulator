@@ -116,6 +116,32 @@ describe("Acro flight maneuvers", () => {
     const yawStepMotors = controller.update(inputs, state, dt);
     expect(Math.min(yawStepMotors.m1, yawStepMotors.m2, yawStepMotors.m3, yawStepMotors.m4)).toBeGreaterThan(0.5);
   });
+
+  it("prevents uncommanded roll whip during simultaneous full-stick pitch and yaw spin", () => {
+    const physics = new DronePhysics({ ...DEFAULT_DRONE_CONFIG });
+    const controller = new FlightController(DEFAULT_RATES);
+    let state = createDefaultDroneState(200);
+    const dt = 0.002;
+    const inputs: StickInputs = { throttle: 0.95, roll: 0.1, pitch: -1.0, yaw: 0 };
+
+    // Spin up pitch to ~800 deg/s
+    for (let step = 0; step < 150; step++) {
+      state = physics.step(state, controller.update(inputs, state, dt), dt);
+    }
+
+    // Apply strong yaw spin (-0.8 -> +396 deg/s) then release yaw while pitching at 800 deg/s
+    const targetRollDeg = applyExpo(inputs.roll, DEFAULT_RATES.expo) * DEFAULT_RATES.rollRate;
+    let maxRollDeviationDeg = 0;
+    for (let step = 0; step < 120; step++) {
+      inputs.yaw = step < 60 ? -0.8 : -0.4;
+      inputs.throttle = step < 60 ? 0.90 : 0.50;
+      state = physics.step(state, controller.update(inputs, state, dt), dt);
+      const rollDeg = state.angularVelocity.y * 180 / Math.PI;
+      maxRollDeviationDeg = Math.max(maxRollDeviationDeg, Math.abs(rollDeg - targetRollDeg));
+    }
+
+    expect(maxRollDeviationDeg).toBeLessThan(35);
+  });
 });
 
 describe.each([false, true])("controller with the reference quad physics (wind=%s)", (gentleWind) => {

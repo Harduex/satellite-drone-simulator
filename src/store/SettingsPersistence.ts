@@ -155,7 +155,11 @@ export const SettingsPersistence = {
       if (!raw) return DEFAULT_DRONE_CONFIG;
       const saved: unknown = JSON.parse(raw);
       const wind = resolveWindConfig(saved && typeof saved === "object" ? saved as Partial<PhysicsConfig> : {});
-      return { ...mergeNumericPartial(saved, DEFAULT_DRONE_CONFIG), ...wind };
+      const merged = { ...mergeNumericPartial(saved, DEFAULT_DRONE_CONFIG), ...wind };
+      if (merged.rotorInertia === 2.2e-5) {
+        merged.rotorInertia = DEFAULT_DRONE_CONFIG.rotorInertia;
+      }
+      return merged;
     } catch {
       return DEFAULT_DRONE_CONFIG;
     }

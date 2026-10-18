@@ -39,17 +39,20 @@ export class PIDController {
     // Proportional
     const pTerm = this.kP * error;
 
-    // Integral with anti-windup clamp
-    this.integral += error * dt;
+    // With a target rate, D damps measured rotation; stick acceleration belongs
+    // to feedforward. Error-only callers retain the classical PID derivative.
+    const setpointDelta = setpoint === undefined ? 0 : setpoint - this.prevSetpoint;
+
+    // Integral with anti-windup clamp and Betaflight-style I-term relax during fast stick motion
+    const setpointSpeed = setpoint === undefined ? 0 : Math.abs(setpointDelta / dt);
+    const itermRelax = setpoint === undefined ? 1 : Math.max(0, 1 - setpointSpeed / 15);
+    this.integral += error * dt * itermRelax;
     this.integral = Math.max(
       -this.iLimit,
       Math.min(this.iLimit, this.integral),
     );
     const iTerm = this.kI * this.integral;
 
-    // With a target rate, D damps measured rotation; stick acceleration belongs
-    // to feedforward. Error-only callers retain the classical PID derivative.
-    const setpointDelta = setpoint === undefined ? 0 : setpoint - this.prevSetpoint;
     const rawDerivative = (error - this.prevError - setpointDelta) / dt;
     const filteredDerivative = this.dFilterAlpha * this.prevDerivative +
       (1 - this.dFilterAlpha) * rawDerivative;
