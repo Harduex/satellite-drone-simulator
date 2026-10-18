@@ -247,7 +247,6 @@ src/
 - Descent propwash wake: descending through the rotor's own slipstream (`-7 < v_axial < -0.5 m/s` at low lateral airspeed) reduces thrust efficiency by up to 16% and adds bounded turbulent pitch/roll shimmer
 - Ground effect air cushion: upright flight within 2.5 rotor diameters (~0.32m) of the surface below increases lift by up to 15%
 - Rotor gyroscopic precession: spinning propeller + bell angular momentum couples rapid pitch/roll rotations
-- Overhead surface guard: top-down terrain sampling ignores 3D surfaces jumping >2m above the drone's current altitude so open overhangs/bridges do not snap the ground floor overhead
 - PID rate controller with derivative damping on measured rotation and separate setpoint feedforward (simulation-tuned gains; not Betaflight GUI units)
 - Configurable horizontal FOV (60-140°, default 110°), camera tilt default 25°
 

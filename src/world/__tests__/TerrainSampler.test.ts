@@ -18,37 +18,20 @@ function createSampler(opts: {
   return new TerrainSampler(scene, enuFrame);
 }
 
-describe("TerrainSampler overhead surface guard", () => {
-  it("tracks normal ground and roof surfaces at or below the drone", () => {
-    let surfaceHeight = 0;
-    const sampler = createSampler({
-      sceneHeight: () => surfaceHeight,
-      globeHeight: () => 0,
-    });
-
-    sampler.sampleAtPosition({ x: 0, y: 0, z: 10 });
-    expect(sampler.getGroundHeight()).toBeCloseTo(0, 2);
-
-    // Flying at 30m over a 20m building roof updates ground floor to 20m
-    surfaceHeight = 20;
-    sampler.sampleAtPosition({ x: 10, y: 0, z: 30 });
-    expect(sampler.getGroundHeight()).toBeCloseTo(20, 2);
-  });
-
-  it("ignores sudden overhead bridge/arch surfaces above the drone and keeps the lower floor", () => {
+describe("TerrainSampler surface height tracking", () => {
+  it("updates ground height to building roofs even when the roof is above the drone", () => {
     let sceneSurface = 0;
     const sampler = createSampler({
       sceneHeight: () => sceneSurface,
       globeHeight: () => 0,
     });
 
-    // Establish street-level floor (0m) while flying at 5m altitude
     sampler.sampleAtPosition({ x: 0, y: 0, z: 5 });
     expect(sampler.getGroundHeight()).toBeCloseTo(0, 2);
 
-    // Fly under a 22m bridge deck while still at 5m altitude
+    // Flying at 5m into a 22m building updates ground height to 22m so collision triggers
     sceneSurface = 22;
     sampler.sampleAtPosition({ x: 5, y: 0, z: 5 });
-    expect(sampler.getGroundHeight()).toBeCloseTo(0, 2);
+    expect(sampler.getGroundHeight()).toBeCloseTo(22, 2);
   });
 });

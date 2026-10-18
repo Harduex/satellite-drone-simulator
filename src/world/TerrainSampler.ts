@@ -152,15 +152,10 @@ export class TerrainSampler {
       Cesium.Cartesian3.clone(ecef, this.scratchEcef);
       Cesium.Cartographic.fromCartesian(this.scratchEcef, undefined, this.scratchCarto);
 
-      const sceneHeight = this.sampleHeightFromScene(this.scratchCarto);
-      const globeHeight = this.sampleHeightFromGlobe(this.scratchCarto);
-      // Top-down scene.sampleHeight hits overhead bridges/arches/canopies first.
-      // If the 3D scene surface jumps more than 2m above the drone, keep the
-      // underlying globe terrain or previous floor instead of snapping to the roof overhead.
-      if (sceneHeight !== null && sceneHeight <= dronePosition.z + 2) {
-        this.cachedGroundHeight = sceneHeight;
-      } else if (globeHeight !== null && globeHeight <= dronePosition.z + 2) {
-        this.cachedGroundHeight = globeHeight;
+      const sampledGroundHeight =
+        this.sampleHeightFromScene(this.scratchCarto) ?? this.sampleHeightFromGlobe(this.scratchCarto);
+      if (sampledGroundHeight !== null) {
+        this.cachedGroundHeight = sampledGroundHeight;
       }
     } catch {
       // sampleHeight can fail if tiles aren't loaded yet — keep last cached value

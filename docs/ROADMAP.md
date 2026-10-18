@@ -37,7 +37,7 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
-| P3 | True 3D collisions and impact-based landing/crash detection | Overhead surface guard implemented locally; full 3D mesh collisions deferred | `TerrainSampler` ignores surfaces >2m above the drone; full 3D wall/overhang collisions still require reliable mesh geometry |
+| P3 | True 3D collisions and impact-based landing/crash detection | Deferred | Reliable geometry for walls, overhangs and collision surfaces; distinct from sampled ground height |
 | P4 | Battery discharge, voltage sag and current limits | Transient load voltage sag implemented locally; pack discharge deferred | Automatic internal-resistance load sag (~2.5% RPM at full 4-motor load) preserves unlimited free play; battery depletion remains optional-only and deferred |
 | P5 | Self-level flight, practice gates, timed challenges and flight-state replay | Deferred | Separate scope per mode; existing video recording does not provide flight-state replay |
 | R1 | Calibrate drag, rotor response and flight envelope against real-flight data | Real-flight calibration pending reference measurements | [Baseline validation](../README.md#calibration-sources) covers static bench points, torque mechanics, rotor precession, transient rate bounds and Acro maneuvers. Recorded stick/gyro/RPM/voltage and flight-speed data from a known 5-inch 6S build are still needed; numerical consistency alone does not establish calibration |
