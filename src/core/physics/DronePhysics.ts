@@ -144,12 +144,12 @@ export class DronePhysics {
       const thrust = thrusts[i]!;
       const reaction = reactionTorques[i]!;
 
-      // Roll torque: thrust * posX * d (right motors → positive roll around Y)
-      rollTorque += thrust * motor.posX * d;
+      // r × F = (y*T, -x*T, 0): left-side lift rolls the right side down.
+      rollTorque -= thrust * motor.posX * d;
       // Pitch torque: thrust * posY * d (front motors → positive pitch around X)
       pitchTorque += thrust * motor.posY * d;
-      // Yaw torque: reaction torque * spin direction
-      yawTorque += reaction * motor.spin;
+      // The airframe reaction opposes the propeller's spin.
+      yawTorque -= reaction * motor.spin;
     }
 
     // Body frame: X=right(pitch axis), Y=forward(roll axis), Z=up(yaw axis)
@@ -253,6 +253,7 @@ export class DronePhysics {
 
   updateConfig(partial: Partial<PhysicsConfig>): void {
     Object.assign(this.config, partial);
+    this.motorArmOffset = this.config.armLength * Math.cos(Math.PI / 4);
   }
 
   reset(): void {

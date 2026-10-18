@@ -107,10 +107,10 @@ describe("FlightController extended", () => {
       const sticks: StickInputs = { throttle: 0.5, roll: 0, pitch: 0, yaw: 0.5 };
 
       const motors = fc.update(sticks, state, DT);
-      // CCW motors (M1 +yaw, M3 +yaw) should differ from CW motors (M2 -yaw, M4 -yaw)
+      // Clockwise airframe yaw requires stronger counterclockwise propellers.
       const ccwAvg = (motors.m1 + motors.m3) / 2;
       const cwAvg = (motors.m2 + motors.m4) / 2;
-      expect(ccwAvg).not.toBeCloseTo(cwAvg, 2);
+      expect(ccwAvg).toBeGreaterThan(cwAvg);
     });
   });
 

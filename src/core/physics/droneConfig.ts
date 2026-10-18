@@ -11,10 +11,10 @@ import type { PhysicsConfig, RatesConfig, MotorDef } from "./types";
  *   M4(CW) --- M3(CCW)    back
  */
 export const MOTOR_LAYOUT: readonly [MotorDef, MotorDef, MotorDef, MotorDef] = [
-  { label: 'M1', posX: -1, posY:  1, spin:  1, mixRoll: -1, mixPitch:  1, mixYaw:  1 },
-  { label: 'M2', posX:  1, posY:  1, spin: -1, mixRoll:  1, mixPitch:  1, mixYaw: -1 },
-  { label: 'M3', posX:  1, posY: -1, spin:  1, mixRoll:  1, mixPitch: -1, mixYaw:  1 },
-  { label: 'M4', posX: -1, posY: -1, spin: -1, mixRoll: -1, mixPitch: -1, mixYaw: -1 },
+  { label: 'M1', posX: -1, posY:  1, spin:  1, mixRoll:  1, mixPitch:  1, mixYaw: -1 },
+  { label: 'M2', posX:  1, posY:  1, spin: -1, mixRoll: -1, mixPitch:  1, mixYaw:  1 },
+  { label: 'M3', posX:  1, posY: -1, spin:  1, mixRoll: -1, mixPitch: -1, mixYaw: -1 },
+  { label: 'M4', posX: -1, posY: -1, spin: -1, mixRoll:  1, mixPitch: -1, mixYaw:  1 },
 ] as const;
 
 export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
