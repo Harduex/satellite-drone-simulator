@@ -51,7 +51,7 @@ export function computeTranslationalDrag(
     CdA_vertical * (vzRatio * vzRatio * vzRatio);
   const bluffDrag = 0.5 * rho * CdA_eff * speed;
 
-  const discShare = Math.min(1, Math.max(0, rotorDrag / 0.015));
+  const discShare = bodyVel.z > 0 ? Math.min(1, Math.max(0, rotorDrag / 0.015)) : 0;
   const latQuad = 0.5 * rho * CdA_lateral;
   const vertQuad = 0.5 * rho * CdA_vertical;
 
@@ -98,7 +98,7 @@ export function computeTranslationalDragInto(
     CdA_vertical * (vzRatio * vzRatio * vzRatio);
   const bluffDrag = 0.5 * rho * CdA_eff * speed;
 
-  const discShare = Math.min(1, Math.max(0, rotorDrag / 0.015));
+  const discShare = _bodyVel.z > 0 ? Math.min(1, Math.max(0, rotorDrag / 0.015)) : 0;
   const latQuad = 0.5 * rho * CdA_lateral;
   const vertQuad = 0.5 * rho * CdA_vertical;
 

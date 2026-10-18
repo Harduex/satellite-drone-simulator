@@ -282,15 +282,25 @@ export class DronePhysics {
 
     let vortexRingIntensity = 0;
     let wakeTurbulenceIntensity = 0;
-    if (hasInflow && propwashLoss > 0 && axial < -0.5 && axial > -28.0 && latSq < 25) {
-      const latFactor = Math.max(0, 1 - latSq / 25);
-      if (axial > -7.0) {
+    if (hasInflow && propwashLoss > 0 && axial < -0.5 && axial > -28.0) {
+      if (axial > -7.0 && latSq < 25) {
+        const latFactor = Math.max(0, 1 - latSq / 25);
         const vortexRingBell = Math.exp(-((axial + 2.5) * (axial + 2.5)) / 3.2);
         vortexRingIntensity = vortexRingBell * latFactor;
       }
-      const diveCatchTail = 0.22 * Math.exp(-((axial + 10.0) * (axial + 10.0)) / 90.0);
-      wakeTurbulenceIntensity = Math.min(1, vortexRingIntensity + diveCatchTail * latFactor);
-      this.propwashPhase += dt * 48;
+      // During steep descents / dive pull-outs (axial < -4 m/s), tilted recovery projects
+      // vertical sink onto body Y; allow lateral speed up to ~22 m/s proportional to sink rate.
+      const diveMaxLatSq = 25 + Math.max(0, -axial - 4.0) * 35;
+      if (latSq < diveMaxLatSq) {
+        const diveLatFactor = Math.max(0, 1 - latSq / diveMaxLatSq);
+        const diveCatchTail = 0.55 * Math.exp(-((axial + 11.0) * (axial + 11.0)) / 110.0);
+        wakeTurbulenceIntensity = Math.min(1, vortexRingIntensity + diveCatchTail * diveLatFactor);
+      } else {
+        wakeTurbulenceIntensity = vortexRingIntensity;
+      }
+      if (wakeTurbulenceIntensity > 0) {
+        this.propwashPhase += dt * 55;
+      }
     }
     this.lastPropwashIntensity = wakeTurbulenceIntensity;
     const wakeScale = 1 - propwashLoss * vortexRingIntensity;

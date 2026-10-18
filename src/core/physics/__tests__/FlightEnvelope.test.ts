@@ -126,11 +126,13 @@ describe("reference 5-inch flight envelope", () => {
     }
     expect(Math.hypot(state.velocity.x, state.velocity.y)).toBeLessThan(12);
 
-    // Pulling out of a fast vertical free-fall (-15 m/s) with throttle produces propwash wake shudder
+    // Pulling out of a fast tilted free-fall (36° tilt, vz = -24 m/s, as in Flight 5) produces propwash wake shudder
     const diveCatch = createDefaultDroneState(300);
-    diveCatch.velocity = { x: 0, y: 0, z: -15 };
-    for (let step = 0; step < 200; step++) physics.getMotorModel().update([0.8, 0.8, 0.8, 0.8], DT);
-    const caught = physics.step(diveCatch, { m1: 0.8, m2: 0.8, m3: 0.8, m4: 0.8 }, DT, 0);
+    const pulloutHalf = (-36 * Math.PI) / 360;
+    diveCatch.quaternion = { w: Math.cos(pulloutHalf), x: Math.sin(pulloutHalf), y: 0, z: 0 };
+    diveCatch.velocity = { x: 0, y: 1.5, z: -24 };
+    for (let step = 0; step < 200; step++) physics.getMotorModel().update([0.5, 0.5, 0.5, 0.5], DT);
+    const caught = physics.step(diveCatch, { m1: 0.5, m2: 0.5, m3: 0.5, m4: 0.5 }, DT, 0);
     expect(Math.hypot(caught.angularVelocity.x, caught.angularVelocity.y)).toBeGreaterThan(0);
   });
 

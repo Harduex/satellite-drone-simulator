@@ -57,15 +57,21 @@ describe("DragModel", () => {
       expect(drag.z).toBe(0);
     });
 
-    it("strictly opposes velocity without phantom horizontal lift in tilted free-fall", () => {
+    it("strictly opposes velocity without phantom horizontal lift in tilted free-fall and dive recovery", () => {
       const half = (-61 * Math.PI) / 360;
       const tiltedQuat = { w: Math.cos(half), x: Math.sin(half), y: 0, z: 0 };
       // Pure vertical free-fall while pitched 61 degrees nose-down
       const verticalFall = { x: 0, y: 0, z: -30 };
-      const drag = computeTranslationalDrag(verticalFall, tiltedQuat, DEFAULT_DRONE_CONFIG, 0);
-      expect(drag.x).toBeCloseTo(0, 6);
-      expect(drag.y).toBeCloseTo(0, 6);
-      expect(drag.z).toBeGreaterThan(0);
+      const dragUnpowered = computeTranslationalDrag(verticalFall, tiltedQuat, DEFAULT_DRONE_CONFIG, 0);
+      expect(dragUnpowered.x).toBeCloseTo(0, 6);
+      expect(dragUnpowered.y).toBeCloseTo(0, 6);
+      expect(dragUnpowered.z).toBeGreaterThan(0);
+
+      // Even with active rotor spin (rotorDrag > 0) during a tilted descent (bodyVel.z < 0),
+      // normal disc drag does not push the falling drone forward (+Y)
+      const dragPoweredDescent = computeTranslationalDrag(verticalFall, tiltedQuat, DEFAULT_DRONE_CONFIG, 0.05);
+      expect(dragPoweredDescent.y).toBeLessThanOrEqual(0);
+      expect(dragPoweredDescent.z).toBeGreaterThan(0);
     });
   });
 });
