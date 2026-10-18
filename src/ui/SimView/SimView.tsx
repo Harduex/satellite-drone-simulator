@@ -22,6 +22,7 @@ export function SimView({ session, isPaused }: Props) {
           onResume={() => session.resume()}
           onSaveCurrentAsDefault={() => session.saveCurrentLocationAsDefault()}
           onCopyLocation={() => session.copyLocationLink()}
+          onExportTelemetry={() => session.exportTelemetry()}
           onChangeLocation={() => session.changeLocationFromPause()}
         />
       )}

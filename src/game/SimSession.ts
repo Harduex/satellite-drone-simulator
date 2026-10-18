@@ -422,6 +422,21 @@ export class SimSession {
   downloadRecording(): void { this.flightRecorder.download(); }
   discardRecording(): void { this.flightRecorder.discard(); }
 
+  exportTelemetry(): void {
+    const report = this.gameLoop?.exportTelemetryReport();
+    if (!report) return;
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const stamp = report.recordedAt.replace(/[:.]/g, '-');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `flight-telemetry-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async dispose(): Promise<void> {
     this.disposed = true;
     await this.endSession();

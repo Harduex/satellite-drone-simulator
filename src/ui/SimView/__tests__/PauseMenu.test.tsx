@@ -35,4 +35,21 @@ describe('PauseMenu copy location', () => {
     await act(async () => { [...container.querySelectorAll('button')].find(b => b.textContent === 'Copy Location')!.click(); });
     expect(labels()).toContain('Copy failed');
   });
+
+  it('calls onExportTelemetry when Export Telemetry is clicked', () => {
+    const exportTelemetry = vi.fn();
+    act(() => root.render(
+      <PauseMenu
+        onResume={vi.fn()}
+        onSaveCurrentAsDefault={vi.fn()}
+        onCopyLocation={vi.fn(async () => true)}
+        onExportTelemetry={exportTelemetry}
+        onChangeLocation={vi.fn(async () => {})}
+      />,
+    ));
+    const btn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Export Telemetry');
+    expect(btn).toBeDefined();
+    act(() => { btn!.click(); });
+    expect(exportTelemetry).toHaveBeenCalledOnce();
+  });
 });

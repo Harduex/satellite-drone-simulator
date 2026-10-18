@@ -8,6 +8,7 @@ interface Props {
   onResume: () => void;
   onSaveCurrentAsDefault: () => void;
   onCopyLocation: () => Promise<boolean>;
+  onExportTelemetry?: () => void;
   onChangeLocation: () => Promise<void>;
 }
 
@@ -16,7 +17,7 @@ type SettingsTab = 'controller' | 'physics' | 'flight';
 const COPY_FEEDBACK_MS = 1500;
 
 export function PauseMenu(
-  { onResume, onSaveCurrentAsDefault, onCopyLocation, onChangeLocation }: Props,
+  { onResume, onSaveCurrentAsDefault, onCopyLocation, onExportTelemetry, onChangeLocation }: Props,
 ) {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('controller');
@@ -77,6 +78,7 @@ export function PauseMenu(
         <button onClick={handleCopy} className={css.ghostButton}>
           {copyState === 'copied' ? 'Copied!' : copyState === 'failed' ? 'Copy failed' : 'Copy Location'}
         </button>
+        <button onClick={() => onExportTelemetry?.()} className={css.ghostButton}>Export Telemetry</button>
         <button onClick={onChangeLocation} className={css.ghostButton}>Change Location</button>
       </div>
     </div>

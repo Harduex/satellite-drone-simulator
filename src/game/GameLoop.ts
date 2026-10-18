@@ -1,5 +1,6 @@
 import * as Cesium from "cesium";
 import { DronePhysics } from "../core/physics/DronePhysics";
+import { BlackboxLogger, type BlackboxReport } from "../core/physics/BlackboxLogger";
 import { WindModel } from "../core/physics/WindModel";
 import { resolveWindConfig } from "../core/physics/WindConfig";
 import { FlightController } from "../core/flight-controller/FlightController";
@@ -40,6 +41,7 @@ export class GameLoop {
   private droneState: DroneState;
   private droneStateBuffer: DroneState;
   private physics: DronePhysics;
+  private readonly blackboxLogger = new BlackboxLogger();
   private readonly windModel = new WindModel();
   private readonly windVelocity: Vector3 = { x: 0, y: 0, z: 0 };
   private flightController: FlightController;
@@ -188,6 +190,7 @@ export class GameLoop {
     this.droneState = createDefaultDroneState(position);
     Object.assign(this.lastSafePosition, position);
     this.physics.reset();
+    this.blackboxLogger.reset();
     this.windModel.reset();
     this.windModel.updateInto(0, this.windVelocity);
     this.flightController.reset();
@@ -262,6 +265,14 @@ export class GameLoop {
       const tmp = this.droneState;
       this.droneState = this.droneStateBuffer;
       this.droneStateBuffer = tmp;
+      this.blackboxLogger.recordStep(
+        this.PHYSICS_DT,
+        this.stickInputs,
+        this.droneState,
+        this.lastMotorCommands,
+        this.physics.getMotorModel().state.rpm,
+        groundHeight,
+      );
       this.physicsAccumulator -= this.PHYSICS_DT;
       steps++;
     }
@@ -305,6 +316,11 @@ export class GameLoop {
 
   getDroneState(): DroneState {
     return this.droneState;
+  }
+
+  exportTelemetryReport(): BlackboxReport {
+    const store = useStore.getState();
+    return this.blackboxLogger.exportReport(store.physicsConfig, store.rates);
   }
 
   private publishNavigation(timestamp: number): void {
