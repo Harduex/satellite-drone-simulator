@@ -18,7 +18,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 |---|---|
 | [Offline and custom maps](experiments/offline-maps.md) | Helsinki and textured Grove Street feasibility evidence; future scope lives in the roadmap |
 | [Simulator improvements](experiments/simulator-improvements.md) | Wind/daylight scope and reproduced crash-timing evidence; decisions live in the roadmap |
-| [Living-world and traffic research](experiments/living-world-research.md) | Verified sources and free-data/reuse constraints; road traffic implemented locally, aircraft and weather deferred |
+| [Living-world and traffic research](experiments/living-world-research.md) | Traffic implemented locally; aircraft research covers free worldwide feeds, regional samples and browser-access blockers; weather deferred |
 
 ## Audits
 

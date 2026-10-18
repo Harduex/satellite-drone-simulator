@@ -1,19 +1,20 @@
 # Product roadmap
 
-Updated 2026-10-07. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
+Updated 2026-10-18. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
 
 ## Outcomes and constraints
 
 - **Living world:** convincing nearby activity without compromising FPV control or frame time.
 - **Flight realism:** believable forces, time and atmosphere with pleasant defaults and unlimited free play.
 - **World choice:** preserve Google as default; explore separately licensed fallback and custom maps.
+- **Simple access:** play in an ordinary browser tab without extensions, installation or user setup. Live aircraft remain deferred until a suitable direct-browser feed is verified.
 - Reuse Cesium, session ownership, settings, diagnostics and current APIs. Prefer free public data, local assets and browser operation; new paid feeds or backend infrastructure require a separate decision.
 
 ## Status and priority
 
 **In progress** = authorized work underway. **Selected next** = preferred direction awaiting its own researched scope. **Deferred** = explicitly postponed. **Proposed** = discussed, undecided. **Implemented locally** = code exists locally; not a deployment claim. **Not selected** = recorded assessment recommends against current adoption.
 
-Pedestrians and increased population density are implemented locally. Combined flight performance and visible placement remain the immediate verification gate before the selected aircraft → weather sequence. Other rows are grouped by outcome without invented delivery commitments.
+Pedestrians and increased population density are implemented locally, with manual flight verification accepted on 2026-10-18. Live aircraft are deferred because no suitable direct-browser feed is verified. Optional weather remains the next selected candidate, pending its own researched scope. Other rows are grouped by outcome without invented delivery commitments.
 
 ## Now — verified bounded traffic milestone
 
@@ -22,15 +23,15 @@ Pedestrians and increased population density are implemented locally. Combined f
 | LW1 | Nearby cars on mapped roads with bounded simulation/render work and color variation | Implemented and verified locally | [Traffic design](superpowers/specs/2026-10-05-road-traffic-design.md), [execution and performance record](superpowers/plans/2026-10-05-road-traffic.md) |
 | LW1-A | Lightweight Audi A3 and Mazda CX-5 representations; car appearance follows scene daylight/night exposure | Implemented and verified locally | [Asset provenance](../public/models/traffic/ATTRIBUTION.md); day/night, lifecycle and repeated performance gates passed |
 
-## Next — nearby pedestrians, then aircraft and optional weather
+## Near-term — pedestrians, optional weather and deferred aircraft
 
 | ID | Outcome / scope | Decision status | Dependency / next decision |
 | --- | --- | --- | --- |
-| LW6 | Nearby people walking on verified footpaths and pedestrian streets, with varied clothing and simple animation | Implemented locally; combined flight-performance gate pending | [Current placement rules](../README.md#road-traffic). Caps are 300 cars and 110 people. Pending surface probes survive overlapping refreshes and prioritize nearby surfaces. Cars replenish sooner, weighted by road length and class. Geometric rejection remains strict. Automated checks and bounded local browser flights do not establish full-cap GPU performance or visibility beneath scanned vegetation. Surface queries remain a measured flight cost; direct boulevard visibility still needs verification. Crossings and car interaction remain separate follow-ups |
-| LW3 | Nearby simple aircraft driven by public flight-position reports | Selected after LW6 performance gate; scope pending | Verify free access, product-use permission, browser integration, freshness/coverage, distance cap and stale-data behavior before implementation |
-| LW4 / P6 | Optional weather-driven atmosphere and wind for experimentation | Selected after LW3; deferred implementation | Reuse wind/daylight controls. Verify free-use terms, forecast resolution, failure fallback and choice of moderated versus actual conditions |
+| LW6 | Nearby people walking on verified footpaths and pedestrian streets, with varied clothing and simple animation | Implemented locally; manual flight verification accepted 2026-10-18 | [Current placement rules](../README.md#road-traffic). Caps are 300 cars and 110 people. Pending surface probes survive overlapping refreshes and prioritize nearby surfaces. Cars replenish sooner, weighted by road length and class. Geometric rejection remains strict. Manual acceptance closes the combined flight-performance and street-visibility gate; it does not establish full-cap GPU performance across hardware or visibility beneath scanned vegetation. Surface queries remain a measured flight cost. Crossings and car interaction remain separate follow-ups |
+| LW3 | Nearby simple aircraft driven by public flight-position reports worldwide | Deferred 2026-10-18 | Resume only when a suitable free worldwide feed supports direct access from an ordinary browser tab without extensions, user setup or a relay. [Source checks](experiments/living-world-research.md#aircraft-source-checks--2026-10-07) and [2026-10-18 recheck](experiments/living-world-research.md#aircraft-feasibility-recheck--2026-10-18) found no provider meeting all requirements. No operator contact is planned. Verify freshness, real altitude, distance cap, coverage gaps, stale-data behavior and combined performance before adoption |
+| LW4 / P6 | Optional weather-driven atmosphere and wind for experimentation | Selected next; researched scope pending | Reuse wind/daylight controls. Verify free-use terms, forecast resolution, failure fallback and choice of moderated versus actual conditions |
 
-Aircraft is the selected part of LW3; vessels and transit remain separate undecided proposals. Provider research and constraints: [living-world research](experiments/living-world-research.md).
+LW3 covers deferred aircraft; vessels and transit remain separate undecided proposals. Provider research and constraints: [living-world research](experiments/living-world-research.md).
 
 ## Later — flight realism and practice
 
@@ -93,6 +94,7 @@ These candidates were recovered from the original PRD/plan or explicit exclusion
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
 | DRONE-BUILDER | Multiple drone profiles and a builder using frame, motor KV, propeller and optional battery configuration | Proposed; historical PRD | Calibrated profiles and parameter validation; default unlimited play remains; source: [original PRD](../SATELLITE_DRONE_SIM_PRD.md) |
+| SPAWN1 | Choose starting height on the location/start screen before pressing Fly Here | Proposed; implementation deferred | Reuse the existing spawn-altitude setting. Define height relative to the sampled surface, safe limits, persistence and reset behavior; horizontal spawn position is unchanged |
 | NET-MULTIPLAYER | WebRTC peer positions without shared physics | Proposed; historical PRD | Session/network ownership, privacy and synchronization; infrastructure needs separate evaluation |
 | CAM-XR | FPV goggles through WebXR | Proposed; historical PRD | Device/browser support, input compatibility and rendering budget |
 | CAM-VIEWS | Third-person/alternate cameras and optional lens distortion | Proposed; historical PRD/plan | Preserve FPV defaults, camera sync and visibility; [original plan](../PLAN.md) |
