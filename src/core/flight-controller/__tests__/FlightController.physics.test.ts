@@ -70,6 +70,52 @@ describe("Acro flight maneuvers", () => {
     expect(Math.abs(state.angularVelocity.z)).toBeLessThan(0.05);
     expect(state.position.z).toBeGreaterThan(1);
   });
+
+  it("smooths 50Hz discrete USB gamepad steps without 100Hz motor-reversal chatter or yaw motor shutoff", () => {
+    const physics = new DronePhysics({ ...DEFAULT_DRONE_CONFIG });
+    const controller = new FlightController(DEFAULT_RATES);
+    let state = createDefaultDroneState(100);
+    const dt = 0.002;
+    const inputs: StickInputs = { throttle: 0.78, roll: 0, pitch: 0, yaw: 0 };
+
+    // Settle motors at 0.78 throttle
+    for (let step = 0; step < 250; step++) {
+      state = physics.step(state, controller.update(inputs, state, dt), dt);
+    }
+
+    // Ramp pitch from 0 to -0.9 and back in 20ms (10-step) discrete USB HID packets, sampling every 10ms (5 steps)
+    const pitchDiffs: number[] = [];
+    let currentPitch = 0;
+    for (let step = 0; step < 200; step++) {
+      if (step % 10 === 0) {
+        currentPitch = step < 100 ? Math.max(-0.9, currentPitch - 0.12) : Math.min(0, currentPitch + 0.15);
+        inputs.pitch = currentPitch;
+      }
+      const motors = controller.update(inputs, state, dt);
+      state = physics.step(state, motors, dt);
+      if (step % 5 === 0) {
+        pitchDiffs.push(motors.m1 - motors.m3);
+      }
+    }
+
+    let signFlipTeeth = 0;
+    for (let i = 1; i < pitchDiffs.length - 1; i++) {
+      const prev = pitchDiffs[i - 1]!;
+      const curr = pitchDiffs[i]!;
+      const next = pitchDiffs[i + 1]!;
+      if (Math.abs(prev) > 0.05 && Math.abs(curr) > 0.05 && Math.sign(prev) !== Math.sign(curr) && Math.sign(prev) === Math.sign(next)) {
+        signFlipTeeth++;
+      }
+    }
+    expect(signFlipTeeth).toBe(0);
+
+    // Fast yaw step at 0.98 throttle should not shut off non-yaw motors to 0
+    inputs.throttle = 0.98;
+    inputs.pitch = 0;
+    inputs.yaw = 0.6;
+    const yawStepMotors = controller.update(inputs, state, dt);
+    expect(Math.min(yawStepMotors.m1, yawStepMotors.m2, yawStepMotors.m3, yawStepMotors.m4)).toBeGreaterThan(0.5);
+  });
 });
 
 describe.each([false, true])("controller with the reference quad physics (wind=%s)", (gentleWind) => {

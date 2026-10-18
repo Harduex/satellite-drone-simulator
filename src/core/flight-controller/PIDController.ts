@@ -9,7 +9,9 @@ export class PIDController {
   private prevError = 0;
   private prevDerivative = 0;
   private prevSetpoint = 0;
+  private prevFeedforward = 0;
   private dFilterAlpha: number;
+  private ffFilterAlpha: number;
 
   constructor(params: {
     kP: number;
@@ -19,6 +21,7 @@ export class PIDController {
     iLimit?: number;
     outputLimit?: number;
     dFilterAlpha?: number;
+    ffFilterAlpha?: number;
   }) {
     this.kP = params.kP;
     this.kI = params.kI;
@@ -27,9 +30,10 @@ export class PIDController {
     this.iLimit = params.iLimit ?? 0.3;
     this.outputLimit = params.outputLimit ?? 1.0;
     this.dFilterAlpha = params.dFilterAlpha ?? 0.8;
+    this.ffFilterAlpha = params.ffFilterAlpha ?? 0;
   }
 
-  update(error: number, dt: number, setpoint?: number): number {
+  update(error: number, dt: number, setpoint?: number, dScale: number = 1): number {
     if (dt <= 0) return 0;
 
     // Proportional
@@ -49,17 +53,20 @@ export class PIDController {
     const rawDerivative = (error - this.prevError - setpointDelta) / dt;
     const filteredDerivative = this.dFilterAlpha * this.prevDerivative +
       (1 - this.dFilterAlpha) * rawDerivative;
-    const dTerm = this.kD * filteredDerivative;
+    const dTerm = this.kD * dScale * filteredDerivative;
 
-    // Feed-forward: kFF * d(setpoint)/dt
+    // Feed-forward: kFF * d(setpoint)/dt with optional low-pass smoothing
     let ffTerm = 0;
     if (setpoint !== undefined && this.kFF !== 0) {
-      ffTerm = this.kFF * setpointDelta / dt;
+      const rawFF = this.kFF * setpointDelta / dt;
+      ffTerm = this.ffFilterAlpha * this.prevFeedforward +
+        (1 - this.ffFilterAlpha) * rawFF;
     }
 
     if (setpoint !== undefined) this.prevSetpoint = setpoint;
     this.prevError = error;
     this.prevDerivative = filteredDerivative;
+    this.prevFeedforward = ffTerm;
 
     // Sum and clamp output
     const output = pTerm + iTerm + dTerm + ffTerm;
@@ -71,5 +78,6 @@ export class PIDController {
     this.prevError = 0;
     this.prevDerivative = 0;
     this.prevSetpoint = 0;
+    this.prevFeedforward = 0;
   }
 }

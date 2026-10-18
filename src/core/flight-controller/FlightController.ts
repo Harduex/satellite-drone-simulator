@@ -10,22 +10,35 @@ import { applyExpo } from "./FlightModes";
 
 // Gains use rad/s error and normalized motor commands, not Betaflight's GUI units.
 const DEFAULT_PID = {
-  roll: { kP: 0.065, kI: 0.035, kD: 0.003, kFF: 0.003 },
-  pitch: { kP: 0.065, kI: 0.035, kD: 0.003, kFF: 0.003 },
-  yaw: { kP: 0.090, kI: 0.045, kD: 0.010, kFF: 0.010 },
+  roll: { kP: 0.070, kI: 0.040, kD: 0.0017, kFF: 0.0013, dFilterAlpha: 0.85, ffFilterAlpha: 0.88 },
+  pitch: { kP: 0.075, kI: 0.045, kD: 0.0019, kFF: 0.0015, dFilterAlpha: 0.85, ffFilterAlpha: 0.88 },
+  yaw: { kP: 0.140, kI: 0.055, kD: 0.0015, kFF: 0.0040, outputLimit: 0.35, dFilterAlpha: 0.85, ffFilterAlpha: 0.88 },
 };
 
 const DEG_TO_RAD = Math.PI / 180;
+// 2nd-order PT2 RC setpoint smoothing time constant (7ms/stage ≈ 23Hz cutoff),
+// interpolating 33–60Hz browser USB Gamepad packets across the 500Hz PID loop.
+const RC_SMOOTHING_TAU = 0.007;
+// D-term Throttle PID Attenuation (TPA): reduces D gain by up to 35% above 50%
+// throttle to compensate for higher motor thrust sensitivity d(T)/d(cmd) ~ cmd^0.3.
+const TPA_BREAKPOINT = 0.50;
+const TPA_D_RATE = 0.35;
 
 /**
  * Acro mode flight controller.
- * Sticks → target angular rates → PID → motor mixing.
+ * Sticks → RC smoothing → target angular rates → PID → motor mixing.
  */
 export class FlightController {
   private ratesConfig: RatesConfig;
   private rollPID: PIDController;
   private pitchPID: PIDController;
   private yawPID: PIDController;
+  private rc1Roll = 0;
+  private rc1Pitch = 0;
+  private rc1Yaw = 0;
+  private rc2Roll = 0;
+  private rc2Pitch = 0;
+  private rc2Yaw = 0;
 
   constructor(ratesConfig: RatesConfig) {
     this.ratesConfig = ratesConfig;
@@ -50,17 +63,30 @@ export class FlightController {
   ): MotorCommands {
     const { rollRate, pitchRate, yawRate, expo } = this.ratesConfig;
 
-    // Stick → target angular rate (rad/s)
+    // Stick → raw target angular rate (rad/s)
     // In body frame (X=right, Y=forward, Z=up) with right-hand rotation:
     //   Positive omega.y → right roll (right side down), no negation needed
     //   Positive omega.x → nose up, so negate for stick-forward = pitch down (fly forward)
     //   Positive omega.z → yaw left (CCW from above), so negate for stick-right = yaw right
-    const targetRollRate = applyExpo(stickInputs.roll, expo) * rollRate *
+    const rawRollRate = applyExpo(stickInputs.roll, expo) * rollRate *
       DEG_TO_RAD;
-    const targetPitchRate = -applyExpo(stickInputs.pitch, expo) * pitchRate *
+    const rawPitchRate = -applyExpo(stickInputs.pitch, expo) * pitchRate *
       DEG_TO_RAD;
-    const targetYawRate = -applyExpo(stickInputs.yaw, expo) * yawRate *
+    const rawYawRate = -applyExpo(stickInputs.yaw, expo) * yawRate *
       DEG_TO_RAD;
+
+    // 2nd-order PT2 RC setpoint filter to eliminate discrete USB polling steps
+    const rcAlpha = dt > 0 ? dt / (RC_SMOOTHING_TAU + dt) : 1;
+    this.rc1Roll += rcAlpha * (rawRollRate - this.rc1Roll);
+    this.rc1Pitch += rcAlpha * (rawPitchRate - this.rc1Pitch);
+    this.rc1Yaw += rcAlpha * (rawYawRate - this.rc1Yaw);
+    this.rc2Roll += rcAlpha * (this.rc1Roll - this.rc2Roll);
+    this.rc2Pitch += rcAlpha * (this.rc1Pitch - this.rc2Pitch);
+    this.rc2Yaw += rcAlpha * (this.rc1Yaw - this.rc2Yaw);
+
+    const targetRollRate = this.rc2Roll;
+    const targetPitchRate = this.rc2Pitch;
+    const targetYawRate = this.rc2Yaw;
 
     // PID error = target - actual (body frame angular velocity)
     // Body frame: X=right, Y=forward, Z=up
@@ -69,12 +95,16 @@ export class FlightController {
     const pitchError = targetPitchRate - droneState.angularVelocity.x;
     const yawError = targetYawRate - droneState.angularVelocity.z;
 
-    const rollCmd = this.rollPID.update(rollError, dt, targetRollRate);
-    const pitchCmd = this.pitchPID.update(pitchError, dt, targetPitchRate);
-    const yawCmd = this.yawPID.update(yawError, dt, targetYawRate);
+    const throttle = stickInputs.throttle;
+    const dScale = throttle > TPA_BREAKPOINT
+      ? Math.max(0.4, 1 - TPA_D_RATE * ((throttle - TPA_BREAKPOINT) / (1 - TPA_BREAKPOINT)))
+      : 1;
+
+    const rollCmd = this.rollPID.update(rollError, dt, targetRollRate, dScale);
+    const pitchCmd = this.pitchPID.update(pitchError, dt, targetPitchRate, dScale);
+    const yawCmd = this.yawPID.update(yawError, dt, targetYawRate, 1);
 
     // Motor mixing via shared MOTOR_LAYOUT (single source of truth)
-    const throttle = stickInputs.throttle;
     const ml1 = MOTOR_LAYOUT[0];
     const ml2 = MOTOR_LAYOUT[1];
     const ml3 = MOTOR_LAYOUT[2];
@@ -114,6 +144,12 @@ export class FlightController {
     this.rollPID.reset();
     this.pitchPID.reset();
     this.yawPID.reset();
+    this.rc1Roll = 0;
+    this.rc1Pitch = 0;
+    this.rc1Yaw = 0;
+    this.rc2Roll = 0;
+    this.rc2Pitch = 0;
+    this.rc2Yaw = 0;
   }
 }
 
