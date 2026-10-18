@@ -14,9 +14,12 @@ export class MotorModel {
   // Cached Math.exp alpha values — only two possible results per config
   private cachedAlphaSpinUp = 0;
   private cachedAlphaSpinDown = 0;
+  private cachedAlphaSag = 0;
   private cachedDt = 0;
   private cachedTimeConstant = 0;
   private cachedSpinDownFactor = 0;
+  private cachedSagTimeConstant = 0;
+  private filteredLoad = 0;
 
   constructor(config: PhysicsConfig) {
     this.config = config;
@@ -24,7 +27,8 @@ export class MotorModel {
   }
 
   /**
-   * Update motor RPMs from throttle commands [0,1] with asymmetric spin-up/down lag.
+   * Update motor RPMs from throttle commands [0,1] with asymmetric spin-up/down lag
+   * and instantaneous internal-resistance voltage sag under multi-motor load.
    * Spin-up uses base motorTimeConstant, spin-down uses motorTimeConstant * motorSpinDownFactor.
    * Returns thrust (N) for each of the 4 motors (reused buffer).
    */
@@ -32,15 +36,25 @@ export class MotorModel {
     const { kT, maxThrottleRpm, motorTimeConstant, motorSpinDownFactor } = this.config;
     const responseExponent = Number.isFinite(this.config.motorResponseExponent) && this.config.motorResponseExponent! > 0
       ? this.config.motorResponseExponent! : 1;
+    const sagAmount = Number.isFinite(this.config.loadVoltageSag) && this.config.loadVoltageSag! > 0
+      ? Math.min(0.5, this.config.loadVoltageSag!) : 0;
+    const sagTau = Number.isFinite(this.config.loadSagTimeConstant) && this.config.loadSagTimeConstant! > 0
+      ? this.config.loadSagTimeConstant! : 0.18;
 
     if (dt !== this.cachedDt || motorTimeConstant !== this.cachedTimeConstant ||
-      motorSpinDownFactor !== this.cachedSpinDownFactor) {
+      motorSpinDownFactor !== this.cachedSpinDownFactor || sagTau !== this.cachedSagTimeConstant) {
       this.cachedDt = dt;
       this.cachedTimeConstant = motorTimeConstant;
       this.cachedSpinDownFactor = motorSpinDownFactor;
+      this.cachedSagTimeConstant = sagTau;
       this.cachedAlphaSpinUp = 1 - Math.exp(-dt / motorTimeConstant);
       this.cachedAlphaSpinDown = 1 - Math.exp(-dt / (motorTimeConstant * motorSpinDownFactor));
+      this.cachedAlphaSag = 1 - Math.exp(-dt / sagTau);
     }
+
+    const voltageScale = 1 - sagAmount * this.filteredLoad;
+    const effectiveMaxRpm = maxThrottleRpm * voltageScale;
+    let powerLoadSum = 0;
 
     for (let i = 0; i < 4; i++) {
       const cmd = Math.max(0, Math.min(1, throttleCommands[i] ?? 0));
@@ -49,7 +63,7 @@ export class MotorModel {
       // only to raw ESC commands so it does not undo thrust linearization.
       const linearizedCmd = this.config.thrustLinearization !== false
         ? Math.sqrt(cmd) : Math.pow(cmd, responseExponent);
-      const targetRpm = linearizedCmd * maxThrottleRpm;
+      const targetRpm = linearizedCmd * effectiveMaxRpm;
       const currentRpm = this.state.rpm[i] ?? 0;
 
       const isSpinningDown = targetRpm < currentRpm;
@@ -58,9 +72,16 @@ export class MotorModel {
       const newRpm = currentRpm + alpha * (targetRpm - currentRpm);
       this.state.rpm[i] = newRpm;
 
+      if (maxThrottleRpm > 0) {
+        const normRpm = newRpm / maxThrottleRpm;
+        powerLoadSum += normRpm * normRpm * normRpm;
+      }
+
       // Thrust: T = kT * rpm²
       this.thrustBuffer[i] = kT * newRpm * newRpm;
     }
+
+    this.filteredLoad += this.cachedAlphaSag * (Math.min(1, powerLoadSum / 4) - this.filteredLoad);
 
     return this.thrustBuffer;
   }
@@ -77,5 +98,6 @@ export class MotorModel {
 
   reset(): void {
     this.state.rpm = [0, 0, 0, 0];
+    this.filteredLoad = 0;
   }
 }

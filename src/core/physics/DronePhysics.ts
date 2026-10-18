@@ -69,6 +69,8 @@ export class DronePhysics {
   private throttleBuffer: number[] = [0, 0, 0, 0];
   private inflowThrustBuffer: number[] = [0, 0, 0, 0];
   private readonly airVelocity: Vector3 = { x: 0, y: 0, z: 0 };
+  private propwashPhase = 0;
+  private lastPropwashIntensity = 0;
 
   constructor(config: PhysicsConfig) {
     this.config = config;
@@ -102,7 +104,12 @@ export class DronePhysics {
     this.throttleBuffer[1] = motors.m2;
     this.throttleBuffer[2] = motors.m3;
     this.throttleBuffer[3] = motors.m4;
-    const thrusts = this.applyInflowLoss(this.motorModel.update(this.throttleBuffer, dt), state.quaternion);
+    const thrusts = this.applyAeroThrustEffects(
+      this.motorModel.update(this.throttleBuffer, dt),
+      state.quaternion,
+      state.position.z - groundHeight,
+      dt,
+    );
     const reactionTorques = this.motorModel.getReactionTorques();
 
     // ── Compute net force in body frame ───────────────────
@@ -138,6 +145,7 @@ export class DronePhysics {
     let rollTorque = 0;
     let pitchTorque = 0;
     let yawTorque = 0;
+    let netRotorRpm = 0;
 
     for (let i = 0; i < 4; i++) {
       const motor = MOTOR_LAYOUT[i]!;
@@ -150,6 +158,17 @@ export class DronePhysics {
       pitchTorque += thrust * motor.posY * d;
       // The airframe reaction opposes the propeller's spin.
       yawTorque -= reaction * motor.spin;
+      netRotorRpm += rpms[i]! * motor.spin;
+    }
+
+    // Propwash turbulent torque shimmer when descending through own wake
+    const turbAmp = this.config.propwashTurbulence ?? 0;
+    if (this.lastPropwashIntensity > 0 && Number.isFinite(turbAmp) && turbAmp > 0) {
+      const weight = this.config.mass * GRAVITY;
+      const thrustScale = weight > 0 ? Math.min(2, totalThrust / weight) : 0;
+      const amp = turbAmp * this.lastPropwashIntensity * thrustScale;
+      pitchTorque += amp * (Math.sin(this.propwashPhase) + 0.5 * Math.sin(this.propwashPhase * 2.3 + 1.1));
+      rollTorque += amp * (Math.cos(this.propwashPhase * 1.37 + 0.7) + 0.5 * Math.cos(this.propwashPhase * 2.9 - 0.4));
     }
 
     // Body frame: X=right(pitch axis), Y=forward(roll axis), Z=up(yaw axis)
@@ -158,10 +177,13 @@ export class DronePhysics {
     // Angular drag
     computeAngularDragInto(state.angularVelocity, _angDrag);
 
-    // Gyroscopic effect: omega × (I * omega)
+    // Gyroscopic effect: omega × (I * omega + L_rotors)
     const { xx, yy, zz } = this.config.inertia;
     const omega = state.angularVelocity;
-    v3Set(_Iomega, xx * omega.x, yy * omega.y, zz * omega.z);
+    const rotorInertia = Number.isFinite(this.config.rotorInertia) && this.config.rotorInertia! > 0
+      ? this.config.rotorInertia! : 0;
+    const rotorLz = rotorInertia * netRotorRpm * (Math.PI / 30);
+    v3Set(_Iomega, xx * omega.x, yy * omega.y, zz * omega.z + rotorLz);
     v3CrossInto(omega, _Iomega, _gyro);
 
     // Net torque = motor torques + angular drag - gyroscopic
@@ -225,23 +247,58 @@ export class DronePhysics {
   }
 
   /**
-   * Static bench thrust overstates thrust when air already flows through the
-   * disc. First-order advance-ratio model: T = T_static * (1 - v_axial / v_pitch),
-   * where v_axial is air-relative body-up velocity and v_pitch = pitch * rpm / 60.
-   * Descent (v_axial < 0) keeps static thrust; vortex-ring effects are not modeled.
+   * Adjusts static bench thrust for three aerodynamic effects:
+   * 1. Axial climb/forward inflow loss: T = T_static * (1 - v_axial / v_pitch).
+   * 2. Descent propwash / turbulent wake when descending into own downwash with low lateral speed.
+   * 3. Ground effect cushion within ~2 rotor diameters of the surface beneath the drone.
    */
-  private applyInflowLoss(thrusts: number[], q: Quaternion): number[] {
+  private applyAeroThrustEffects(thrusts: number[], q: Quaternion, clearance: number, dt: number): number[] {
     const pitch = this.config.propellerPitch;
-    if (!(pitch !== undefined && Number.isFinite(pitch) && pitch > 0)) return thrusts;
+    const hasInflow = pitch !== undefined && Number.isFinite(pitch) && pitch > 0;
     const v = this.airVelocity;
     // Body Z axis in world frame (third column of the rotation matrix).
-    const axial = v.x * 2 * (q.x * q.z + q.w * q.y)
-      + v.y * 2 * (q.y * q.z - q.w * q.x)
-      + v.z * (1 - 2 * (q.x * q.x + q.y * q.y));
+    const upX = 2 * (q.x * q.z + q.w * q.y);
+    const upY = 2 * (q.y * q.z - q.w * q.x);
+    const upZ = 1 - 2 * (q.x * q.x + q.y * q.y);
+    const axial = v.x * upX + v.y * upY + v.z * upZ;
+
+    // Lateral airspeed perpendicular to rotor disc axis
+    const latSq = Math.max(0, v.x * v.x + v.y * v.y + v.z * v.z - axial * axial);
+    const propwashLoss = Number.isFinite(this.config.propwashThrustLoss) && this.config.propwashThrustLoss! > 0
+      ? Math.min(0.5, this.config.propwashThrustLoss!) : 0;
+
+    let wakeIntensity = 0;
+    if (hasInflow && propwashLoss > 0 && axial < -0.5 && axial > -7.0 && latSq < 25) {
+      const axialBell = Math.exp(-((axial + 2.5) * (axial + 2.5)) / 3.2);
+      const latFactor = Math.max(0, 1 - latSq / 25);
+      wakeIntensity = axialBell * latFactor;
+      this.propwashPhase += dt * 48;
+    }
+    this.lastPropwashIntensity = wakeIntensity;
+    const wakeScale = 1 - propwashLoss * wakeIntensity;
+
+    // Ground effect cushion when upright near the ground
+    const geStrength = Number.isFinite(this.config.groundEffectStrength) && this.config.groundEffectStrength! > 0
+      ? Math.min(0.5, this.config.groundEffectStrength!) : 0;
+    const rotorDiam = Number.isFinite(this.config.rotorDiameter) && this.config.rotorDiameter! > 0
+      ? this.config.rotorDiameter! : 0.13;
+    let groundScale = 1;
+    if (geStrength > 0 && upZ > 0.2 && clearance >= 0 && clearance < rotorDiam * 2.5) {
+      const normH = Math.max(0.25, clearance / rotorDiam);
+      const ratio = 1 / (4 * normH);
+      groundScale = 1 + Math.min(geStrength, ratio * ratio) * upZ;
+    }
+
+    if (!hasInflow && wakeScale === 1 && groundScale === 1) return thrusts;
+
     const rpms = this.motorModel.state.rpm;
     for (let i = 0; i < 4; i++) {
-      const pitchSpeed = pitch * rpms[i]! / 60;
-      const factor = axial <= 0 ? 1 : pitchSpeed > 0 ? Math.max(0, 1 - axial / pitchSpeed) : 0;
+      let factor = wakeScale * groundScale;
+      if (hasInflow && axial > 0) {
+        const pitchSpeed = pitch! * rpms[i]! / 60;
+        const inflowFactor = pitchSpeed > 0 ? Math.max(0, 1 - axial / pitchSpeed) : 0;
+        factor *= inflowFactor;
+      }
       this.inflowThrustBuffer[i] = thrusts[i]! * factor;
     }
     return this.inflowThrustBuffer;
@@ -258,5 +315,7 @@ export class DronePhysics {
 
   reset(): void {
     this.motorModel.reset();
+    this.propwashPhase = 0;
+    this.lastPropwashIntensity = 0;
   }
 }

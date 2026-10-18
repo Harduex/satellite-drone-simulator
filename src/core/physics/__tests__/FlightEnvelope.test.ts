@@ -55,22 +55,38 @@ describe("reference 5-inch flight envelope", () => {
     expect(best).toBeLessThan(210);
   });
 
-  it("loses thrust in axial climb but keeps static thrust when descending", () => {
+  it("loses thrust in axial climb, experiences propwash dip in moderate vertical descent, and keeps static thrust in fast clean descent", () => {
     const physics = new DronePhysics({ ...DEFAULT_DRONE_CONFIG });
     const state = createDefaultDroneState(1000);
     const out = createDefaultDroneState(0);
     for (let step = 0; step < 500; step++) physics.getMotorModel().update([1, 1, 1, 1], DT);
-    const accelAt = (vz: number) => {
-      state.velocity = { x: 0, y: 0, z: vz };
+    const accelAt = (vz: number, vx: number = 0) => {
+      state.velocity = { x: vx, y: 0, z: vz };
       physics.stepInto(state, FULL, DT, -1e9, out);
       return (out.velocity.z - vz) / DT;
     };
-    const descending = accelAt(-10);
+    const fastDescent = accelAt(-10);
     const hovering = accelAt(0);
     const climbing = accelAt(30);
     expect(climbing).toBeLessThan(hovering * 0.6);
-    // Descent differs from hover only by drag, never by thrust loss.
-    expect(descending).toBeGreaterThan(hovering);
+    expect(fastDescent).toBeGreaterThan(hovering);
+
+    // In moderate vertical descent (-2.5 m/s) with zero horizontal speed, propwash reduces upward acceleration
+    // and introduces turbulent angular perturbation compared to clean forward airspeed (8 m/s).
+    const verticalPropwashDescent = accelAt(-2.5, 0);
+    expect(Math.hypot(out.angularVelocity.x, out.angularVelocity.y)).toBeGreaterThan(0);
+    const forwardCleanDescent = accelAt(-2.5, 8);
+    expect(verticalPropwashDescent).toBeLessThan(forwardCleanDescent - 3);
+    expect(Math.hypot(out.angularVelocity.x, out.angularVelocity.y)).toBe(0);
+  });
+
+  it("boosts upward thrust in ground effect within 2 rotor diameters of the surface", () => {
+    const physics = new DronePhysics({ ...DEFAULT_DRONE_CONFIG });
+    for (let step = 0; step < 500; step++) physics.getMotorModel().update([0.2, 0.2, 0.2, 0.2], DT);
+    const cmds = { m1: 0.2, m2: 0.2, m3: 0.2, m4: 0.2 };
+    const highAlt = physics.step(createDefaultDroneState(50), cmds, DT, 0);
+    const nearGround = physics.step(createDefaultDroneState(0.08), cmds, DT, 0);
+    expect(nearGround.velocity.z).toBeGreaterThan(highAlt.velocity.z * 1.15);
   });
 
   it("keeps legacy static thrust when propeller pitch is omitted", () => {

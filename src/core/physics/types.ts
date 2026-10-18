@@ -115,6 +115,13 @@ export interface PhysicsConfig {
   windGustStrength?: number; // m/s, maximum horizontal perturbation
   spawnAltitude: number; // m AGL
   thrustLinearization?: boolean; // apply sqrt to throttle commands for linear thrust feel
+  loadVoltageSag?: number; // max fractional RPM sag at full 4-motor load (no battery depletion)
+  loadSagTimeConstant?: number; // s; RC filter time constant for load voltage sag & recovery
+  propwashThrustLoss?: number; // peak fractional thrust loss in turbulent descent wake
+  propwashTurbulence?: number; // N·m peak turbulent torque disturbance in descent propwash
+  groundEffectStrength?: number; // max fractional thrust boost near ground surface
+  rotorDiameter?: number; // m; propeller disc diameter (5.1 in ≈ 0.13 m)
+  rotorInertia?: number; // kg·m²; spinning rotor + bell rotational inertia around shaft
 }
 
 export interface RatesConfig {

@@ -46,6 +46,14 @@ export const DEFAULT_DRONE_CONFIG: PhysicsConfig = {
   windGustStrength: 0.35,
   spawnAltitude: 2.0,
   thrustLinearization: false,
+  // Instantaneous 6S internal-resistance voltage sag under full 4-motor load (~2.5% RPM / ~5% thrust).
+  loadVoltageSag: 0.025,
+  loadSagTimeConstant: 0.18,
+  propwashThrustLoss: 0.16,
+  propwashTurbulence: 0.012,
+  groundEffectStrength: 0.15,
+  rotorDiameter: 0.1295, // 5.1-inch T5147-3 propeller
+  rotorInertia: 2.2e-5, // 5.1" tri-blade prop + 2207 bell rotational inertia estimate
 };
 
 export const DEFAULT_RATES: RatesConfig = {

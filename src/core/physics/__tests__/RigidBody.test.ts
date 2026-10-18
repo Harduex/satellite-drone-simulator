@@ -51,4 +51,15 @@ describe("motor forces obey rigid-body mechanics", () => {
     expect(physics.step(state, commands, DT).angularVelocity.x)
       .toBeCloseTo(expected.step(state, commands, DT).angularVelocity.x, 10);
   });
+
+  it("couples pitch rotation into roll via spinning rotor angular momentum", () => {
+    const physics = new DronePhysics({ ...DEFAULT_DRONE_CONFIG });
+    // Spin CCW rotors (M1, M3) so net rotor spin > 0 without roll/pitch motor torque
+    for (let step = 0; step < 500; step++) physics.getMotorModel().update([0.6, 0, 0.6, 0], DT);
+    const state = createDefaultDroneState(100);
+    state.angularVelocity.x = 5; // pure pitch rate (omega.y = 0, so rigid-body I cross-coupling is zero)
+    const out = physics.step(state, { m1: 0.6, m2: 0, m3: 0.6, m4: 0 }, DT);
+    // tau_gyro_rotor = -omega x (0, 0, L_z) = (-omega.y * L_z, omega.x * L_z, 0) -> positive roll rate
+    expect(out.angularVelocity.y).toBeGreaterThan(0);
+  });
 });

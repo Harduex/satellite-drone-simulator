@@ -68,4 +68,32 @@ describe("MotorModel", () => {
       }
     });
   });
+
+  describe("load voltage sag", () => {
+    it("delivers higher initial 4-motor burst thrust than sustained full load, then recovers", () => {
+      const model = new MotorModel({ ...DEFAULT_DRONE_CONFIG, loadVoltageSag: 0.08, loadSagTimeConstant: 0.2 });
+      // Spin up for 80ms (~4.4 motor time constants, ~0.4 sag time constants)
+      let burstThrust = 0;
+      for (let step = 0; step < 40; step++) {
+        burstThrust = model.update([1, 1, 1, 1], DT)[0]!;
+      }
+      // Sustain full 4-motor load for 1.5s so load sag settles
+      let sustainedThrust = 0;
+      for (let step = 0; step < 750; step++) {
+        sustainedThrust = model.update([1, 1, 1, 1], DT)[0]!;
+      }
+      expect(burstThrust).toBeGreaterThan(sustainedThrust * 1.05);
+
+      // Rest at hover for 1.5s to let voltage recover, then punch again for 80ms
+      for (let step = 0; step < 750; step++) {
+        model.update([0.15, 0.15, 0.15, 0.15], DT);
+      }
+      let recoveredBurstThrust = 0;
+      for (let step = 0; step < 40; step++) {
+        recoveredBurstThrust = model.update([1, 1, 1, 1], DT)[0]!;
+      }
+      expect(recoveredBurstThrust).toBeGreaterThan(sustainedThrust * 1.05);
+    });
+  });
 });
+

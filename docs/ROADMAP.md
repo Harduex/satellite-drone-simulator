@@ -37,12 +37,12 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
-| P3 | True 3D collisions and impact-based landing/crash detection | Deferred | Reliable geometry for walls, overhangs and collision surfaces; distinct from sampled ground height |
-| P4 | Battery discharge, voltage sag and current limits | Deferred; optional only | Must never limit default free play |
+| P3 | True 3D collisions and impact-based landing/crash detection | Overhead surface guard implemented locally; full 3D mesh collisions deferred | `TerrainSampler` ignores surfaces >2m above the drone; full 3D wall/overhang collisions still require reliable mesh geometry |
+| P4 | Battery discharge, voltage sag and current limits | Transient load voltage sag implemented locally; pack discharge deferred | Automatic internal-resistance load sag (~2.5% RPM at full 4-motor load) preserves unlimited free play; battery depletion remains optional-only and deferred |
 | P5 | Self-level flight, practice gates, timed challenges and flight-state replay | Deferred | Separate scope per mode; existing video recording does not provide flight-state replay |
-| R1 | Calibrate drag, rotor response and flight envelope against real-flight data | Real-flight calibration pending reference measurements | [Baseline validation](../README.md#calibration-sources) covers static bench points, torque mechanics, transient rate bounds and Acro maneuvers. Recorded stick/gyro/RPM/voltage and flight-speed data from a known 5-inch 6S build are still needed; numerical consistency alone does not establish calibration |
-| R2 | Propwash and descent thrust loss | Proposed | Current inflow retains static thrust during descent; validate rotor/inflow behavior and bounded handling |
-| R3 | Ground effect and wall/building aerodynamics | Proposed | Reliable clearance and geometry; do not infer building-scale airflow from regional weather |
+| R1 | Calibrate drag, rotor response and flight envelope against real-flight data | Real-flight calibration pending reference measurements | [Baseline validation](../README.md#calibration-sources) covers static bench points, torque mechanics, rotor precession, transient rate bounds and Acro maneuvers. Recorded stick/gyro/RPM/voltage and flight-speed data from a known 5-inch 6S build are still needed; numerical consistency alone does not establish calibration |
+| R2 | Propwash and descent thrust loss | Implemented locally (first-order wake model) | Descent into own slipstream reduces thrust up to 16% and adds bounded pitch/roll shimmer; empirical blackbox tuning remains under R1 |
+| R3 | Ground effect and wall/building aerodynamics | Ground cushion implemented locally; wall aerodynamics deferred | Upright flight within 2.5 rotor diameters of sampled ground boosts lift up to 15%; wall/building airflow still requires 3D proximity geometry |
 | R4 | Controller profiles per device | Proposed | Current mapping uses one shared storage key; validate device identity, persistence and reconnect behavior |
 | R5 | Graphics quality and memory presets | Proposed | Measured budgets across hardware; intentional 6 GiB cache remains the baseline |
 | F3 | Make crash grace/confirmation independent of render FPS | Proposed; reproduced, fix not approved | Elapsed simulation time independent of HUD publication; retain terrain-sample protection and god-mode separation |

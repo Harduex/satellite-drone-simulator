@@ -243,13 +243,17 @@ src/
 - Wind advances with simulation time, freezes on pause, and resets with the flight. The bounded wind model and rotor-drag coefficient are flight-feel approximations, not measured weather or flight-data calibration.
 
 - Asymmetric motor spin-up/down (spin-down 1.3x slower)
-- Motor spin-up lag (first-order filter, τ=18ms)
+- Motor spin-up lag (first-order filter, τ=18ms) and transient 6S internal-resistance load voltage sag (~2.5% RPM / ~5% thrust at sustained 4-motor full load, τ=180ms, with unlimited pack capacity)
+- Descent propwash wake: descending through the rotor's own slipstream (`-7 < v_axial < -0.5 m/s` at low lateral airspeed) reduces thrust efficiency by up to 16% and adds bounded turbulent pitch/roll shimmer
+- Ground effect air cushion: upright flight within 2.5 rotor diameters (~0.32m) of the surface below increases lift by up to 15%
+- Rotor gyroscopic precession: spinning propeller + bell angular momentum couples rapid pitch/roll rotations
+- Overhead surface guard: top-down terrain sampling ignores 3D surfaces jumping >2m above the drone's current altitude so open overhangs/bridges do not snap the ground floor overhead
 - PID rate controller with derivative damping on measured rotation and separate setpoint feedforward (simulation-tuned gains; not Betaflight GUI units)
 - Configurable horizontal FOV (60-140°, default 110°), camera tilt default 25°
 
 Aerodynamic basis: [NASA's drag equation](https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/drag-equation/) and [experimentally validated linear rotor drag](https://arxiv.org/abs/1712.02402). Frame drag and rotor drag are separate effects; the existing frame-drag calibration remains within the reference flight-envelope test after adding rotor drag.
 
-Potential realism extensions: [ground effect](https://arxiv.org/abs/2506.19424) can add lift and attitude-dependent forces near a surface; [wall proximity](https://arxiv.org/abs/2509.21496) can alter aerodynamic forces close to buildings. These need reliable local clearance and surface geometry before implementation. The current model does not simulate building wakes, ground effect, or descent propwash.
+Potential realism extensions: [ground effect](https://arxiv.org/abs/2506.19424) attitude-dependent lateral forces and [wall proximity](https://arxiv.org/abs/2509.21496) close to buildings need 3D wall geometry before implementation. The current model does not simulate building wakes or battery state-of-charge depletion.
 
 ### Calibration sources
 
@@ -257,16 +261,18 @@ Potential realism extensions: [ground effect](https://arxiv.org/abs/2506.19424) 
 |---|---|---|
 | Mass, wheelbase | 644g, 225mm | Published: [iFlight Nazgul Evoque F5 V2](https://shop.iflight.com/Nazgul-Evoque-F5-V2-6S-Pro1954) (with 6S 1400mAh) |
 | Max RPM, `kT`, RPM curve | 30527, 1.94e-8 N/RPM², exp 0.65 | Fit to [T-Motor F60 Pro V 1750KV + T5147-3 bench](https://www.ligpower.com/cn/product/f60prov-fpv-motor.html) (RPM within 6%, thrust within 10% at 20–100%) |
-| Prop pitch | 4.7in | T5147-3 geometry |
+| Prop pitch, diameter | 4.7in, 5.1in (0.1295m) | T5147-3 geometry |
 | `kQ` | 2.5e-10 | Estimate: implied shaft power ≈ 67–77% of bench electrical power |
 | Inertia | 0.00165 / 0.00125 / 0.0027 kg·m² | Estimate: point-mass motors, arms, central battery/body |
+| Rotor inertia | 2.2e-5 kg·m² | Estimate: 5.1" tri-blade prop + 2207 motor bell |
 | Cd·A | 0.007 m² lateral (3x vertical) | Estimate: tuned so level top speed ≈ the advertised 190 km/h |
-| Motor lag | 18ms | Estimate |
+| Motor lag, load sag | 18ms, 2.5% RPM (τ=180ms) | Estimate: transient 6S load sag without battery discharge |
+| Propwash, ground effect | 16% peak loss, 15% max cushion | Flight-feel approximations for wake descent and low skimming |
 | FOV | 110° horizontal | Approximation of [DJI O3](https://www.dji.com/o3-air-unit/video) 12.7mm-equivalent lens (155° is diagonal); not a calibrated live-feed FOV |
 
-Not modeled: battery voltage sag/discharge, current limits, motor heating,
-edgewise-flow/propwash effects, vortex ring state, ground effect, and lens distortion.
-Bench power figures inform estimates only; there is no power-consumption simulation.
+Not modeled: battery discharge/depletion, current limits, motor heating,
+3D wall/overhang mesh collisions, and lens distortion.
+Bench power figures inform estimates only; there is no battery depletion simulation.
 Hover below 20% command is extrapolated from the bench curve.
 
 Saved custom settings are preserved. Physics Settings → Reset to Defaults applies
@@ -274,8 +280,9 @@ the baseline physics and camera setup. These defaults are a representative
 starting point, not a calibration against recorded real-world flight data.
 
 Automated validation checks individual motor torques against `r × F` and
-opposing propeller reaction, gravity, inverted thrust, hover, wind-relative drag,
-and closed-loop takeoff, forward travel, turning and Acro attitude retention.
+opposing propeller reaction, rotor gyroscopic precession, gravity, inverted thrust,
+hover, load voltage sag/recovery, descent propwash wake, ground effect cushion,
+wind-relative drag, and closed-loop takeoff, forward travel, turning and Acro attitude retention.
 The static motor model stays within 6% RPM and 10% thrust of the five published
 20–100% bench points above. Short stick pulses are checked on all axes in both
 directions at 10%, 21% and 50% throttle; their peak rotation stays below 140% of
@@ -285,7 +292,7 @@ regression bounds, not measured real-drone response tolerances.
 The mechanics follow [Newton–Euler quadrotor dynamics](https://vnav.mit.edu/material/06-Control1-notes.pdf);
 derivative damping follows the [gyro-based D-term principle](https://betaflight.com/docs/wiki/guides/current/Deep-Dive).
 Matching bench thrust and an advertised top speed does not validate transient
-handling, battery behavior or propwash. Real-flight calibration remains tracked
+handling, battery behavior or propwash against a specific physical airframe. Real-flight calibration remains tracked
 under [R1 in the roadmap](docs/ROADMAP.md).
 
 Physics Settings → God mode disables automatic crash respawns and crash flashes.
