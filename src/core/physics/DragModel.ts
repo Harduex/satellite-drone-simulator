@@ -21,10 +21,10 @@ const _dragBody: Vector3 = { x: 0, y: 0, z: 0 };
 
 /**
  * Compute direction-dependent translational drag.
- * Transforms velocity to body frame, applies per-axis Cd*A,
- * and transforms drag force back to world frame.
- * Velocity is relative to the air. Lateral rotor drag is linear in airspeed;
- * axial inflow is handled by the thrust model instead.
+ * When rotors are unpowered (free-fall), bluff-body drag strictly opposes
+ * the air velocity vector using direction-dependent effective Cd*A.
+ * When rotors are spinning under power, actuator-disc normal drag acts along
+ * the body axes alongside linear lateral H-force rotor drag.
  */
 export function computeTranslationalDrag(
   velocity: Vector3,
@@ -42,10 +42,23 @@ export function computeTranslationalDrag(
   const CdA_lateral = config.dragCoefficient * config.referenceArea;
   const CdA_vertical = CdA_lateral * config.verticalDragMultiplier;
 
+  const speed = Math.sqrt(speedSq);
+  const latSpeed = Math.hypot(bodyVel.x, bodyVel.y);
+  const latRatio = latSpeed / speed;
+  const vzRatio = Math.abs(bodyVel.z) / speed;
+  const CdA_eff =
+    CdA_lateral * (latRatio * latRatio * latRatio) +
+    CdA_vertical * (vzRatio * vzRatio * vzRatio);
+  const bluffDrag = 0.5 * rho * CdA_eff * speed;
+
+  const discShare = Math.min(1, Math.max(0, rotorDrag / 0.015));
+  const latQuad = 0.5 * rho * CdA_lateral;
+  const vertQuad = 0.5 * rho * CdA_vertical;
+
   const dragBody: Vector3 = {
-    x: -(0.5 * rho * CdA_lateral * Math.abs(bodyVel.x) + rotorDrag) * bodyVel.x,
-    y: -(0.5 * rho * CdA_lateral * Math.abs(bodyVel.y) + rotorDrag) * bodyVel.y,
-    z: -0.5 * rho * CdA_vertical * Math.abs(bodyVel.z) * bodyVel.z,
+    x: -((1 - discShare) * bluffDrag + discShare * latQuad * Math.abs(bodyVel.x) + rotorDrag) * bodyVel.x,
+    y: -((1 - discShare) * bluffDrag + discShare * latQuad * Math.abs(bodyVel.y) + rotorDrag) * bodyVel.y,
+    z: -((1 - discShare) * bluffDrag + discShare * vertQuad * Math.abs(bodyVel.z)) * bodyVel.z,
   };
 
   // Transform drag force back to world frame
@@ -76,10 +89,23 @@ export function computeTranslationalDragInto(
   const CdA_lateral = config.dragCoefficient * config.referenceArea;
   const CdA_vertical = CdA_lateral * config.verticalDragMultiplier;
 
+  const speed = Math.sqrt(speedSq);
+  const latSpeed = Math.hypot(_bodyVel.x, _bodyVel.y);
+  const latRatio = latSpeed / speed;
+  const vzRatio = Math.abs(_bodyVel.z) / speed;
+  const CdA_eff =
+    CdA_lateral * (latRatio * latRatio * latRatio) +
+    CdA_vertical * (vzRatio * vzRatio * vzRatio);
+  const bluffDrag = 0.5 * rho * CdA_eff * speed;
+
+  const discShare = Math.min(1, Math.max(0, rotorDrag / 0.015));
+  const latQuad = 0.5 * rho * CdA_lateral;
+  const vertQuad = 0.5 * rho * CdA_vertical;
+
   // Per-axis drag in body frame
-  _dragBody.x = -(0.5 * rho * CdA_lateral * Math.abs(_bodyVel.x) + rotorDrag) * _bodyVel.x;
-  _dragBody.y = -(0.5 * rho * CdA_lateral * Math.abs(_bodyVel.y) + rotorDrag) * _bodyVel.y;
-  _dragBody.z = -0.5 * rho * CdA_vertical * Math.abs(_bodyVel.z) * _bodyVel.z;
+  _dragBody.x = -((1 - discShare) * bluffDrag + discShare * latQuad * Math.abs(_bodyVel.x) + rotorDrag) * _bodyVel.x;
+  _dragBody.y = -((1 - discShare) * bluffDrag + discShare * latQuad * Math.abs(_bodyVel.y) + rotorDrag) * _bodyVel.y;
+  _dragBody.z = -((1 - discShare) * bluffDrag + discShare * vertQuad * Math.abs(_bodyVel.z)) * _bodyVel.z;
 
   // Transform drag force back to world frame
   quatRotateVectorInto(bodyQuaternion, _dragBody, out);

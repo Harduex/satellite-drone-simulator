@@ -43,6 +43,8 @@ const _omegaQuat: Quaternion = { w: 0, x: 0, y: 0, z: 0 };
 const _qDot: Quaternion = { w: 0, x: 0, y: 0, z: 0 };
 const _preNormQuat: Quaternion = { w: 0, x: 0, y: 0, z: 0 };
 const _newQuat: Quaternion = { w: 0, x: 0, y: 0, z: 0 };
+const _aeroConjQuat: Quaternion = { w: 1, x: 0, y: 0, z: 0 };
+const _bodyAirVel: Vector3 = { x: 0, y: 0, z: 0 };
 
 /**
  * Quadrotor physics engine.
@@ -107,6 +109,7 @@ export class DronePhysics {
     const thrusts = this.applyAeroThrustEffects(
       this.motorModel.update(this.throttleBuffer, dt),
       state.quaternion,
+      state.angularVelocity,
       state.position.z - groundHeight,
       dt,
     );
@@ -247,35 +250,50 @@ export class DronePhysics {
   }
 
   /**
-   * Adjusts static bench thrust for three aerodynamic effects:
-   * 1. Axial climb/forward inflow loss: T = T_static * (1 - v_axial / v_pitch).
-   * 2. Descent propwash / turbulent wake when descending into own downwash with low lateral speed.
-   * 3. Ground effect cushion within ~2 rotor diameters of the surface beneath the drone.
+   * Adjusts static bench thrust for four aerodynamic effects:
+   * 1. Per-motor axial + rotational inflow: T = T_static * (1 - v_local_axial / v_pitch).
+   * 2. Front-to-rear tandem rotor wake interference during edgewise translation.
+   * 3. Descent propwash / vortex ring wake (plus high-descent dive pull-out wake).
+   * 4. Ground effect cushion within ~2 rotor diameters of the surface beneath the drone.
    */
-  private applyAeroThrustEffects(thrusts: number[], q: Quaternion, clearance: number, dt: number): number[] {
+  private applyAeroThrustEffects(
+    thrusts: number[],
+    q: Quaternion,
+    omega: Vector3,
+    clearance: number,
+    dt: number,
+  ): number[] {
     const pitch = this.config.propellerPitch;
     const hasInflow = pitch !== undefined && Number.isFinite(pitch) && pitch > 0;
-    const v = this.airVelocity;
-    // Body Z axis in world frame (third column of the rotation matrix).
-    const upX = 2 * (q.x * q.z + q.w * q.y);
-    const upY = 2 * (q.y * q.z - q.w * q.x);
-    const upZ = 1 - 2 * (q.x * q.x + q.y * q.y);
-    const axial = v.x * upX + v.y * upY + v.z * upZ;
 
-    // Lateral airspeed perpendicular to rotor disc axis
-    const latSq = Math.max(0, v.x * v.x + v.y * v.y + v.z * v.z - axial * axial);
+    // Transform air velocity into body frame (zero-alloc)
+    _aeroConjQuat.w = q.w;
+    _aeroConjQuat.x = -q.x;
+    _aeroConjQuat.y = -q.y;
+    _aeroConjQuat.z = -q.z;
+    quatRotateVectorInto(_aeroConjQuat, this.airVelocity, _bodyAirVel);
+
+    const axial = _bodyAirVel.z;
+    const latSq = _bodyAirVel.x * _bodyAirVel.x + _bodyAirVel.y * _bodyAirVel.y;
+    const upZ = 1 - 2 * (q.x * q.x + q.y * q.y);
+
     const propwashLoss = Number.isFinite(this.config.propwashThrustLoss) && this.config.propwashThrustLoss! > 0
       ? Math.min(0.5, this.config.propwashThrustLoss!) : 0;
 
-    let wakeIntensity = 0;
-    if (hasInflow && propwashLoss > 0 && axial < -0.5 && axial > -7.0 && latSq < 25) {
-      const axialBell = Math.exp(-((axial + 2.5) * (axial + 2.5)) / 3.2);
+    let vortexRingIntensity = 0;
+    let wakeTurbulenceIntensity = 0;
+    if (hasInflow && propwashLoss > 0 && axial < -0.5 && axial > -28.0 && latSq < 25) {
       const latFactor = Math.max(0, 1 - latSq / 25);
-      wakeIntensity = axialBell * latFactor;
+      if (axial > -7.0) {
+        const vortexRingBell = Math.exp(-((axial + 2.5) * (axial + 2.5)) / 3.2);
+        vortexRingIntensity = vortexRingBell * latFactor;
+      }
+      const diveCatchTail = 0.22 * Math.exp(-((axial + 10.0) * (axial + 10.0)) / 90.0);
+      wakeTurbulenceIntensity = Math.min(1, vortexRingIntensity + diveCatchTail * latFactor);
       this.propwashPhase += dt * 48;
     }
-    this.lastPropwashIntensity = wakeIntensity;
-    const wakeScale = 1 - propwashLoss * wakeIntensity;
+    this.lastPropwashIntensity = wakeTurbulenceIntensity;
+    const wakeScale = 1 - propwashLoss * vortexRingIntensity;
 
     // Ground effect cushion when upright near the ground
     const geStrength = Number.isFinite(this.config.groundEffectStrength) && this.config.groundEffectStrength! > 0
@@ -291,13 +309,34 @@ export class DronePhysics {
 
     if (!hasInflow && wakeScale === 1 && groundScale === 1) return thrusts;
 
+    // Front-to-rear tandem rotor wake interference when translating along longitudinal Y axis
+    const fwdSpeed = Math.abs(_bodyAirVel.y);
+    let tandemWakeBase = 0;
+    if (hasInflow && fwdSpeed > 1.5 && Math.abs(axial) < 8.0) {
+      const fwdRamp = Math.min(1, (fwdSpeed - 1.5) / 5.0) * Math.exp(-fwdSpeed / 35.0);
+      const axialOverlap = Math.exp(-((axial - 0.5) * (axial - 0.5)) / 8.0);
+      tandemWakeBase = 0.055 * fwdRamp * axialOverlap;
+    }
+
+    const d = this.motorArmOffset;
+    const baseAxial = Math.max(0, axial);
     const rpms = this.motorModel.state.rpm;
     for (let i = 0; i < 4; i++) {
       let factor = wakeScale * groundScale;
-      if (hasInflow && axial > 0) {
+      if (hasInflow) {
+        const motor = MOTOR_LAYOUT[i]!;
         const pitchSpeed = pitch! * rpms[i]! / 60;
-        const inflowFactor = pitchSpeed > 0 ? Math.max(0, 1 - axial / pitchSpeed) : 0;
+        // Per-motor local axial velocity includes rotational velocity (omega × r)_z
+        const rotAxial = d * (omega.x * motor.posY - omega.y * motor.posX);
+        const localAxial = baseAxial + rotAxial;
+        const inflowFactor = pitchSpeed > 0
+          ? Math.min(1.15, Math.max(0, 1 - localAxial / pitchSpeed))
+          : 0;
         factor *= inflowFactor;
+
+        if (tandemWakeBase > 0 && motor.posY * _bodyAirVel.y < 0) {
+          factor *= 1 - tandemWakeBase;
+        }
       }
       this.inflowThrustBuffer[i] = thrusts[i]! * factor;
     }

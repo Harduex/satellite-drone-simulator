@@ -56,5 +56,17 @@ describe("DragModel", () => {
       expect(drag.y).toBe(0);
       expect(drag.z).toBe(0);
     });
+
+    it("strictly opposes velocity without phantom horizontal lift in tilted free-fall", () => {
+      const half = (-61 * Math.PI) / 360;
+      const tiltedQuat = { w: Math.cos(half), x: Math.sin(half), y: 0, z: 0 };
+      // Pure vertical free-fall while pitched 61 degrees nose-down
+      const verticalFall = { x: 0, y: 0, z: -30 };
+      const drag = computeTranslationalDrag(verticalFall, tiltedQuat, DEFAULT_DRONE_CONFIG, 0);
+      expect(drag.x).toBeCloseTo(0, 6);
+      expect(drag.y).toBeCloseTo(0, 6);
+      expect(drag.z).toBeGreaterThan(0);
+    });
   });
 });
+
