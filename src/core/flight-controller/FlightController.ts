@@ -10,9 +10,9 @@ import { applyExpo } from "./FlightModes";
 
 // Gains use rad/s error and normalized motor commands, not Betaflight's GUI units.
 const DEFAULT_PID = {
-  roll: { kP: 0.065, kI: 0.035, kD: 0.003, kFF: 0.015 },
-  pitch: { kP: 0.065, kI: 0.035, kD: 0.003, kFF: 0.015 },
-  yaw: { kP: 0.090, kI: 0.045, kD: 0.010, kFF: 0.020 },
+  roll: { kP: 0.065, kI: 0.035, kD: 0.003, kFF: 0.003 },
+  pitch: { kP: 0.065, kI: 0.035, kD: 0.003, kFF: 0.003 },
+  yaw: { kP: 0.090, kI: 0.045, kD: 0.010, kFF: 0.010 },
 };
 
 const DEG_TO_RAD = Math.PI / 180;

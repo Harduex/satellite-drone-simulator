@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DronePhysics } from "../DronePhysics";
+import { MotorModel } from "../MotorModel";
 import { DEFAULT_DRONE_CONFIG } from "../droneConfig";
 import { createDefaultDroneState, type DroneState, type PhysicsConfig } from "../types";
 
@@ -20,6 +21,23 @@ function holdAttitude(config: PhysicsConfig, pitchDeg: number, seconds: number):
 }
 
 describe("reference 5-inch flight envelope", () => {
+  // F60 Pro V 1750KV / T5147-3, manufacturer's 24.8–25.2 V static bench data:
+  // https://www.ligpower.com/cn/product/f60prov-fpv-motor.html
+  it.each([
+    [0.2, 11132, 227.0],
+    [0.4, 16928, 558.6],
+    [0.6, 21409, 910.7],
+    [0.8, 26122, 1403.4],
+    [1.0, 30527, 1882.5],
+  ])("matches bench RPM within 6%% and thrust within 10%% at command %f", (command, rpm, grams) => {
+    const motor = new MotorModel({ ...DEFAULT_DRONE_CONFIG });
+    const commands = [command, command, command, command];
+    for (let step = 0; step < 500; step++) motor.update(commands, DT);
+    const thrust = motor.update(commands, DT)[0]!;
+    expect(Math.abs(motor.state.rpm[0]! / rpm! - 1)).toBeLessThan(0.06);
+    expect(Math.abs(thrust / (grams! * 9.81 / 1000) - 1)).toBeLessThan(0.10);
+  });
+
   it("hovers near 15% raw command with ~11:1 static thrust-to-weight", () => {
     const c = DEFAULT_DRONE_CONFIG;
     const hoverFraction = Math.sqrt(c.mass * 9.81 / (4 * c.kT)) / c.maxThrottleRpm;

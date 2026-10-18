@@ -1,6 +1,6 @@
 # Satellite Drone Simulator
 
-A browser-based FPV drone simulator where the **world is the map**. Search any real-world location, then fly over it in first-person view using a real radio controller or keyboard. Physics feel like Liftoff — realistic motor thrust, drag, inertia, and inflow thrust loss.
+A browser-based FPV drone simulator where the **world is the map**. Search any real-world location, then fly over it in first-person view using a real radio controller or keyboard. The flight model includes motor thrust, drag, inertia and approximate inflow thrust loss for a representative 5-inch quad.
 
 ## Quick Start
 
@@ -244,7 +244,7 @@ src/
 
 - Asymmetric motor spin-up/down (spin-down 1.3x slower)
 - Motor spin-up lag (first-order filter, τ=18ms)
-- PID rate controller (simulation-tuned gains; not Betaflight GUI units)
+- PID rate controller with derivative damping on measured rotation and separate setpoint feedforward (simulation-tuned gains; not Betaflight GUI units)
 - Configurable horizontal FOV (60-140°, default 110°), camera tilt default 25°
 
 Aerodynamic basis: [NASA's drag equation](https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/drag-equation/) and [experimentally validated linear rotor drag](https://arxiv.org/abs/1712.02402). Frame drag and rotor drag are separate effects; the existing frame-drag calibration remains within the reference flight-envelope test after adding rotor drag.
@@ -272,6 +272,21 @@ Hover below 20% command is extrapolated from the bench curve.
 Saved custom settings are preserved. Physics Settings → Reset to Defaults applies
 the baseline physics and camera setup. These defaults are a representative
 starting point, not a calibration against recorded real-world flight data.
+
+Automated validation checks individual motor torques against `r × F` and
+opposing propeller reaction, gravity, inverted thrust, hover, wind-relative drag,
+and closed-loop takeoff, forward travel, turning and Acro attitude retention.
+The static motor model stays within 6% RPM and 10% thrust of the five published
+20–100% bench points above. Short stick pulses are checked on all axes in both
+directions at 10%, 21% and 50% throttle; their peak rotation stays below 140% of
+the peak requested rate and settles below 0.05 rad/s after release. These are
+regression bounds, not measured real-drone response tolerances.
+
+The mechanics follow [Newton–Euler quadrotor dynamics](https://vnav.mit.edu/material/06-Control1-notes.pdf);
+derivative damping follows the [gyro-based D-term principle](https://betaflight.com/docs/wiki/guides/current/Deep-Dive).
+Matching bench thrust and an advertised top speed does not validate transient
+handling, battery behavior or propwash. Real-flight calibration remains tracked
+under [R1 in the roadmap](docs/ROADMAP.md).
 
 Physics Settings → God mode disables automatic crash respawns and crash flashes.
 Ground contact remains active, allowing takeoff after impact. The choice is saved

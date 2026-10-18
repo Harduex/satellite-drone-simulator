@@ -4,7 +4,73 @@ import { applyExpo } from "../FlightModes";
 import { DronePhysics } from "../../physics/DronePhysics";
 import { WindModel } from "../../physics/WindModel";
 import { DEFAULT_DRONE_CONFIG, DEFAULT_RATES } from "../../physics/droneConfig";
-import { createDefaultDroneState, type StickInputs } from "../../physics/types";
+import { createDefaultDroneState, quatRotateVector, type StickInputs } from "../../physics/types";
+
+describe("Acro flight maneuvers", () => {
+  it.each([
+    ["roll", "y", 1, DEFAULT_RATES.rollRate],
+    ["pitch", "x", -1, DEFAULT_RATES.pitchRate],
+    ["yaw", "z", -1, DEFAULT_RATES.yawRate],
+  ] as const)("bounds transient %s response and stops without self-leveling", (stick, axis, sign, rate) => {
+    for (const throttle of [0.1, 0.21, 0.5]) {
+      for (const direction of [-1, 1]) {
+        const physics = new DronePhysics({ ...DEFAULT_DRONE_CONFIG });
+        const controller = new FlightController(DEFAULT_RATES);
+        let state = createDefaultDroneState(100);
+        const inputs: StickInputs = { throttle, roll: 0, pitch: 0, yaw: 0 };
+        let command = 0;
+        let maxRate = 0;
+        // 90 ms ramp up and 60 ms return: a brief keyboard-like correction.
+        for (let step = 0; step < 1000; step++) {
+          command = step < 45 ? Math.min(0.7, command + 0.008) : Math.max(0, command - 0.012);
+          inputs[stick] = direction * command;
+          state = physics.step(state, controller.update(inputs, state, 0.002), 0.002);
+          maxRate = Math.max(maxRate, Math.abs(state.angularVelocity[axis]));
+        }
+        const angle = direction * sign * 2 * Math.atan2(state.quaternion[axis], state.quaternion.w) * 180 / Math.PI;
+        const peakTarget = applyExpo(0.36, DEFAULT_RATES.expo) * rate;
+        expect(maxRate * 180 / Math.PI, `throttle=${throttle}, direction=${direction}`).toBeLessThan(peakTarget * 1.4);
+        expect(angle).toBeGreaterThan(3);
+        expect(angle).toBeLessThan(30);
+        expect(Math.abs(state.angularVelocity[axis])).toBeLessThan(0.05);
+      }
+    }
+  });
+
+  it("takes off, travels forward, turns right and retains tilt with centered sticks", () => {
+    const physics = new DronePhysics({ ...DEFAULT_DRONE_CONFIG });
+    const controller = new FlightController(DEFAULT_RATES);
+    const inputs: StickInputs = { throttle: 0.23, roll: 0, pitch: 0, yaw: 0 };
+    let state = createDefaultDroneState(0);
+    const advance = (seconds: number) => {
+      for (let step = 0; step < seconds / 0.002; step++) {
+        state = physics.step(state, controller.update(inputs, state, 0.002), 0.002);
+      }
+    };
+    advance(1);
+    expect(state.position.z).toBeGreaterThan(1);
+    inputs.pitch = 0.15;
+    advance(0.3);
+    inputs.pitch = 0;
+    advance(1);
+    expect(state.position.y).toBeGreaterThan(0.5);
+    expect(state.velocity.y).toBeGreaterThan(1);
+    const upBefore = quatRotateVector(state.quaternion, { x: 0, y: 0, z: 1 });
+    expect(upBefore.y).toBeGreaterThan(0.2);
+    advance(1);
+    const upAfter = quatRotateVector(state.quaternion, { x: 0, y: 0, z: 1 });
+    expect(Math.abs(upAfter.y - upBefore.y)).toBeLessThan(0.05);
+    expect(Math.abs(state.angularVelocity.x)).toBeLessThan(0.05);
+    inputs.yaw = 0.2;
+    advance(0.5);
+    inputs.yaw = 0;
+    advance(1);
+    const forward = quatRotateVector(state.quaternion, { x: 0, y: 1, z: 0 });
+    expect(forward.x).toBeGreaterThan(0.3);
+    expect(Math.abs(state.angularVelocity.z)).toBeLessThan(0.05);
+    expect(state.position.z).toBeGreaterThan(1);
+  });
+});
 
 describe.each([false, true])("controller with the reference quad physics (wind=%s)", (gentleWind) => {
   describe.each([

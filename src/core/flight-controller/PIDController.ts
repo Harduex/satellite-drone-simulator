@@ -43,8 +43,10 @@ export class PIDController {
     );
     const iTerm = this.kI * this.integral;
 
-    // Derivative with low-pass filter to reduce noise
-    const rawDerivative = (error - this.prevError) / dt;
+    // With a target rate, D damps measured rotation; stick acceleration belongs
+    // to feedforward. Error-only callers retain the classical PID derivative.
+    const setpointDelta = setpoint === undefined ? 0 : setpoint - this.prevSetpoint;
+    const rawDerivative = (error - this.prevError - setpointDelta) / dt;
     const filteredDerivative = this.dFilterAlpha * this.prevDerivative +
       (1 - this.dFilterAlpha) * rawDerivative;
     const dTerm = this.kD * filteredDerivative;
@@ -52,10 +54,10 @@ export class PIDController {
     // Feed-forward: kFF * d(setpoint)/dt
     let ffTerm = 0;
     if (setpoint !== undefined && this.kFF !== 0) {
-      ffTerm = this.kFF * (setpoint - this.prevSetpoint) / dt;
-      this.prevSetpoint = setpoint;
+      ffTerm = this.kFF * setpointDelta / dt;
     }
 
+    if (setpoint !== undefined) this.prevSetpoint = setpoint;
     this.prevError = error;
     this.prevDerivative = filteredDerivative;
 

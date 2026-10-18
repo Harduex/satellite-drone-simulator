@@ -40,7 +40,7 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 | P3 | True 3D collisions and impact-based landing/crash detection | Deferred | Reliable geometry for walls, overhangs and collision surfaces; distinct from sampled ground height |
 | P4 | Battery discharge, voltage sag and current limits | Deferred; optional only | Must never limit default free play |
 | P5 | Self-level flight, practice gates, timed challenges and flight-state replay | Deferred | Separate scope per mode; existing video recording does not provide flight-state replay |
-| R1 | Calibrate drag, rotor response and flight envelope against real-flight data | Proposed | Suitable reference measurements; numerical consistency alone does not establish calibration |
+| R1 | Calibrate drag, rotor response and flight envelope against real-flight data | Real-flight calibration pending reference measurements | [Baseline validation](../README.md#calibration-sources) covers static bench points, torque mechanics, transient rate bounds and Acro maneuvers. Recorded stick/gyro/RPM/voltage and flight-speed data from a known 5-inch 6S build are still needed; numerical consistency alone does not establish calibration |
 | R2 | Propwash and descent thrust loss | Proposed | Current inflow retains static thrust during descent; validate rotor/inflow behavior and bounded handling |
 | R3 | Ground effect and wall/building aerodynamics | Proposed | Reliable clearance and geometry; do not infer building-scale airflow from regional weather |
 | R4 | Controller profiles per device | Proposed | Current mapping uses one shared storage key; validate device identity, persistence and reconnect behavior |

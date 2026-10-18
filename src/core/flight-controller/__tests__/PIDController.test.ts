@@ -2,6 +2,21 @@ import { describe, expect, it } from "vitest";
 import { PIDController } from "../PIDController";
 
 describe("PIDController", () => {
+  it("does not apply derivative kick when only the target rate changes", () => {
+    const pid = new PIDController({ kP: 0, kI: 0, kD: 0.01, kFF: 0 });
+    pid.update(0, 0.002, 0);
+    expect(pid.update(1, 0.002, 1)).toBe(0);
+    // Measurement rises from zero to 0.1 rad/s while the target stays at 1.
+    expect(pid.update(0.9, 0.002, 1)).toBeLessThan(0);
+  });
+
+  it("applies target-rate acceleration only through feedforward", () => {
+    const pid = new PIDController({ kP: 0, kI: 0, kD: 0.01, kFF: 0.001 });
+    pid.update(0, 0.002, 0);
+    expect(pid.update(1, 0.002, 1)).toBeCloseTo(0.5, 10);
+    expect(pid.update(1, 0.002, 1)).toBeCloseTo(0, 10);
+  });
+
   describe("step response", () => {
     it("converges error to near zero", () => {
       const pid = new PIDController({ kP: 1.0, kI: 0.5, kD: 0.1 });
