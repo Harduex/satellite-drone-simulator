@@ -25,7 +25,10 @@ function button(label: string) { return [...container.querySelectorAll('button')
 
 describe('recording controls', () => {
   it('records, shows paused elapsed time, and keeps completed downloads in the picker', async () => {
-    render(); await act(async () => button('Record').click()); expect(session.startRecording).toHaveBeenCalledOnce();
+    render();
+    expect(container.textContent).toBe('');
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR' })));
+    expect(session.startRecording).toHaveBeenCalledOnce();
     act(() => useStore.setState({ phase: 'PAUSED', recording: { ...INITIAL_RECORDING, status: 'paused', elapsedSeconds: 65 } }));
     expect(container.textContent).toContain('01:05'); expect(container.textContent).toContain('Paused');
     await act(async () => button('Stop').click()); expect(session.stopRecording).toHaveBeenCalledOnce();
@@ -55,9 +58,9 @@ describe('recording controls', () => {
     render(); act(() => useStore.setState({ recording: { ...INITIAL_RECORDING, status: 'finalizing' } }));
     expect(container.querySelector('button')?.disabled).toBe(true);
     act(() => useStore.setState({ phase: 'PAUSED', recording: { ...INITIAL_RECORDING } }));
-    expect(button('Record').disabled).toBe(true);
+    expect(button('Record')).toBeUndefined();
     act(() => useStore.setState({ phase: 'FLYING', recording: { ...INITIAL_RECORDING, status: 'error', error: { code: 'unsupported', message: 'Video unavailable.' } } }));
-    expect(container.textContent).toContain('Video unavailable.'); expect(button('Record').disabled).toBe(true);
+    expect(container.textContent).toContain('Video unavailable.'); expect(button('Record')).toBeUndefined();
     act(() => useStore.setState({ phase: 'PICKER', recording: { ...INITIAL_RECORDING } }));
     expect(container.textContent).toBe('');
   });

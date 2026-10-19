@@ -35,6 +35,7 @@ export function RecordingControls({ session }: { session: SimSession }) {
   }, [session]);
 
   if (phase === 'PICKER' && recording.status !== 'ready' && !busy) return null;
+  if (!active && !busy && recording.status !== 'ready' && !recording.error && supported) return null;
   const seconds = Math.floor(recording.elapsedSeconds);
   const elapsed = `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   const limit = recording.stopReason === 'duration' ? '5-minute limit reached'
@@ -49,19 +50,19 @@ export function RecordingControls({ session }: { session: SimSession }) {
             <button className={css.primary} onClick={() => session.downloadRecording()}>Download</button>
             <button onClick={() => session.discardRecording()}>Discard</button>
           </>
-        ) : (
+        ) : (active || busy) ? (
           <>
             <button className={active ? css.stop : css.primary}
-              disabled={busy || (!active && (phase !== 'FLYING' || !supported || recording.error?.code === 'unsupported'))}
-              onClick={() => { if (active) void session.stopRecording(); else void session.startRecording(); }}
+              disabled={busy}
+              onClick={() => { void session.stopRecording(); }}
               aria-keyshortcuts="R">
               <span className={css.light} aria-hidden="true" />
-              {busy ? (recording.stopReason ? 'Saving…' : 'Starting…') : active ? 'Stop' : 'Record'}
+              {busy ? (recording.stopReason ? 'Saving…' : 'Starting…') : 'Stop'}
             </button>
             <span className={css.label}>{active ? (recording.status === 'paused' ? 'Paused' : 'REC') : 'R'}
               {active && <time>{elapsed}</time>}</span>
           </>
-        )}
+        ) : null}
       </div>
       {limit && <p className={css.note}>{limit}</p>}
       {!supported && <p className={css.note}>Video recording is unavailable in this browser.</p>}

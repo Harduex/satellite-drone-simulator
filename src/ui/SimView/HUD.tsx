@@ -55,6 +55,8 @@ export function HUD({ locationName }: Props) {
       {/* Keyboard controls hint */}
       <div className={css.controlsHint}>
         W/S: throttle | A/D: yaw | Arrows: roll/pitch | ESC: pause
+        <br />
+        Space: respawn | R: start/stop recording
       </div>
     </div>
   );

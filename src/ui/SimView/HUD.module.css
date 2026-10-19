@@ -104,6 +104,7 @@
   color: var(--color-on-surface);
   text-shadow: var(--hud-text-shadow);
   font-size: 0.65rem;
+  text-align: right;
   opacity: 0.3;
 }
 .windIndicator { position: absolute; left: 20px; top: 65px; display: flex; align-items: center; gap: 8px; color: var(--color-on-surface); font-size: 12px; text-shadow: 0 1px 3px #000; }
