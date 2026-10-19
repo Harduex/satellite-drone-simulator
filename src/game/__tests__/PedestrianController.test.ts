@@ -38,3 +38,15 @@ it('refreshes moving pedestrian coverage and cancels paused/disposed work', asyn
         clock.mockRestore();
     }
 });
+it('reuses the exclusions array across pedestrian surface samples', () => {
+    const sampleHeight = vi.fn().mockReturnValue(10);
+    const baseExclusions = [{}];
+    const viewer = { scene: { preUpdate: new Cesium.Event(), sampleHeightSupported: true, sampleHeight }, creditDisplay: { addStaticCredit: vi.fn(), removeStaticCredit: vi.fn() } } as unknown as Cesium.Viewer;
+    const controller = new PedestrianController({ viewer, enuFrame: Cesium.Transforms.eastNorthUpToFixedFrame(Cesium.Cartesian3.fromDegrees(0, 0)), spawn: { x: 0, y: 0, z: 0 }, readDronePosition: () => ({ x: 0, y: 0, z: 0 }), readBaseExclusions: () => baseExclusions, exclusionsChanged: () => { }, publish: () => { }, diagnosticsEnabled: () => false });
+    const sample = (controller as unknown as { sample: (point: { x: number; y: number; z: number }) => number | undefined }).sample.bind(controller);
+    sample({ x: 0, y: 0, z: 0 });
+    sample({ x: 5, y: 0, z: 0 });
+    expect(sampleHeight.mock.calls[0]![1]).toBe(sampleHeight.mock.calls[1]![1]);
+    controller.dispose();
+});
+

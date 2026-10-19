@@ -49,7 +49,7 @@ export function PhysicsSettings({ onClose }: Props) {
         <span className={css.godModeCopy}>
           <span>God mode</span>
           <span id="god-mode-description" className={css.godModeHint}>
-            Recover upright near the hit, above the surface.
+            Solid contacts without damage. Press Space to recover nearby.
           </span>
         </span>
         <input

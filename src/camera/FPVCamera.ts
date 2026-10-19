@@ -47,7 +47,6 @@ export class FPVCamera {
     const frustum = viewer.camera.frustum as Cesium.PerspectiveFrustum;
     this.cachedAspectRatio = NaN;
     this.updateFrustumFov();
-    frustum.near = this.config.nearClip;
     frustum.far = this.config.farClip;
   }
 
@@ -67,6 +66,9 @@ export class FPVCamera {
     // Cesium interprets fov as vertical when the viewport is taller than wide.
     frustum.fov = aspect >= 1 ? horizontalFov :
       2 * Math.atan(Math.tan(horizontalFov / 2) / aspect);
+    // The contact body is only 5 cm deep below the camera; the entire near plane must fit inside it.
+    const halfWidth = Math.tan(horizontalFov / 2);
+    frustum.near = Math.min(this.config.nearClip, 0.04 / Math.hypot(1, halfWidth, halfWidth / aspect));
     this.cachedAspectRatio = aspect;
     this.cachedFov = this.config.fov;
   }

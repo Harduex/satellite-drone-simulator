@@ -4,6 +4,7 @@ import { CrashFlash } from './CrashFlash';
 import { LiveSticks } from './LiveSticks';
 import type { SimSession } from '../../game/SimSession';
 import styles from './SimView.module.css';
+import { RecoveryPrompt } from './RecoveryPrompt';
 
 interface Props {
   session: SimSession;
@@ -17,9 +18,11 @@ export function SimView({ session, isPaused }: Props) {
       <HUD locationName={session.getSpawnOrigin()?.name ?? ''} />
       <LiveSticks />
       <CrashFlash />
+      {!isPaused && <RecoveryPrompt />}
       {isPaused && (
         <PauseMenu
           onResume={() => session.resume()}
+          onRestart={() => { session.reset(); session.resume(); }}
           onSaveCurrentAsDefault={() => session.saveCurrentLocationAsDefault()}
           onCopyLocation={() => session.copyLocationLink()}
           onExportTelemetry={() => session.exportTelemetry()}

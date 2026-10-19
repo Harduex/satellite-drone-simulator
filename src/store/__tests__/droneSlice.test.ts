@@ -58,6 +58,14 @@ describe("droneSlice", () => {
   });
 
   describe("resetTelemetry", () => {
+    it('clears transient damage and recovery errors for the next flight', () => {
+      const store = createTestStore();
+      store.getState().setFlightCondition('disabled');
+      store.getState().setRecoveryUnavailable(true);
+      store.getState().resetTelemetry();
+      expect(store.getState().flightCondition).toBe('flying');
+      expect(store.getState().recoveryUnavailable).toBe(false);
+    });
     it("resets all telemetry to zero", () => {
       const store = createTestStore();
       store.getState().updateTelemetry({ speed: 10, altitudeAGL: 50, throttle: 0.7 });

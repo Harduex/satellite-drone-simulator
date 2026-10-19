@@ -1,6 +1,6 @@
 # Product roadmap
 
-Updated 2026-10-18. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
+Updated 2026-10-19. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
 
 ## Outcomes and constraints
 
@@ -37,14 +37,17 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
-| P3 | True 3D collisions and impact-based landing/crash detection | Deferred | Reliable geometry for walls, overhangs and collision surfaces; distinct from sampled ground height |
+| P3 | Ground/roof landing practice and bounded side-contact trial; true 3D collisions deferred | [Prototype implemented locally](superpowers/specs/2026-10-19-landing-contacts-design.md); flight-feel feedback and wider coverage checks pending | Cesium/custom flight physics retained. Ground/roof support and restored inferred sides under strict query budgets; sparse coverage and canopy artifacts remain trial limits; true 3D contacts require supported geometry; Standard severe-impact disarming, God mode without damage, Space/UI nearby airborne recovery. Missing geometry does not pause flight and can cause clipping. Underpasses/overhangs remain unsupported. Renderer migration rejected for this scope; [geometry research](experiments/simulator-improvements.md#p3-collision-feasibility) |
+| P3-H | Ground/roof landings with nearby automatic recovery on side impacts | Proposed alternative; not selected for the current solid-wall trial | Compare the bounded wall-contact trial first; preserve a clear distinction between physical contact and automatic recovery |
 | P4 | Battery discharge, voltage sag and current limits | Transient load voltage sag implemented locally; pack discharge deferred | Automatic internal-resistance load sag (~2.5% RPM at full 4-motor load) preserves unlimited free play; battery depletion remains optional-only and deferred |
 | P5 | Self-level flight, practice gates, timed challenges and flight-state replay | Deferred | Separate scope per mode; existing video recording does not provide flight-state replay |
+| P7 | Spawn at a random location through an action in the pause menu | Proposed; implementation not authorized | Reuse session location loading and spawn validation; define eligible locations and unavailable-geometry behavior before implementation |
 | R1 | Calibrate drag, rotor response and flight envelope against real-flight data | Real-flight calibration pending reference measurements | [Baseline validation](../README.md#calibration-sources) covers static bench points, torque mechanics, rotor precession, transient rate bounds and Acro maneuvers. Recorded stick/gyro/RPM/voltage and flight-speed data from a known 5-inch 6S build are still needed; numerical consistency alone does not establish calibration |
 | R2 | Propwash and descent thrust loss | Implemented locally (first-order wake model) | Descent into own slipstream reduces thrust up to 16% and adds bounded pitch/roll shimmer; empirical blackbox tuning remains under R1 |
 | R3 | Ground effect and wall/building aerodynamics | Ground cushion implemented locally; wall aerodynamics deferred | Upright flight within 2.5 rotor diameters of sampled ground boosts lift up to 15%; wall/building airflow still requires 3D proximity geometry |
 | R4 | Controller profiles per device | Proposed | Current mapping uses one shared storage key; validate device identity, persistence and reconnect behavior |
 | R5 | Graphics quality and memory presets | Proposed | Measured budgets across hardware; intentional 6 GiB cache remains the baseline |
+| R6 | Stick endpoint and travel range calibration for controllers | Proposed; implementation not authorized | Record physical min/max travel per axis alongside center offset; scale sub-ranges (e.g. 1000–2000µs / non-unitary USB throws) so full physical stick deflection reaches 100% (-1.0 to +1.0) on all channels |
 | F3 | Make crash grace/confirmation independent of render FPS | Proposed; reproduced, fix not approved | Elapsed simulation time independent of HUD publication; retain terrain-sample protection and god-mode separation |
 
 Evidence and detailed limits: [simulator improvement proposals](experiments/simulator-improvements.md).

@@ -28,6 +28,10 @@ export class KeyboardInput {
   stop(): void {
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
+    this.reset();
+  }
+
+  reset(): void {
     this.keys.clear();
     this.throttleLevel = 0;
     this.rollLevel = 0;

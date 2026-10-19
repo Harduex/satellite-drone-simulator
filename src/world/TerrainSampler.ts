@@ -3,6 +3,10 @@ import type { Vector3 } from "../core/physics/types";
 import { enuToEcef } from "./CoordUtils";
 
 const MAX_REASONABLE_SURFACE_OFFSET_METERS = 10000;
+export interface SurfaceObservation {
+  height: number;
+  source: 'tiles' | 'terrain' | 'unknown';
+}
 const MIN_SAFE_SPAWN_AGL_METERS = 25;
 const SPAWN_SAMPLE_OFFSETS: readonly [number, number][] = [
   [90, 0],
@@ -60,6 +64,23 @@ export class TerrainSampler {
   /** Get the cached ground height in ENU Z coordinates */
   getGroundHeight(): number {
     return this.cachedGroundHeight;
+  }
+
+  sampleSurfaceInto(position: Vector3, out: SurfaceObservation): void {
+    out.source = 'unknown';
+    out.height = Number.NaN;
+    const ecef = enuToEcef(position, this.enuFrame);
+    Cesium.Cartesian3.clone(ecef, this.scratchEcef);
+    Cesium.Cartographic.fromCartesian(this.scratchEcef, undefined, this.scratchCarto);
+    try {
+      const sceneHeight = this.sampleHeightFromScene(this.scratchCarto);
+      if (sceneHeight !== null) { out.height = sceneHeight; out.source = 'tiles'; return; }
+      const terrainHeight = this.sampleHeightFromGlobe(this.scratchCarto);
+      if (terrainHeight !== null) { out.height = terrainHeight; out.source = 'terrain'; }
+    } catch {
+      // A streaming failure is unknown geometry; callers must not reuse an unrelated floor.
+      out.source = 'unknown';
+    }
   }
 
   private toEnuHeight(sampledHeight: number | undefined): number | null {

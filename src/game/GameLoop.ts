@@ -13,6 +13,9 @@ import { TelemetryPublisher } from "./TelemetryPublisher";
 import { FlightNavigation } from "./FlightNavigation";
 import type { DroneAudio } from "./DroneAudio";
 import { TerrainSampler } from "../world/TerrainSampler";
+import { ContactSampler } from '../world/ContactSampler';
+import { SurfaceContact } from '../core/physics/SurfaceContact';
+import { isRecoveryShortcut } from './recoveryShortcut';
 import { useStore } from "../store";
 import type {
   DroneState,
@@ -27,7 +30,6 @@ import { createDefaultDroneState } from "../core/physics/types";
 const MAX_PHYSICS_SUBSTEPS = 50;
 // Preserve real-time flight down to 10 FPS, but discard long stall time.
 const MAX_WALL_DT = MAX_PHYSICS_SUBSTEPS / 500;
-const RECOVERY_CLEARANCE = 5;
 const MAX_RECOVERY_DISTANCE = 20;
 
 export class GameLoop {
@@ -62,6 +64,18 @@ export class GameLoop {
   private spawnAltitude: number;
   private spawnPosition: Vector3;
   private lastSafePosition: Vector3;
+  private readonly contactSampler: ContactSampler;
+  private readonly surfaceContact: SurfaceContact;
+  private contactRadius: number;
+  private supported = false;
+  private hasImpactAnchor = false;
+  private readonly impactAnchor = { x: 0, y: 0, z: 0 };
+  private readonly recoveryPosition = { x: 0, y: 0, z: 0 };
+  private readonly handleRecoveryKey = (event: KeyboardEvent) => {
+    if (!this.running || !isRecoveryShortcut(event)) return;
+    event.preventDefault();
+    this.recover();
+  };
   private audio?: DroneAudio;
 
   constructor(params: {
@@ -84,6 +98,9 @@ export class GameLoop {
     this.audio = params.audio;
 
     this.physics = new DronePhysics(params.physicsConfig);
+    this.surfaceContact = new SurfaceContact(params.physicsConfig);
+    this.contactSampler = new ContactSampler(params.terrainSampler);
+    this.contactRadius = params.physicsConfig.armLength + (params.physicsConfig.rotorDiameter ?? 0.13) / 2;
     this.windModel.setConfig(resolveWindConfig(params.physicsConfig));
     this.flightController = new FlightController(
       params.ratesConfig,
@@ -100,7 +117,7 @@ export class GameLoop {
     });
 
     this.droneRenderer = new DroneRenderer();
-    this.crashDetector = new CrashDetector(this.spawnAltitude);
+    this.crashDetector = new CrashDetector();
     this.telemetryPublisher = new TelemetryPublisher();
     this.telemetryPublisher.setOnPublish((data) => {
       useStore.getState().updateTelemetry(data);
@@ -108,6 +125,7 @@ export class GameLoop {
 
     this.droneState = createDefaultDroneState(this.spawnPosition);
     this.droneStateBuffer = createDefaultDroneState(this.spawnPosition);
+    useStore.getState().resetTelemetry();
     this.navigation = new FlightNavigation(this.enuFrame, this.spawnPosition);
     this.publishNavigation(performance.now());
   }
@@ -129,6 +147,8 @@ export class GameLoop {
   applyStoreSettings(): void {
     const store = useStore.getState();
     this.physics.updateConfig(store.physicsConfig);
+    this.surfaceContact.updateConfig(store.physicsConfig);
+    this.contactRadius = store.physicsConfig.armLength + (store.physicsConfig.rotorDiameter ?? 0.13) / 2;
     this.windModel.setConfig(resolveWindConfig(store.physicsConfig));
     this.flightController.updateRates(store.rates);
     this.fpvCamera.setFov(store.fov);
@@ -157,6 +177,7 @@ export class GameLoop {
 
     this.gamepadManager.startPolling();
     this.keyboardInput.start();
+    window.addEventListener('keydown', this.handleRecoveryKey);
 
     // Run physics + camera sync in preUpdate so the camera position is current
     // before Cesium's tile traversal — photoreal 3D refinement tracks movement
@@ -177,6 +198,7 @@ export class GameLoop {
     }
     this.gamepadManager.stopPolling();
     this.keyboardInput.stop();
+    window.removeEventListener('keydown', this.handleRecoveryKey);
     useStore.getState().updateLiveSticks({ throttle: 0, yaw: 0, roll: 0, pitch: 0 });
     this.droneRenderer.destroy();
   }
@@ -196,29 +218,37 @@ export class GameLoop {
     this.flightController.reset();
     this.telemetryPublisher.reset();
     this.crashDetector.reset();
+    this.contactSampler.reset();
+    this.supported = false;
+    this.hasImpactAnchor = false;
+    this.keyboardInput.reset();
+    this.lastMotorCommands.m1 = 0; this.lastMotorCommands.m2 = 0;
+    this.lastMotorCommands.m3 = 0; this.lastMotorCommands.m4 = 0;
     this.physicsAccumulator = 0;
     useStore.getState().resetTelemetry();
     this.navigation.reset();
     this.publishNavigation(performance.now());
   }
 
-  private recoverNearHit(groundHeight: number): void {
+  recover(): boolean {
     const { position, quaternion: q } = this.droneState;
-    const dx = position.x - this.lastSafePosition.x;
-    const dy = position.y - this.lastSafePosition.y;
+    const anchor = this.hasImpactAnchor ? this.impactAnchor : position;
+    const dx = anchor.x - this.lastSafePosition.x;
+    const dy = anchor.y - this.lastSafePosition.y;
     const nearby = dx * dx + dy * dy <= MAX_RECOVERY_DISTANCE * MAX_RECOVERY_DISTANCE;
-    const recoveryPosition = {
-      x: nearby ? this.lastSafePosition.x : position.x,
-      y: nearby ? this.lastSafePosition.y : position.y,
-      z: nearby ? this.lastSafePosition.z : position.z,
-    };
-    this.terrainSampler.sampleAtPosition(recoveryPosition);
-    recoveryPosition.z = Math.max(recoveryPosition.z,
-      groundHeight + RECOVERY_CLEARANCE,
-      this.terrainSampler.getGroundHeight() + RECOVERY_CLEARANCE);
+    const candidate = nearby ? this.lastSafePosition : anchor;
+    const destination = this.recoveryPosition;
+    if (!this.contactSampler.findClearPosition(candidate, this.contactRadius, destination)
+      && !this.contactSampler.findClearPosition(anchor, this.contactRadius, destination)
+      && !this.contactSampler.findClearPosition(this.spawnPosition, this.contactRadius, destination)) {
+      useStore.getState().setRecoveryUnavailable(true);
+      return false;
+    }
     const yaw = Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
-    this.resetAtPosition(recoveryPosition);
+    this.resetAtPosition(destination);
     this.droneState.quaternion = quatFromEuler(0, 0, yaw);
+    this.resetListener?.();
+    return true;
   }
 
   private tick(timestamp: number): void {
@@ -233,11 +263,14 @@ export class GameLoop {
     if (wallDt <= 0) return;
 
     // 2. Sample terrain height at drone position (once per render frame)
-    this.terrainSampler.sampleAtPosition(this.droneState.position);
-    const groundHeight = this.terrainSampler.getGroundHeight();
-    if (this.droneState.position.z - groundHeight >= 2) {
+    const planes = this.contactSampler.prepare(this.droneState, this.contactRadius, wallDt, timestamp / 1000);
+    const groundHeight = this.contactSampler.groundHeight ?? this.terrainSampler.getGroundHeight();
+    if (this.contactSampler.groundHeight !== null && !this.contactSampler.overlap
+      && this.droneState.position.z - groundHeight >= 2 && !this.crashDetector.disabled) {
       Object.assign(this.lastSafePosition, this.droneState.position);
     }
+    const godMode = useStore.getState().godMode;
+    const recoveryUnavailable = useStore.getState().recoveryUnavailable;
 
     // 3. Flight controller + physics substeps at fixed 500Hz
     this.physicsAccumulator += wallDt;
@@ -246,7 +279,11 @@ export class GameLoop {
       this.physicsAccumulator >= this.PHYSICS_DT && steps < MAX_PHYSICS_SUBSTEPS
     ) {
       this.stickInputs = this.gamepadManager.read() ?? this.keyboardInput.read(this.PHYSICS_DT);
-      this.flightController.updateInto(
+      if (this.crashDetector.disabled || recoveryUnavailable || (this.supported && this.stickInputs.throttle < 0.02)) {
+        this.lastMotorCommands.m1 = 0; this.lastMotorCommands.m2 = 0;
+        this.lastMotorCommands.m3 = 0; this.lastMotorCommands.m4 = 0;
+        this.flightController.reset();
+      } else this.flightController.updateInto(
         this.stickInputs,
         this.droneState,
         this.PHYSICS_DT,
@@ -260,7 +297,15 @@ export class GameLoop {
         groundHeight,
         this.droneStateBuffer,
         this.windVelocity,
+        false,
       );
+      const contact = this.surfaceContact.resolve(this.droneState, this.droneStateBuffer, planes, this.PHYSICS_DT);
+      this.supported = contact.supported;
+      const disabled = this.crashDetector.check(contact, this.droneStateBuffer, godMode, this.PHYSICS_DT);
+      if (disabled && !this.hasImpactAnchor) {
+        Object.assign(this.impactAnchor, this.droneState.position);
+        this.hasImpactAnchor = true;
+      }
       // Swap references (zero allocation ping-pong)
       const tmp = this.droneState;
       this.droneState = this.droneStateBuffer;
@@ -277,11 +322,9 @@ export class GameLoop {
       steps++;
     }
 
-    // Contact recovery bypasses spawn grace so repeated hits cannot trap god mode.
-    const godMode = useStore.getState().godMode;
-    if (godMode && this.droneState.position.z - groundHeight < 0.5) {
-      this.recoverNearHit(groundHeight);
-    }
+    useStore.getState().setFlightCondition(this.crashDetector.disabled ? 'disabled'
+      : this.contactSampler.overlap ? 'geometry' : this.crashDetector.hasImpactFeedback ? 'impact'
+      : this.supported ? 'landed' : 'flying');
     const audioSettings = useStore.getState();
     this.audio?.update(this.physics.getMotorModel().state.rpm, audioSettings.audioVolume, audioSettings.physicsConfig.maxThrottleRpm,
       Math.hypot(this.droneState.velocity.x - this.windVelocity.x,
@@ -298,20 +341,13 @@ export class GameLoop {
     this.publishNavigation(timestamp);
 
     // 6. Publish telemetry (throttled to ~10Hz)
-    const published = this.telemetryPublisher.maybePublish(
+    this.telemetryPublisher.maybePublish(
       this.droneState,
       this.stickInputs.throttle,
       groundHeight,
       this.windVelocity,
     );
 
-    // 7. Crash detection (only on telemetry frames to avoid spam)
-    if (published && !godMode) {
-      const crashed = this.crashDetector.check(this.droneState, groundHeight);
-      if (crashed) {
-        this.reset();
-      }
-    }
   }
 
   getDroneState(): DroneState {

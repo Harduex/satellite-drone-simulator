@@ -97,7 +97,7 @@ export class DronePhysics {
     }, wind);
   }
 
-  stepInto(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number, out: DroneState, wind?: Vector3): DroneState {
+  stepInto(state: DroneState, motors: MotorCommands, dt: number, groundHeight: number, out: DroneState, wind?: Vector3, resolveGround = true): DroneState {
     v3Set(this.airVelocity,
       state.velocity.x - (wind?.x ?? 0),
       state.velocity.y - (wind?.y ?? 0),
@@ -234,7 +234,7 @@ export class DronePhysics {
     let favX = _newAngVel.x, favY = _newAngVel.y, favZ = _newAngVel.z;
 
     // Pre-integration check: if on ground with downward velocity, kill immediately
-    if ((state.position.z <= groundHeight && _newVel.z < 0) || _newPos.z < groundHeight) {
+    if (resolveGround && ((state.position.z <= groundHeight && _newVel.z < 0) || _newPos.z < groundHeight)) {
       fpZ = groundHeight;
       fvX = 0; fvY = 0; fvZ = 0;
       favX = 0; favY = 0; favZ = 0;

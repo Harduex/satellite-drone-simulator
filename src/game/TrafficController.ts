@@ -57,6 +57,11 @@ export class TrafficController {
   private refreshes = 0;
   private updateMs = 0;
   private lastPublish = 0;
+  private readonly scratchCarto = new Cesium.Cartographic();
+  private readonly scratchCartesian = new Cesium.Cartesian3();
+  private lastBaseExclusions: readonly object[] | null = null;
+  private lastRendererExclusions: readonly object[] | null = null;
+  private cachedExclusions: object[] = [];
   constructor(private options: TrafficOptions) {
     this.inverse = Cesium.Matrix4.inverseTransformation(
       options.enuFrame,
@@ -82,17 +87,27 @@ export class TrafficController {
     if (!scene.sampleHeightSupported) return undefined;
     const cartographic = Cesium.Cartographic.fromCartesian(
       enuToEcef(point, this.options.enuFrame),
+      undefined,
+      this.scratchCarto,
     );
-    const height = scene.sampleHeight(cartographic, [
-      ...this.options.readBaseExclusions(),
-      ...(this.renderer?.getExclusions() ?? []),
-    ]);
+    const baseExclusions = this.options.readBaseExclusions();
+    const rendererExclusions = this.renderer?.getExclusions() ?? null;
+    if (baseExclusions !== this.lastBaseExclusions || rendererExclusions !== this.lastRendererExclusions) {
+      this.lastBaseExclusions = baseExclusions;
+      this.lastRendererExclusions = rendererExclusions;
+      this.cachedExclusions = rendererExclusions
+        ? [...new Set([...baseExclusions, ...rendererExclusions])]
+        : [...baseExclusions];
+    }
+    const height = scene.sampleHeight(cartographic, this.cachedExclusions);
     if (height === undefined || !Number.isFinite(height)) return undefined;
     const result = ecefToEnu(
       Cesium.Cartesian3.fromRadians(
         cartographic.longitude,
         cartographic.latitude,
         height,
+        undefined,
+        this.scratchCartesian,
       ),
       this.inverse,
     );

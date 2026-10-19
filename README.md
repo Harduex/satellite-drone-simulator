@@ -136,6 +136,7 @@ provider attribution alone does not establish permission.
 | Arrow Up / Down    | Pitch forward / back |
 | Arrow Left / Right | Roll left / right    |
 | ESC                | Pause / Resume       |
+| Space              | Repair / recover nearby |
 | R                  | Record / Stop video  |
 
 ### Radio Controller (USB)
@@ -294,9 +295,19 @@ Matching bench thrust and an advertised top speed does not validate transient
 handling, battery behavior or propwash against a specific physical airframe. Real-flight calibration remains tracked
 under [R1 in the roadmap](docs/ROADMAP.md).
 
-Physics Settings → God mode disables automatic crash respawns and crash flashes.
-Ground contact remains active, allowing takeoff after impact. The choice is saved
-locally; Reset to Defaults restores normal crash respawns.
+Gentle ground and rooftop landings allow resting and taking off again. Severe
+impacts in Standard mode disable motors while the drone continues moving and
+settles. Press Space to repair and recover nearby; a disabled drone shows a passive hint.
+the pause menu also provides Restart from home. Recovery places the drone airborne
+without holding an automatic hover.
+
+Physics Settings → God mode retains physical contacts without damage. The choice
+is saved locally; Reset to Defaults restores Standard mode. Contacts approximate
+sampled ground, roofs and inferred building sides in a bounded wall-contact trial.
+Sparse forward/side probes and cached contacts reduce height-query demand. Canopies
+can produce false walls; fast approaches and thin obstacles can be missed. Height
+sampling cannot describe underpasses or overhangs. Missing geometry allows flight
+to continue and can cause clipping; missing textures do not disable available contacts.
 
 ## License
 

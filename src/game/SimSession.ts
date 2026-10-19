@@ -295,6 +295,8 @@ export class SimSession {
     this.gameLoop?.reset();
   }
 
+  recover(): void { this.gameLoop?.recover(); }
+
   private getCurrentLocationForPicker(): SavedLocation | null {
     if (this.gameLoop && this.spawnOrigin) {
       try {

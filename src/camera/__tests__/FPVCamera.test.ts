@@ -12,6 +12,14 @@ function cameraFixture(aspectRatio: number) {
 }
 
 describe("FPVCamera horizontal field of view", () => {
+  it.each([16 / 9, 9 / 16, 0.3])("keeps the near-plane corners inside the resting body at aspect %f", aspectRatio => {
+    const { camera, frustum } = cameraFixture(aspectRatio);
+    camera.setFov(140);
+    const halfHeight = frustum.near * Math.tan(frustum.fovy! / 2);
+    const halfWidth = halfHeight * aspectRatio;
+    expect(Math.hypot(frustum.near, halfWidth, halfHeight)).toBeLessThan(0.05);
+  });
+
   it.each([16 / 9, 4 / 3, 9 / 16])("maintains 110° horizontal FOV at aspect %f", (aspectRatio) => {
     const { frustum } = cameraFixture(aspectRatio);
     const horizontalDegrees = 2 * Math.atan(Math.tan(frustum.fovy! / 2) * aspectRatio) * 180 / Math.PI;

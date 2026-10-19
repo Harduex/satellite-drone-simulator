@@ -165,3 +165,30 @@ it("pause/off/dispose release requests and callbacks without resurrecting late w
     exposure.mockRestore();
   }
 });
+it("reuses the exclusions array across surface samples within a frame", () => {
+  const sampleHeight = vi.fn().mockReturnValue(10);
+  const baseExclusions = [{}];
+  const readBaseExclusions = vi.fn(() => baseExclusions);
+  const viewer = {
+    scene: { preUpdate: new Cesium.Event(), sampleHeightSupported: true, sampleHeight },
+    creditDisplay: { addStaticCredit: vi.fn(), removeStaticCredit: vi.fn() },
+  } as unknown as Cesium.Viewer;
+  const controller = new TrafficController({
+    viewer,
+    enuFrame: Cesium.Transforms.eastNorthUpToFixedFrame(Cesium.Cartesian3.fromDegrees(0, 0)),
+    spawn: { x: 0, y: 0, z: 0 },
+    longitude: 0,
+    readDronePosition: () => ({ x: 0, y: 0, z: 0 }),
+    readEnvironmentInstant: () => new Date(),
+    readBaseExclusions,
+    exclusionsChanged: () => {},
+    publish: () => {},
+    diagnosticsEnabled: () => false,
+  });
+  const sample = (controller as unknown as { sample: (point: { x: number; y: number; z: number }) => number | undefined }).sample.bind(controller);
+  sample({ x: 0, y: 0, z: 0 });
+  sample({ x: 5, y: 0, z: 0 });
+  expect(sampleHeight.mock.calls[0]![1]).toBe(sampleHeight.mock.calls[1]![1]);
+  controller.dispose();
+});
+

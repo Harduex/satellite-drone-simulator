@@ -31,6 +31,8 @@ Start here for project knowledge. Agent instructions for documentation live in [
 
 | Document | Status |
 | --- | --- |
+| [Landing and approximate building contacts](superpowers/specs/2026-10-19-landing-contacts-design.md) | Bounded wall-contact trial; ground/roof landings retained; sparse probes, contact retention and coverage limits documented |
+| [Landing contacts implementation plan](superpowers/plans/2026-10-19-landing-contacts.md) | Native implementation scope and verification steps |
 | [Flight video recording](superpowers/specs/2026-10-04-flight-recording-design.md) | Implemented locally; Chrome capture/playback verified; provider video-use permission remains unresolved |
 | [Flight recording implementation plan](superpowers/plans/2026-10-04-flight-recording.md) | Implementation and verification record, including browser coverage limits |
 | [Wind and daylight design](superpowers/specs/2026-10-05-wind-daylight-design.md) | P1/P2 implemented locally; Google photographed-shadow limitations documented |

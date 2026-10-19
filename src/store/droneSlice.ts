@@ -12,6 +12,10 @@ export interface DroneTelemetry {
 }
 
 export interface DroneSlice extends DroneTelemetry {
+  flightCondition: 'flying' | 'landed' | 'impact' | 'disabled' | 'geometry';
+  recoveryUnavailable: boolean;
+  setFlightCondition: (condition: DroneSlice['flightCondition']) => void;
+  setRecoveryUnavailable: (unavailable: boolean) => void;
   navigation: FlightNavigationSnapshot | null;
   updateNavigation: (navigation: FlightNavigationSnapshot | null) => void;
   crashFlashActive: boolean;
@@ -33,6 +37,10 @@ const INITIAL_TELEMETRY: DroneTelemetry = {
 let crashFlashTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 export const createDroneSlice: StateCreator<DroneSlice> = (set) => ({
+  flightCondition: 'flying',
+  recoveryUnavailable: false,
+  setFlightCondition: (flightCondition) => set(state => state.flightCondition === flightCondition ? state : { flightCondition }),
+  setRecoveryUnavailable: (recoveryUnavailable) => set({ recoveryUnavailable }),
   ...INITIAL_TELEMETRY,
   navigation: null,
   updateNavigation: (navigation) => set({ navigation }),
@@ -55,7 +63,7 @@ export const createDroneSlice: StateCreator<DroneSlice> = (set) => ({
     if (telemetry.windTravelHeading !== undefined && Math.abs(telemetry.windTravelHeading - state.windTravelHeading) > 0.5) changed = true;
     return changed ? telemetry : {};
   }),
-  resetTelemetry: () => set({ ...INITIAL_TELEMETRY, crashFlashActive: false }),
+  resetTelemetry: () => set({ ...INITIAL_TELEMETRY, crashFlashActive: false, flightCondition: 'flying', recoveryUnavailable: false }),
   triggerCrashFlash: () => {
     if (crashFlashTimeoutId !== null) clearTimeout(crashFlashTimeoutId);
     set({ crashFlashActive: true });

@@ -43,6 +43,11 @@ export class PedestrianController {
     private lastGraphUpdate = 0;
     private lastPublish = 0;
     private refreshes = 0;
+    private readonly scratchCarto = new Cesium.Cartographic();
+    private readonly scratchCartesian = new Cesium.Cartesian3();
+    private lastBaseExclusions: readonly object[] | null = null;
+    private lastRendererExclusions: readonly object[] | null = null;
+    private cachedExclusions: object[] = [];
     constructor(private options: PedestrianOptions) {
         this.inverse = Cesium.Matrix4.inverseTransformation(options.enuFrame, new Cesium.Matrix4());
         const origin = Cesium.Cartographic.fromCartesian(Cesium.Matrix4.getTranslation(options.enuFrame, new Cesium.Cartesian3()));
@@ -53,11 +58,20 @@ export class PedestrianController {
         const scene = this.options.viewer.scene;
         if (!scene.sampleHeightSupported)
             return undefined;
-        const carto = Cesium.Cartographic.fromCartesian(enuToEcef(point, this.options.enuFrame));
-        const height = scene.sampleHeight(carto, [...this.options.readBaseExclusions(), ...(this.renderer?.getExclusions() ?? [])]);
+        const carto = Cesium.Cartographic.fromCartesian(enuToEcef(point, this.options.enuFrame), undefined, this.scratchCarto);
+        const baseExclusions = this.options.readBaseExclusions();
+        const rendererExclusions = this.renderer?.getExclusions() ?? null;
+        if (baseExclusions !== this.lastBaseExclusions || rendererExclusions !== this.lastRendererExclusions) {
+            this.lastBaseExclusions = baseExclusions;
+            this.lastRendererExclusions = rendererExclusions;
+            this.cachedExclusions = rendererExclusions
+                ? [...new Set([...baseExclusions, ...rendererExclusions])]
+                : [...baseExclusions];
+        }
+        const height = scene.sampleHeight(carto, this.cachedExclusions);
         if (height === undefined || !Number.isFinite(height))
             return undefined;
-        const position = ecefToEnu(Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height), this.inverse);
+        const position = ecefToEnu(Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height, undefined, this.scratchCartesian), this.inverse);
         return Math.abs(position.z) <= 10000 ? position.z : undefined;
     }
     start(): void { if (this.disposed)

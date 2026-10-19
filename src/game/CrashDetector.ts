@@ -1,58 +1,33 @@
-import type { DroneState } from "../core/physics/types";
+import type { DroneState } from '../core/physics/types';
+import type { ContactResult } from '../core/physics/SurfaceContact';
 
-// After a spawn/reset, ignore crash checks for this many telemetry frames (~3s at 10Hz).
-// Gives the pilot time to apply throttle before the first crash is registered.
-const SPAWN_GRACE_FRAMES = 30;
-
-// Number of consecutive low-AGL telemetry frames required before declaring a crash.
-// Prevents a single terrain-sample spike (e.g. a new 3D-tile building streaming in)
-// from triggering a false reset while the drone is airborne.
-const CRASH_CONFIRM_FRAMES = 3;
+export const IMPACT_FEEDBACK_SPEED = 2.5; // m/s into the contact surface
+export const DISABLING_IMPACT_SPEED = 6; // prototype tuning, not real damage calibration
 
 export class CrashDetector {
-  private spawnAltitude: number;
+  disabled = false;
+  private feedbackRemaining = 0;
+  private contactCooldown = 0;
   private onCrashCallback: (() => void) | null = null;
-  private framesSinceSpawn = 0;
-  private lowAglFrames = 0;
 
-  constructor(spawnAltitude: number) {
-    this.spawnAltitude = spawnAltitude;
-  }
+  setOnCrash(callback: () => void): void { this.onCrashCallback = callback; }
+  reset(): void { this.disabled = false; this.feedbackRemaining = 0; this.contactCooldown = 0; }
+  get hasImpactFeedback(): boolean { return this.feedbackRemaining > 0; }
 
-  setOnCrash(callback: () => void): void {
-    this.onCrashCallback = callback;
-  }
-
-  /** Reset the spawn grace period (call this whenever the drone respawns). */
-  reset(): void {
-    this.framesSinceSpawn = 0;
-    this.lowAglFrames = 0;
-  }
-
-  /**
-   * Check if the drone has crashed.
-   * @param groundHeight Current terrain surface height in ENU Z coords
-   * Returns true if a crash was detected and callback was invoked.
-   */
-  check(droneState: DroneState, groundHeight: number = 0): boolean {
-    this.framesSinceSpawn++;
-
-    // Suppress crash detection during the spawn grace period so the pilot has
-    // time to apply throttle before the drone hits the ground.
-    if (this.framesSinceSpawn <= SPAWN_GRACE_FRAMES) {
-      return false;
+  check(contact: ContactResult, state: DroneState, godMode: boolean, dt: number): boolean {
+    this.feedbackRemaining = Math.max(0, this.feedbackRemaining - dt);
+    this.contactCooldown = Math.max(0, this.contactCooldown - dt);
+    if (contact.impactSpeed < IMPACT_FEEDBACK_SPEED) return false;
+    const q = state.quaternion;
+    const upright = 1 - 2 * (q.x * q.x + q.y * q.y);
+    const severe = contact.impactSpeed >= DISABLING_IMPACT_SPEED || upright < 0.5;
+    const newlyDisabled = severe && !godMode && !this.disabled;
+    if (newlyDisabled) this.disabled = true;
+    if (this.contactCooldown <= 0 || newlyDisabled) {
+      this.feedbackRemaining = 3;
+      this.contactCooldown = 0.2;
+      this.onCrashCallback?.();
     }
-
-    const agl = droneState.position.z - groundHeight;
-    if (agl < 0.5 && agl < this.spawnAltitude * 0.3) {
-      this.lowAglFrames++;
-      if (this.lowAglFrames >= CRASH_CONFIRM_FRAMES) {
-        this.onCrashCallback?.();
-        return true;
-      }
-    } else {
-      this.lowAglFrames = 0;
-    }
-    return false;
+    return newlyDisabled;
   }
 }
