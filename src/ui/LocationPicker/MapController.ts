@@ -1,11 +1,13 @@
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import type { FlightNavigationSnapshot } from '../../store/droneSlice';
 import { colors } from '../theme';
+import { parseCoordinates } from './coordinateParser';
 
 export class MapController {
   private map: google.maps.Map | null = null;
   private marker: google.maps.marker.AdvancedMarkerElement | null = null;
   private autocomplete: google.maps.places.Autocomplete | null = null;
+  private geocoder: google.maps.Geocoder | null = null;
   private flightMode = false;
   private destroyed = false;
   private droneMarker: google.maps.marker.AdvancedMarkerElement | null = null;
@@ -32,6 +34,7 @@ export class MapController {
       importLibrary("places"),
       importLibrary("marker"),
       importLibrary("elevation"),
+      importLibrary("geocoding"),
     ]);
     // React can dispose the picker while the Maps libraries are still loading.
     if (this.destroyed) return false;
@@ -87,6 +90,53 @@ export class MapController {
       });
     });
     return true;
+  }
+
+  async locateQuery(query: string): Promise<{ lat: number; lng: number; name: string }> {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      throw new Error("Query cannot be empty");
+    }
+
+    // 1. Try coordinate parsing
+    const parsed = parseCoordinates(trimmed);
+    if (parsed) {
+      this.setMarker(parsed.lat, parsed.lng);
+      this.flyTo(parsed.lat, parsed.lng, 16);
+      const loc = {
+        lat: parsed.lat,
+        lng: parsed.lng,
+        name: parsed.formatted,
+      };
+      this.onLocationSelect?.(loc);
+      return loc;
+    }
+
+    // 2. Geocode address with google.maps.Geocoder
+    if (!this.geocoder && typeof google !== 'undefined' && google.maps?.Geocoder) {
+      this.geocoder = new google.maps.Geocoder();
+    }
+    if (!this.geocoder) {
+      throw new Error("Geocoder not available");
+    }
+
+    return new Promise((resolve, reject) => {
+      this.geocoder!.geocode({ address: trimmed }, (results, status) => {
+        if (status === 'OK' && results && results[0]?.geometry?.location) {
+          const first = results[0];
+          const lat = first.geometry.location.lat();
+          const lng = first.geometry.location.lng();
+          const name = first.formatted_address || trimmed;
+          this.setMarker(lat, lng);
+          this.flyTo(lat, lng, 16);
+          const loc = { lat, lng, name };
+          this.onLocationSelect?.(loc);
+          resolve(loc);
+        } else {
+          reject(new Error("Location not found"));
+        }
+      });
+    });
   }
 
   setFlightMode(enabled: boolean): void {
@@ -185,6 +235,7 @@ export class MapController {
   destroy(): void {
     this.destroyed = true;
     this.onLocationSelect = null;
+    this.geocoder = null;
     if (this.map) google.maps.event.clearInstanceListeners(this.map);
     if (this.autocomplete) google.maps.event.clearInstanceListeners(this.autocomplete);
     if (this.marker) this.marker.map = null;

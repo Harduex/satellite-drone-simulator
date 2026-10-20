@@ -40,6 +40,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
   } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
+  const [locatingQuery, setLocatingQuery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [randomizing, setRandomizing] = useState(false);
@@ -109,7 +110,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
   }, [compact, collapsed, navigation, mapReady]);
 
   const handleFlyHere = async () => {
-    if (!selectedLocation || launching || randomizing) return;
+    if (!selectedLocation || launching || randomizing || locatingQuery) return;
     setLaunching(true);
     setLaunchError(null);
     try {
@@ -130,7 +131,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
 
   const handleMyLocation = () => {
     const ctrl = mapControllerRef.current;
-    if (!ctrl || locatingUser) return;
+    if (!ctrl || locatingUser || launching || randomizing || locatingQuery) return;
     setLocatingUser(true);
     ctrl.goToCurrentLocation()
       .catch((e) => console.warn("Geolocation failed:", e))
@@ -139,7 +140,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
 
   const handleRandomLocation = async () => {
     const ctrl = mapControllerRef.current;
-    if (!ctrl || launching || randomizing) return;
+    if (!ctrl || launching || randomizing || locatingQuery) return;
     const generation = ++selectionGeneration.current;
     setRandomizing(true);
     try {
@@ -157,6 +158,23 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
     }
   };
 
+  const handleLocate = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const query = searchInputRef.current?.value?.trim();
+    const ctrl = mapControllerRef.current;
+    if (!ctrl || !query || launching || randomizing || locatingQuery) return;
+
+    setLocatingQuery(true);
+    setLaunchError(null);
+    try {
+      await ctrl.locateQuery(query);
+    } catch {
+      setLaunchError('Location not found. Check address or coordinates and try again.');
+    } finally {
+      setLocatingQuery(false);
+    }
+  };
+
   return (
     <div className={compact ? `${minimapCss.panel} ${collapsed ? minimapCss.collapsed : ''}` : css.root}>
       <div className={compact ? `${minimapCss.mapClip} ${collapsed ? minimapCss.hidden : ''}` : css.mapContainer}>
@@ -171,7 +189,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
         {mapError && <div role="alert" className={css.errorOverlay}>
           <h1>Map unavailable</h1><p>{mapError}</p><p>Check the Maps API configuration and reload.</p>
         </div>}
-        <main className={css.launchDock} aria-label="Choose flight location" aria-busy={launching || randomizing}>
+        <main className={css.launchDock} aria-label="Choose flight location" aria-busy={launching || randomizing || locatingQuery}>
           <div className={css.destination}>
             <span className={controls.eyebrow}>Choose your flight line</span>
             <h1>Somewhere worth flying.</h1>
@@ -183,20 +201,39 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
             </div>
           </div>
           <div className={css.discovery}>
-            <label className={css.searchBar}><span aria-hidden="true">⌕</span>
-              <input ref={searchInputRef} type="text" aria-label="Search location" placeholder="Search a city or landmark…" className={css.searchInput} />
-            </label>
+            <form onSubmit={handleLocate} className={css.searchForm}>
+              <label className={css.searchBar}><span aria-hidden="true">⌕</span>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  aria-label="Search location"
+                  placeholder="Address or coordinates (e.g. 48.8584, 2.2945)…"
+                  className={css.searchInput}
+                  disabled={!mapReady || launching || randomizing || locatingQuery}
+                />
+                <button
+                  type="submit"
+                  onClick={handleLocate}
+                  title="Locate"
+                  aria-label="Locate address or coordinates"
+                  disabled={!mapReady || launching || randomizing || locatingQuery}
+                  className={css.locateBtn}
+                >
+                  {locatingQuery ? 'Locating…' : 'Locate'}
+                </button>
+              </label>
+            </form>
             <div className={css.discoveryActions}>
-              <button onClick={handleRandomLocation} title="Random location" disabled={!mapReady || launching || randomizing} className={controls.secondary}>
+              <button onClick={handleRandomLocation} title="Random location" disabled={!mapReady || launching || randomizing || locatingQuery} className={controls.secondary}>
                 {randomizing ? 'Choosing…' : '↗ Random location'}
               </button>
-              <button onClick={handleMyLocation} disabled={!mapReady || locatingUser || launching || randomizing} title="Go to my location" className={controls.secondary}>
+              <button onClick={handleMyLocation} disabled={!mapReady || locatingUser || launching || randomizing || locatingQuery} title="Go to my location" className={controls.secondary}>
                 {locatingUser ? 'Locating…' : '◎ My location'}
               </button>
             </div>
           </div>
           <div className={css.launchAction}>
-            <button onClick={handleFlyHere} disabled={!selectedLocation || launching || randomizing} className={controls.primary}>
+            <button onClick={handleFlyHere} disabled={!selectedLocation || launching || randomizing || locatingQuery} className={controls.primary}>
               {launching ? 'Loading...' : 'Fly Here'}
             </button>
             <span>Acro flight · Keyboard or USB controller</span>
