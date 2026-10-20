@@ -66,6 +66,12 @@ The picker and minimap share one Google Maps instance across flight and pause.
 Moving into new areas can still fetch map imagery; navigation itself needs no
 Places or Elevation queries. Offline/custom-map support remains experimental.
 
+The top-left flight label follows the drone's current position using bundled
+Natural Earth data: `Near <settlement>, <region>, <country>`. Names are approximate;
+the nearest mapped settlement must be within 50 km. Remote areas show the country
+or current coordinates. Labels refresh after 100 m of travel, at most once per
+second, without external geocoding requests. [Data and limitations](src/world/data/ATTRIBUTION.md#offline-flight-labels).
+
 ### Road traffic
 
 **Settings → Flight → Road Traffic** enables simulated cars on public mapped

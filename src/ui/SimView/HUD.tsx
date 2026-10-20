@@ -1,6 +1,7 @@
 import { useStore } from '../../store';
 import { colors } from '../theme';
 import css from './HUD.module.css';
+import { FlightLocation } from './FlightLocation';
 
 interface Props {
   locationName: string;
@@ -17,13 +18,14 @@ export function HUD({ locationName }: Props) {
 
   return (
     <div className={css.root}>
-      {/* Top-left: location name */}
-      <div className={css.locationName}>{locationName}</div>
-      {cacheOnlyPractice && <div className={css.practiceBadge}>Cache-only practice · 3D streaming off</div>}
+      <div className={css.locationGroup}>
+        <FlightLocation fallbackName={locationName} />
+        {cacheOnlyPractice && <div className={css.practiceBadge}>Cache-only practice · 3D streaming off</div>}
 
-      <div className={css.windIndicator} aria-label={`Airflow travel: ${windSpeed.toFixed(1)} meters per second`}>
-        {windSpeed > 0.05 && <span className={css.windArrow} aria-hidden="true" style={{ transform: `rotate(${windTravelHeading - heading}deg)` }}>&#8593;</span>}
-        <span>Airflow {windSpeed.toFixed(1)} m/s</span>
+        <div className={css.windIndicator} aria-label={`Airflow travel: ${windSpeed.toFixed(1)} meters per second`}>
+          {windSpeed > 0.05 && <span className={css.windArrow} aria-hidden="true" style={{ transform: `rotate(${windTravelHeading - heading}deg)` }}>&#8593;</span>}
+          <span>Airflow {windSpeed.toFixed(1)} m/s</span>
+        </div>
       </div>
 
       {/* Bottom-left: throttle bar */}

@@ -31,3 +31,27 @@ tiles with geometric error at most 5 m, bounding radius at most 2 km, at least 1
 triangles and texture content. A 1.5-second observation window follows view refinement.
 This is a local detail heuristic, not certification of a whole flight area; slow
 loading can reject covered places. Manually selected locations retain terrain fallback.
+
+## Offline flight labels
+
+`place-names.json` contains names and geographic coordinates derived from the same
+public-domain v5.1.2 release:
+
+- [Country boundaries](https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_110m_admin_0_countries.geojson), SHA256 `6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f`.
+- [Settlement points](https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_10m_populated_places_simple.geojson), SHA256 `fd3fa867a320cbd5c5b6bb5bc550afeec2939fb2cef688e508007282a55ac42f`.
+
+The asset retains 177 coarse country boundaries and 7,342 named settlements with
+their region/country labels. It loads locally when the flight HUD mounts; no
+external geocoding service is called. Regenerate using standard Python:
+
+```sh
+python scripts/prepare-place-names.py ne_110m_admin_0_countries.geojson ne_10m_populated_places_simple.geojson src/world/data/place-names.json
+```
+
+The HUD shows `Near <settlement>, <region>, <country>` for the nearest settlement
+within 50 km, restricted to the containing country when a country polygon matches.
+The settlement's region is contextual, not a region-boundary test. Sparse settlement
+coverage and generalized borders make all labels approximate. With no nearby
+settlement, show the country; with neither, use the drone's current coordinates.
+Recompute after at least 100 m movement and at most once per second. Flight/session
+changes clear stale labels. The lookup is independent of the random-spawn sampler.

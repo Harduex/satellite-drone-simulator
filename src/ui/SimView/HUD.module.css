@@ -6,16 +6,25 @@
   font-family: var(--hud-font);
 }
 
-.locationName {
+.locationGroup {
   position: absolute;
   top: 16px;
   left: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: calc(55vw - 16px);
+}
+
+.locationName {
   color: var(--color-on-surface);
   text-shadow: var(--hud-text-shadow);
   font-size: var(--fs-label-sm);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-family: var(--hud-font);
+  line-height: 1.35;
 }
 
 .throttleGroup {
@@ -28,9 +37,6 @@
 }
 
 .practiceBadge {
-  position: absolute;
-  top: 40px;
-  left: 16px;
   padding: 6px 8px;
   background: var(--glass-bg);
   color: var(--color-secondary);
@@ -107,5 +113,5 @@
   text-align: right;
   opacity: 0.3;
 }
-.windIndicator { position: absolute; left: 20px; top: 65px; display: flex; align-items: center; gap: 8px; color: var(--color-on-surface); font-size: 12px; text-shadow: 0 1px 3px #000; }
+.windIndicator { display: flex; align-items: center; gap: 8px; color: var(--color-on-surface); font-size: 12px; text-shadow: 0 1px 3px #000; }
 .windArrow { display: inline-block; font-size: 22px; }
