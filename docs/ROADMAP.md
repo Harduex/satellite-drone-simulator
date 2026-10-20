@@ -1,6 +1,6 @@
 # Product roadmap
 
-Updated 2026-10-20. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
+Updated 2026-10-21. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
 
 ## Outcomes and constraints
 
@@ -91,6 +91,14 @@ Detailed research: [living-world sources and constraints](experiments/living-wor
 | GFX-POST | Optional AO, bloom or depth-of-field experiments | Deferred; lower priority | AO can double-darken photographed shadows; visibility and FPV control take priority over cinematic effects |
 
 Map evidence: [offline/custom maps](experiments/offline-maps.md). Rendering IDs are namespaced because historical lists also used R1–R6. The [current assessment](audits/quick-wins-2026-10.md) supersedes their API/quota assumptions. The original proposal-only document is retired; earlier revisions remain in Git history.
+
+## Later — flight deck interface, saved locations and visual polish
+
+| ID | Outcome / scope | Decision status | Dependency / constraint |
+| --- | --- | --- | --- |
+| UI-COPY | Replace promotional/tagline copy ("Somewhere worth flying.", "Explore without limits", "Make it yours") with concise, functional flight-instrument UI labels | Proposed follow-up | Audit LocationPicker captions and headers; preserve clean typography, minimal aesthetic and accessibility labels |
+| UI-FAVORITES | Flight history and saved favorite places with a selection menu to bookmark and jump directly to locations | Proposed follow-up | Store in local storage/Zustand; define storage quotas, custom naming, coordinate validation and quick-spawn action |
+| UI-FIXES | Fix redesign regressions, specifically initial 3D drone preview material rendering defect (broken shaders/appearance until first pointer move or interaction) and related modal/dock bugs | Proposed follow-up | Investigate DronePreviewRenderer Cesium widget initial frame render/resize triggers and pause menu lifecycle |
 
 ## Later — original product and recording candidates
 
