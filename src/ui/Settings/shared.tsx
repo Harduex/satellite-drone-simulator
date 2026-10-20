@@ -1,6 +1,6 @@
 import css from './shared.module.css';
 
-// ── Shared Slider ────────────────────────────────────────
+// РІвЂќР‚РІвЂќР‚ Shared Slider РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚
 export function Slider({ label, value, min, max, step = 1, unit = '', labelWidth = 90, onChange }: {
   label: string;
   value: number;
@@ -13,7 +13,7 @@ export function Slider({ label, value, min, max, step = 1, unit = '', labelWidth
 }) {
   const displayValue = step < 1
     ? value.toFixed(step < 0.1 ? 2 : 1)
-    : String(value);
+    : value.toFixed(0);
 
   return (
     <div className={css.sliderRow}>
@@ -32,12 +32,12 @@ export function Slider({ label, value, min, max, step = 1, unit = '', labelWidth
   );
 }
 
-// ── Shared Panel Header ──────────────────────────────────
+// РІвЂќР‚РІвЂќР‚ Shared Panel Header РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚РІвЂќР‚
 export function SettingsPanelHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
     <div className={css.panelHeader}>
       <h2 className={css.panelTitle}>{title}</h2>
-      <button onClick={onClose} className={css.closeButton}>X</button>
+      <button aria-label="Close settings" onClick={onClose} className={css.closeButton}>X</button>
     </div>
   );
 }

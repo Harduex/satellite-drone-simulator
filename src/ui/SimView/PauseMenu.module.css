@@ -1,89 +1,21 @@
-.overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  z-index: 20;
-}
 
-.menuGroup {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.pausedTitle {
-  color: var(--color-on-surface);
-  font-weight: 300;
-  margin-bottom: 8px;
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.resumeButton {
-  padding: 12px 40px;
-  font-size: var(--fs-display-sm);
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
-  background: var(--gradient-cta);
-  color: var(--color-on-primary);
-  font-weight: 600;
-  width: 200px;
-}
-
-.ghostButton {
-  padding: 12px 40px;
-  font-size: var(--fs-display-sm);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: 0;
-  cursor: pointer;
-  background: transparent;
-  color: var(--color-on-surface);
-  font-weight: 600;
-  width: 200px;
-}
-
-.settingsPanel {
-  background: var(--color-surface-container-low);
-  border-radius: 0;
-  padding: var(--space-xl);
-  max-width: 560px;
-  width: 90%;
-  max-height: 80vh;
-  overflow: auto;
-}
-
-.tabBar {
-  display: flex;
-  gap: 0;
-  margin-bottom: var(--space-md);
-  border-bottom: 1px solid var(--color-outline-variant);
-}
-
-.tab {
-  padding: 8px 20px;
-  font-size: var(--fs-body-md);
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
-  background: transparent;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.tab.active {
-  border-bottom: 2px solid var(--color-primary);
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.tab:not(.active) {
-  border-bottom: 2px solid transparent;
-  color: var(--color-on-surface-variant);
-  font-weight: 400;
-}
+.overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:28px; background:rgba(10,10,13,.82); backdrop-filter:blur(18px); z-index:20; overflow:auto; color:var(--color-on-surface); }
+.shell { width:min(1060px,100%); max-height:calc(100dvh - 56px); overflow:auto; border:1px solid var(--color-outline-variant); background:var(--color-surface); }
+.header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 30px; border-bottom:1px solid var(--color-outline-variant); }
+.layout { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:60px; padding:36px 44px; }
+.menuGroup { min-width:0; display:flex; flex-direction:column; gap:10px; }
+.menuGroup>span { overflow-wrap:anywhere; }
+.pausedTitle { font:500 clamp(32px,4vw,48px)/1.1 var(--font-display); letter-spacing:-1.8px; margin:5px 0 14px; }
+.resumeButton { position:relative; justify-content:flex-start; }
+.resumeButton:after { content:'ESC'; position:absolute; right:18px; font-size:10px; font-weight:400; opacity:.65; }
+.menuGroup>button { width:100%; text-align:left; justify-content:flex-start; }
+.actionSection { margin-top:18px; }
+.sectionLabel { color:var(--color-on-surface-muted); font-size:9px; text-transform:uppercase; letter-spacing:.14em; margin:0 0 10px; }
+.destinations { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.destinations button { min-width:0; font-size:11px; padding:10px; }
+.locationTools { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+.locationTools button { font-size:11px; min-height:36px; }
+.menuBottom { display:flex; justify-content:space-between; gap:20px; border-top:1px solid var(--color-outline-variant); margin-top:6px; padding-top:12px; }
+.error { margin:0; font-size:12px; line-height:1.6; color:var(--color-warning); overflow-wrap:anywhere; }
+@media(max-width:850px) { .layout { gap:30px; padding:28px; } }
+@media(max-width:700px) { .overlay { padding:12px; } .shell { max-height:calc(100dvh - 24px); } .header { padding:18px; } .header>span { display:none; } .layout { display:flex; flex-direction:column-reverse; gap:24px; padding:24px; } .pausedTitle { font-size:38px; } }

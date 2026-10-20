@@ -78,3 +78,6 @@
 .windPresets { display: flex; gap: 8px; margin-bottom: 16px; }
 .windPresets button { flex: 1; padding: 8px; border: 1px solid var(--color-outline-variant); border-radius: 6px; background: var(--color-surface-container-high); color: var(--color-on-surface); cursor: pointer; }
 .windPresets button:hover { border-color: var(--color-primary); }
+
+.resetHint { color:var(--color-on-surface-muted); font-size:11px; line-height:1.6; }
+.windPresets button { border-radius:2px; }

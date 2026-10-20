@@ -5,9 +5,10 @@ import css from './PhysicsSettings.module.css';
 
 interface Props {
   onClose: () => void;
+  section?: "flight" | "aircraft";
 }
 
-export function PhysicsSettings({ onClose }: Props) {
+export function PhysicsSettings({ onClose, section = "aircraft" }: Props) {
   const config = useStore((s) => s.physicsConfig);
   const setConfig = useStore((s) => s.setPhysicsConfig);
   const fov = useStore((s) => s.fov);
@@ -34,7 +35,9 @@ export function PhysicsSettings({ onClose }: Props) {
 
   return (
     <div>
-      <SettingsPanelHeader title="Physics Settings" onClose={onClose} />
+      {section === "aircraft" && <SettingsPanelHeader title="Aircraft tuning" onClose={onClose} />}
+
+      {section === "flight" && <>
 
       <div className={css.windPresets} role="group" aria-label="Wind presets">
         {(['calm', 'light', 'breezy'] as const).map(preset => (
@@ -64,16 +67,21 @@ export function PhysicsSettings({ onClose }: Props) {
         <span className={css.godModeTrack} aria-hidden="true" />
       </label>
 
+      <Slider label="Horizontal FOV" value={fov} min={60} max={140} step={1} unit="deg" onChange={setFov} />
+      <Slider label="Cam. Tilt" value={cameraTilt} min={0} max={45} step={1} unit="deg" onChange={setCameraTilt} />
+      </>}
+      {section === "aircraft" && <>
       <Slider label="Mass" value={config.mass} min={0.2} max={1.5} step={0.01} unit="kg" onChange={(v) => setConfig({ mass: v })} />
       <Slider label="Drag Coeff." value={config.dragCoefficient} min={0.1} max={1.0} step={0.01} onChange={(v) => setConfig({ dragCoefficient: v })} />
       <Slider label="Motor Lag" value={config.motorTimeConstant * 1000} min={10} max={100} step={1} unit="ms" onChange={(v) => setConfig({ motorTimeConstant: v / 1000 })} />
       <Slider label="Spawn Alt." value={config.spawnAltitude} min={2} max={50} step={1} unit="m" onChange={(v) => setConfig({ spawnAltitude: v })} />
-      <Slider label="Horizontal FOV" value={fov} min={60} max={140} step={1} unit="deg" onChange={(v) => setFov(v)} />
-      <Slider label="Cam. Tilt" value={cameraTilt} min={0} max={45} step={1} unit="deg" onChange={(v) => setCameraTilt(v)} />
+
 
       <button onClick={handleReset} className={css.resetButton}>
-        Reset to Defaults
+        Reset aircraft and flight defaults
       </button>
+      <p className={css.resetHint}>Resets aircraft, camera, God mode, daylight, traffic and pedestrians. Controller mappings are preserved.</p>
+      </>}
     </div>
   );
 }

@@ -5,25 +5,25 @@
 // ── Colors ──────────────────────────────────────────────────
 export const colors = {
   // Surfaces (depth via tonal layering, not shadows)
-  surface: '#131314',
-  surface_container_lowest: '#0e0e0f',
-  surface_container_low: '#1c1b1c',
-  surface_container: '#201f21',
-  surface_container_high: '#2a292b',
-  surface_container_highest: '#353436',
-  surface_bright: '#3d3c3e',
+  surface: '#121213',
+  surface_container_lowest: '#0d0d10',
+  surface_container_low: '#1c1c1f',
+  surface_container: '#222226',
+  surface_container_high: '#2b2b30',
+  surface_container_highest: '#35353d',
+  surface_bright: '#404048',
 
   // Accent
-  primary: '#ffb693',
-  primary_container: '#ff6b00',
-  on_primary: '#131314',
+  primary: '#ffbd70',
+  primary_container: '#ffab55',
+  on_primary: '#121213',
   secondary: '#bdf4ff',
   secondary_container: '#1a3a42',
 
   // Text
-  on_surface: '#e8e6e3',
-  on_surface_variant: '#c4c1bd',
-  on_surface_muted: '#8a8884',
+  on_surface: '#f0eeeb',
+  on_surface_variant: '#c8c6cc',
+  on_surface_muted: '#a6a5ac',
 
   // Semantic
   error: '#ff4444',
@@ -39,6 +39,6 @@ export const colors = {
 
 // ── Gradients ───────────────────────────────────────────────
 export const gradients = {
-  cta: 'linear-gradient(135deg, #ffb693, #ff6b00)',
+  cta: 'linear-gradient(135deg, #ffbd70, #ffc98c)',
 } as const;
 

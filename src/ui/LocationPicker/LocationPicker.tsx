@@ -1,9 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
 import { MapController } from './MapController';
-import { ControllerSetup } from '../Settings/ControllerSetup';
-import { PhysicsSettings } from '../Settings/PhysicsSettings';
-import { FlightSettings } from '../Settings/FlightSettings';
-import { colors, gradients } from '../theme';
+import { SettingsDialog } from '../Settings/SettingsDialog';
+import { FlightBrand } from '../FlightBrand';
+import controls from '../controls.module.css';
 import { useStore } from '../../store';
 import { getRandomLocation } from '../../game/randomLocation';
 import css from './LocationPicker.module.css';
@@ -41,7 +40,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
   } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
-  const [settingsPanel, setSettingsPanel] = useState<'none' | 'controller' | 'physics' | 'flight'>('none');
+  const [showSettings, setShowSettings] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [randomizing, setRandomizing] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
@@ -160,143 +159,51 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
 
   return (
     <div className={compact ? `${minimapCss.panel} ${collapsed ? minimapCss.collapsed : ''}` : css.root}>
-      {/* Map container */}
       <div className={compact ? `${minimapCss.mapClip} ${collapsed ? minimapCss.hidden : ''}` : css.mapContainer}>
         <div ref={mapContainerRef} className={compact ? minimapCss.map : minimapCss.mapFull} />
       </div>
-
       {compact && <FlightMinimap collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} error={mapError} />}
       <div hidden={compact}>
-
-      {mapError && (
-        <div className={css.errorOverlay}>
-          <h1 className={css.errorTitle}>FPV Drone Simulator</h1>
-          <p className={css.errorMessage}>{mapError}</p>
-          <p className={css.errorHint}>
-            Add VITE_GOOGLE_MAPS_API_KEY to your .env file
-          </p>
-        </div>
-      )}
-
-      {/* Search bar */}
-      <div className={css.searchBar}>
-        <input
-          ref={searchInputRef}
-          type="text"
-          placeholder="Search location..."
-          className={css.searchInput}
-        />
-        <button
-          onClick={handleMyLocation}
-          disabled={locatingUser}
-          title="Go to my location"
-          className={css.iconButton}
-          style={{
-            color: locatingUser ? colors.on_surface_muted : colors.secondary,
-            cursor: locatingUser ? 'wait' : 'pointer',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="4" />
-            <line x1="12" y1="2" x2="12" y2="6" />
-            <line x1="12" y1="18" x2="12" y2="22" />
-            <line x1="2" y1="12" x2="6" y2="12" />
-            <line x1="18" y1="12" x2="22" y2="12" />
-          </svg>
-        </button>
-        <button
-          onClick={handleRandomLocation}
-          title="Random location"
-          disabled={!mapReady || launching || randomizing}
-          className={css.iconButton}
-          style={{ cursor: 'pointer' }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-            <circle cx="8" cy="8" r="1.5" fill="currentColor" />
-            <circle cx="16" cy="8" r="1.5" fill="currentColor" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-            <circle cx="8" cy="16" r="1.5" fill="currentColor" />
-            <circle cx="16" cy="16" r="1.5" fill="currentColor" />
-          </svg>
-        </button>
-        <button
-          onClick={() => setSettingsPanel('controller')}
-          title="Settings"
-          className={css.iconButton}
-          style={{ cursor: 'pointer' }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Fly Here button */}
-      <div className={css.flyHereGroup}>
-        {launchError && <p role="alert" className={css.errorMessage}>{launchError}</p>}
-        {selectedLocation && (
-          <span className={css.locationTag}>
-            {selectedLocation.name}
-          </span>
-        )}
-        <button
-          onClick={handleFlyHere}
-          disabled={!selectedLocation || launching || randomizing}
-          className={css.flyHereButton}
-          style={{
-            cursor: selectedLocation && !launching ? 'pointer' : 'not-allowed',
-            background: launching ? 'rgba(255, 182, 147, 0.5)' : selectedLocation ? gradients.cta : 'rgba(255, 182, 147, 0.3)',
-            color: selectedLocation ? colors.on_primary : colors.on_surface_muted,
-            boxShadow: selectedLocation && !launching ? '0 0 20px rgba(255, 182, 147, 0.3)' : 'none',
-            opacity: launching ? 0.7 : 1,
-          }}
-        >
-          {launching ? 'Loading...' : 'Fly Here'}
-        </button>
-      </div>
-
-      {/* Settings overlay */}
-      {settingsPanel !== 'none' && (
-        <div className={css.settingsOverlay}>
-          <div className={css.settingsPanel}>
-            {/* Tab buttons */}
-            <div className={css.settingsTabBar}>
-              <button
-                onClick={() => setSettingsPanel('controller')}
-                className={css.settingsTab}
-                style={{
-                  background: settingsPanel === 'controller' ? colors.primary : 'transparent',
-                  color: settingsPanel === 'controller' ? colors.on_primary : colors.on_surface,
-                }}
-              >
-                Controller
-              </button>
-              <button
-                onClick={() => setSettingsPanel('physics')}
-                className={css.settingsTab}
-                style={{
-                  background: settingsPanel === 'physics' ? colors.primary : 'transparent',
-                  color: settingsPanel === 'physics' ? colors.on_primary : colors.on_surface,
-                }}
-              >
-                Physics
-              </button>
-                <button onClick={() => setSettingsPanel('flight')} className={css.settingsTab}
-                  style={{ background: settingsPanel === 'flight' ? colors.primary : 'transparent',
-                    color: settingsPanel === 'flight' ? colors.on_primary : colors.on_surface }}>Flight</button>
+        <header className={css.header}><FlightBrand />
+          <button className={controls.quiet} onClick={() => setShowSettings(true)}>Settings ↗</button>
+        </header>
+        <div className={css.mapCaption}><span className={controls.eyebrow}>Explore without limits</span><p>Find a place. Pick a line. Make it yours.</p></div>
+        {mapError && <div role="alert" className={css.errorOverlay}>
+          <h1>Map unavailable</h1><p>{mapError}</p><p>Check the Maps API configuration and reload.</p>
+        </div>}
+        <main className={css.launchDock} aria-label="Choose flight location" aria-busy={launching || randomizing}>
+          <div className={css.destination}>
+            <span className={controls.eyebrow}>Choose your flight line</span>
+            <h1>Somewhere worth flying.</h1>
+            <div className={css.place}>
+              <strong title={selectedLocation?.name}>{selectedLocation?.name ?? 'Choose a location on the map'}</strong>
+              <span>{selectedLocation
+                ? `${Math.abs(selectedLocation.lat).toFixed(4)}°${selectedLocation.lat >= 0 ? 'N' : 'S'} / ${Math.abs(selectedLocation.lng).toFixed(4)}°${selectedLocation.lng >= 0 ? 'E' : 'W'}`
+                : 'Search a city, landmark or click the map.'}</span>
             </div>
-            {settingsPanel === 'controller' && (
-              <ControllerSetup onClose={() => setSettingsPanel('none')} />
-            )}
-            {settingsPanel === 'physics' && (
-              <PhysicsSettings onClose={() => setSettingsPanel('none')} />
-            )}
-            {settingsPanel === 'flight' && <FlightSettings onClose={() => setSettingsPanel('none')} />}
           </div>
-        </div>
-      )}
+          <div className={css.discovery}>
+            <label className={css.searchBar}><span aria-hidden="true">⌕</span>
+              <input ref={searchInputRef} type="text" aria-label="Search location" placeholder="Search a city or landmark…" className={css.searchInput} />
+            </label>
+            <div className={css.discoveryActions}>
+              <button onClick={handleRandomLocation} title="Random location" disabled={!mapReady || launching || randomizing} className={controls.secondary}>
+                {randomizing ? 'Choosing…' : '↗ Random location'}
+              </button>
+              <button onClick={handleMyLocation} disabled={!mapReady || locatingUser || launching || randomizing} title="Go to my location" className={controls.secondary}>
+                {locatingUser ? 'Locating…' : '◎ My location'}
+              </button>
+            </div>
+          </div>
+          <div className={css.launchAction}>
+            <button onClick={handleFlyHere} disabled={!selectedLocation || launching || randomizing} className={controls.primary}>
+              {launching ? 'Loading...' : 'Fly Here'}
+            </button>
+            <span>Acro flight · Keyboard or USB controller</span>
+          </div>
+          {launchError && <p role="alert" className={css.launchError}>{launchError}</p>}
+        </main>
+        {!compact && showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
       </div>
     </div>
   );

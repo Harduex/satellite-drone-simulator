@@ -49,3 +49,13 @@
   font-size: var(--fs-body-md);
   font-family: var(--font-body);
 }
+
+.sliderRow { gap:12px; margin-bottom:18px; }
+.sliderLabel { line-height:1.4; flex-shrink:0; opacity:1; color:var(--color-on-surface-variant); }
+.sliderInput { min-width:0; width:0; }
+.sliderValue { flex-shrink:0; font-variant-numeric:tabular-nums; }
+.panelTitle { font-weight:500; font-size:24px; letter-spacing:-.6px; overflow-wrap:anywhere; }
+.panelHeader { gap:16px; margin-bottom:24px; }
+.closeButton { min-width:36px; min-height:36px; flex-shrink:0; }
+.closeButton:hover { background:var(--color-surface-container-high); }
+@media(max-width:420px) { .sliderRow { flex-wrap:wrap; } .sliderLabel { width:100%!important; } .sliderInput { flex-basis:60%; } }

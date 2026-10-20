@@ -115,3 +115,5 @@
 }
 .windIndicator { display: flex; align-items: center; gap: 8px; color: var(--color-on-surface); font-size: 12px; text-shadow: 0 1px 3px #000; }
 .windArrow { display: inline-block; font-size: 22px; }
+
+.locationName { overflow-wrap:anywhere; }

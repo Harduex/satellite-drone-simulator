@@ -279,3 +279,11 @@
   width: 100%;
   margin-top: 12px;
 }
+
+.statusLabel,.mappingSummary,.detectionResultText { min-width:0; overflow-wrap:anywhere; }
+.statusDot { flex-shrink:0; }
+.buttonRow,.buttonRowMt { flex-wrap:wrap; }
+.selectInput { max-width:100%; }
+.hint { opacity:1; color:var(--color-on-surface-muted); line-height:1.6; }
+.stepConnector { width:clamp(5px,2vw,24px); }
+.stepColumn { min-width:40px; }

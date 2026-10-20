@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PauseMenu } from '../PauseMenu';
+vi.mock('../DronePreview', () => ({ DronePreview: () => null }));
 
 let root: Root;
 let container: HTMLDivElement;
@@ -10,9 +11,11 @@ let container: HTMLDivElement;
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   vi.useFakeTimers();
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: function(this: HTMLDialogElement) { this.open = false; } });
   container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
 });
-afterEach(() => { act(() => root.unmount()); container.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(() => { act(() => root.unmount()); container.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal'); Reflect.deleteProperty(HTMLDialogElement.prototype, 'close'); });
 
 function render(onCopyLocation: () => Promise<boolean>) {
   act(() => root.render(
@@ -47,6 +50,7 @@ describe('PauseMenu copy location', () => {
         onChangeLocation={vi.fn(async () => {})}
       />,
     ));
+    act(() => { [...container.querySelectorAll('button')].find(b => b.textContent === 'Developer tools')!.click(); });
     const btn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Export Telemetry');
     expect(btn).toBeDefined();
     act(() => { btn!.click(); });

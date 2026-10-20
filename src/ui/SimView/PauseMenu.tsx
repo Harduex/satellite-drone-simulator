@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { ControllerSetup } from '../Settings/ControllerSetup';
-import { PhysicsSettings } from '../Settings/PhysicsSettings';
-import { FlightSettings } from '../Settings/FlightSettings';
+import { SettingsDialog } from '../Settings/SettingsDialog';
+import { DronePreview } from './DronePreview';
+import { FlightBrand } from '../FlightBrand';
+import { useStore } from '../../store';
+import controls from '../controls.module.css';
 import css from './PauseMenu.module.css';
 
 interface Props {
@@ -14,15 +16,15 @@ interface Props {
   onRandomLocation?: () => Promise<void>;
 }
 
-type SettingsTab = 'controller' | 'physics' | 'flight';
-
 const COPY_FEEDBACK_MS = 1500;
 
 export function PauseMenu(
   { onResume, onSaveCurrentAsDefault, onCopyLocation, onExportTelemetry, onChangeLocation, onRestart, onRandomLocation }: Props,
 ) {
-  const [showSettings, setShowSettings] = useState(false);
-  const [activeTab, setActiveTab] = useState<SettingsTab>('controller');
+  const [settings, setSettings] = useState<'flight' | 'developer' | null>(null);
+  const resumeButton = useRef<HTMLButtonElement>(null);
+  const locationName = useStore(s => s.location?.name);
+  useEffect(() => { resumeButton.current?.focus(); }, []);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [randomizing, setRandomizing] = useState(false);
   const [randomError, setRandomError] = useState<string | null>(null);
@@ -31,7 +33,8 @@ export function PauseMenu(
   useEffect(() => () => clearTimeout(copyTimer.current), []);
 
   const handleCopy = async () => {
-    const ok = await onCopyLocation();
+    let ok = false;
+    try { ok = await onCopyLocation(); } catch { ok = false; }
     setCopyState(ok ? 'copied' : 'failed');
     clearTimeout(copyTimer.current);
     copyTimer.current = setTimeout(() => setCopyState('idle'), COPY_FEEDBACK_MS);
@@ -50,61 +53,39 @@ export function PauseMenu(
     }
   };
 
-  if (showSettings) {
-    return (
-      <div className={css.overlay}>
-        <div className={css.settingsPanel}>
-          {/* Tab bar */}
-          <div className={css.tabBar}>
-            <button
-              onClick={() => setActiveTab('controller')}
-              className={`${css.tab} ${activeTab === 'controller' ? css.active : ''}`}
-            >
-              Controller
-            </button>
-            <button
-              onClick={() => setActiveTab('physics')}
-              className={`${css.tab} ${activeTab === 'physics' ? css.active : ''}`}
-            >
-              Physics
-            </button>
-            <button onClick={() => setActiveTab('flight')}
-              className={`${css.tab} ${activeTab === 'flight' ? css.active : ''}`}>Flight</button>
-          </div>
-
-          {/* Tab content */}
-          {activeTab === 'controller' && (
-            <ControllerSetup onClose={() => setShowSettings(false)} />
-          )}
-          {activeTab === 'physics' && (
-            <PhysicsSettings onClose={() => setShowSettings(false)} />
-          )}
-          {activeTab === 'flight' && <FlightSettings onClose={() => setShowSettings(false)} />}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={css.overlay}>
-      <div className={css.menuGroup}>
-        <h2 className={css.pausedTitle}>Paused</h2>
-        <button onClick={onResume} disabled={randomizing || randomError !== null} className={css.resumeButton}>Resume</button>
-        {onRestart && <button onClick={onRestart} disabled={randomizing || randomError !== null} className={css.ghostButton}>Restart from home</button>}
-        {onRandomLocation && (
-          <button onClick={handleRandomLocation} disabled={randomizing} className={css.ghostButton}>
-            {randomizing ? 'Loading...' : 'Random Location'}
-          </button>
-        )}
-        {randomError && <p role="alert">{randomError}</p>}
-        <button onClick={() => setShowSettings(true)} className={css.ghostButton}>Settings</button>
-        <button onClick={onSaveCurrentAsDefault} className={css.ghostButton}>Save Current As Default</button>
-        <button onClick={handleCopy} className={css.ghostButton}>
-          {copyState === 'copied' ? 'Copied!' : copyState === 'failed' ? 'Copy failed' : 'Copy Location'}
-        </button>
-        <button onClick={() => onExportTelemetry?.()} className={css.ghostButton}>Export Telemetry</button>
-        <button onClick={onChangeLocation} className={css.ghostButton}>Change Location</button>
+      <div className={css.shell}>
+        <header className={css.header}><FlightBrand /><span className={controls.eyebrow}>Flight on hold</span></header>
+        <div className={css.layout}>
+          {!settings && <DronePreview />}
+          <section className={css.menuGroup} aria-label="Paused flight">
+            <span className={controls.eyebrow}>Paused / {locationName || 'Your flight'}</span>
+            <h1 className={css.pausedTitle}>Take a breath.</h1>
+            <button ref={resumeButton} onClick={onResume} disabled={randomizing || randomError !== null} className={`${controls.primary} ${css.resumeButton}`}>Resume</button>
+            {onRestart && <button onClick={onRestart} disabled={randomizing || randomError !== null} className={controls.secondary}>Restart from home</button>}
+            <div className={css.actionSection}>
+              <p className={css.sectionLabel}>Find your next line</p>
+              <div className={css.destinations}>
+                <button onClick={onChangeLocation} disabled={randomizing} className={controls.secondary}>Change Location</button>
+                {onRandomLocation && <button onClick={handleRandomLocation} disabled={randomizing} className={controls.secondary}>{randomizing ? 'Loading...' : 'Random Location'}</button>}
+              </div>
+            </div>
+            {randomError && <p role="alert" className={css.error}>{randomError}</p>}
+            <div className={css.locationTools}>
+              <button onClick={onSaveCurrentAsDefault} disabled={randomizing || randomError !== null} className={controls.quiet}>Save Current As Default</button>
+              <button onClick={handleCopy} disabled={randomizing || randomError !== null} className={controls.quiet}>
+                {copyState === 'copied' ? 'Copied!' : copyState === 'failed' ? 'Copy failed' : 'Copy Location'}
+              </button>
+            </div>
+            <div className={css.menuBottom}>
+              <button onClick={() => setSettings('flight')} className={controls.quiet}>Settings</button>
+              <button onClick={() => setSettings('developer')} className={controls.quiet}>Developer tools</button>
+            </div>
+          </section>
+        </div>
       </div>
+      {settings && <SettingsDialog initialCategory={settings} onClose={() => setSettings(null)} onExportTelemetry={onExportTelemetry} />}
     </div>
   );
 }

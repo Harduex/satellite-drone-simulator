@@ -4,25 +4,25 @@
 
 :root {
   /* Colors — Surfaces */
-  --color-surface: #131314;
-  --color-surface-container-lowest: #0e0e0f;
-  --color-surface-container-low: #1c1b1c;
-  --color-surface-container: #201f21;
-  --color-surface-container-high: #2a292b;
-  --color-surface-container-highest: #353436;
-  --color-surface-bright: #3d3c3e;
+  --color-surface: #121213;
+  --color-surface-container-lowest: #0d0d10;
+  --color-surface-container-low: #1c1c1f;
+  --color-surface-container: #222226;
+  --color-surface-container-high: #2b2b30;
+  --color-surface-container-highest: #35353d;
+  --color-surface-bright: #404048;
 
   /* Colors — Accent */
-  --color-primary: #ffb693;
-  --color-primary-container: #ff6b00;
-  --color-on-primary: #131314;
+  --color-primary: #ffbd70;
+  --color-primary-container: #ffab55;
+  --color-on-primary: #121213;
   --color-secondary: #bdf4ff;
   --color-secondary-container: #1a3a42;
 
   /* Colors — Text */
-  --color-on-surface: #e8e6e3;
-  --color-on-surface-variant: #c4c1bd;
-  --color-on-surface-muted: #8a8884;
+  --color-on-surface: #f0eeeb;
+  --color-on-surface-variant: #c8c6cc;
+  --color-on-surface-muted: #a6a5ac;
 
   /* Colors — Semantic */
   --color-error: #ff4444;
@@ -36,7 +36,7 @@
   --color-crash-flash: rgba(255, 0, 0, 0.4);
 
   /* Gradients */
-  --gradient-cta: linear-gradient(135deg, #ffb693, #ff6b00);
+  --gradient-cta: linear-gradient(135deg, #ffbd70, #ffc98c);
 
   /* Typography — Fonts */
   --font-display: 'Space Grotesk', sans-serif;
@@ -59,7 +59,7 @@
   --space-xl: 2rem;
 
   /* Glass effect */
-  --glass-bg: rgba(32, 31, 33, 0.60);
+  --glass-bg: rgba(28, 28, 31, 0.85);
   --glass-blur: blur(20px);
 
   /* HUD */
@@ -67,3 +67,15 @@
   --hud-font-features: 'tnum';
   --hud-text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
+
+* { box-sizing: border-box; }
+body { font-family:var(--font-body); }
+button,input,select { font-family:inherit; }
+button { cursor:pointer; transition:background-color .16s,color .16s,border-color .16s,box-shadow .16s,filter .16s; }
+button:hover:not(:disabled) { filter:brightness(1.12); }
+button:active:not(:disabled) { filter:brightness(.96); }
+button:disabled { opacity:.4; cursor:not-allowed; }
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible { outline:2px solid var(--color-secondary); outline-offset:4px; }
+input,select { min-width:0; }
+button { overflow-wrap:anywhere; }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important; } }

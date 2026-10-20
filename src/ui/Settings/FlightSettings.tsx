@@ -1,5 +1,6 @@
 import { useStore } from "../../store";
 import { SettingsPanelHeader, Slider } from "./shared";
+import { PhysicsSettings } from "./PhysicsSettings";
 import css from "./FlightSettings.module.css";
 
 export function FlightSettings({ onClose }: { onClose: () => void }) {
@@ -39,6 +40,8 @@ export function FlightSettings({ onClose }: { onClose: () => void }) {
           checked={realTime} onChange={event => setRealTime(event.target.checked)} />
       </label>
       <p className={css.hint}>Use the current time at your flying location. Turn off for bright solar noon.</p>
+      <h3 className={css.sectionTitle}>View & flight conditions</h3>
+      <PhysicsSettings section="flight" onClose={onClose} />
       <Slider label={volume === 0 ? "Sound · muted" : "Drone sound"} labelWidth={120}
         value={Math.round(volume * 100)} min={0} max={100} unit="%"
         onChange={value => setVolume(value / 100)} />

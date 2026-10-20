@@ -15,3 +15,6 @@
   accent-color: var(--color-primary);
 }
 .hint { color: var(--color-on-surface-muted); font-size: var(--fs-label-sm); line-height: 1.5; margin: -12px 0 20px; }
+
+.sectionTitle { font:500 13px var(--font-display); color:var(--color-on-surface-variant); margin:30px 0 20px; }
+.toggle input { flex-shrink:0; }
