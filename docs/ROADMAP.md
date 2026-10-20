@@ -1,6 +1,6 @@
 # Product roadmap
 
-Updated 2026-10-19. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
+Updated 2026-10-20. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
 
 ## Outcomes and constraints
 
@@ -41,7 +41,8 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 | P3-H | Ground/roof landings with nearby automatic recovery on side impacts | Proposed alternative; not selected for the current solid-wall trial | Compare the bounded wall-contact trial first; preserve a clear distinction between physical contact and automatic recovery |
 | P4 | Battery discharge, voltage sag and current limits | Transient load voltage sag implemented locally; pack discharge deferred | Automatic internal-resistance load sag (~2.5% RPM at full 4-motor load) preserves unlimited free play; battery depletion remains optional-only and deferred |
 | P5 | Self-level flight, practice gates, timed challenges and flight-state replay | Deferred | Separate scope per mode; existing video recording does not provide flight-state replay |
-| P7 | Spawn at a random location through an action in the pause menu | Proposed; implementation not authorized | Reuse session location loading and spawn validation; define eligible locations and unavailable-geometry behavior before implementation |
+| P7 | Spawn at a random urban location from the picker or pause menu | Implemented locally; wider coverage assessment pending | Equal-area sampling within Natural Earth urban polygons, filtered by the land mask; at most three candidates, each requiring nearby rendered detailed textured Google tiles. No flat-terrain fallback for random starts; manual selection retains it. Coastlines and inland water remain approximate. [Dataset provenance and detail heuristic](../src/world/data/ATTRIBUTION.md) |
+| P7-A | Estimate suitable built-up areas without maintaining a city catalog | Implemented locally as the P7 eligibility heuristic | On-demand geographic polygons replace whole-land sampling. Urban extent is dated and does not guarantee Google coverage; runtime validation gates random starts. Measured worldwide success rate remains pending |
 | R1 | Calibrate drag, rotor response and flight envelope against real-flight data | Real-flight calibration pending reference measurements | [Baseline validation](../README.md#calibration-sources) covers static bench points, torque mechanics, rotor precession, transient rate bounds and Acro maneuvers. Recorded stick/gyro/RPM/voltage and flight-speed data from a known 5-inch 6S build are still needed; numerical consistency alone does not establish calibration |
 | R2 | Propwash and descent thrust loss | Implemented locally (first-order wake model) | Descent into own slipstream reduces thrust up to 16% and adds bounded pitch/roll shimmer; empirical blackbox tuning remains under R1 |
 | R3 | Ground effect and wall/building aerodynamics | Ground cushion implemented locally; wall aerodynamics deferred | Upright flight within 2.5 rotor diameters of sampled ground boosts lift up to 15%; wall/building airflow still requires 3D proximity geometry |

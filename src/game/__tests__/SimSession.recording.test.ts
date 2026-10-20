@@ -27,6 +27,7 @@ describe('session recording lifecycle', () => {
     const f = fixture(); let release!: () => void;
     loading.load.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve; }));
     const start = f.session.startSession({ lon: 0, lat: 0, name: 'Test location' });
+    await vi.waitFor(() => expect(loading.load).toHaveBeenCalledOnce());
     await f.session.dispose(); release();
     await expect(start).resolves.toBeUndefined();
     expect(f.world.showContainer).not.toHaveBeenCalled(); expect(f.loop.start).not.toHaveBeenCalled();

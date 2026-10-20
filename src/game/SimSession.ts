@@ -14,6 +14,8 @@ import { createRecordingFrameSource } from '../world/RecordingFrameSource';
 import { useStore } from "../store";
 import { meanWindInto, resolveWindConfig } from "../core/physics/WindConfig";
 import type { SavedLocation } from "../store/settingsSlice";
+import { getRandomLocation } from "./randomLocation";
+import { waitForDetailedTileCoverage } from "../world/TileCoverage";
 
 export interface SpawnOrigin {
   longitude: number;
@@ -28,6 +30,7 @@ export class SimSession {
   private gameLoop: GameLoop | null = null;
   private spawnOrigin: SpawnOrigin | null = null;
   private isStarting = false;
+  private isRandomizing = false;
   private renderDiagnostics: RenderDiagnostics | null = null;
   private droneAudio = new DroneAudio();
   private flightRecorder: FlightRecorder;
@@ -69,8 +72,21 @@ export class SimSession {
     useStore.getState().setCacheOnlyPractice(enabled);
   }
 
+  async flyToRandomLocation(): Promise<void> {
+    if (this.disposed || this.isStarting || this.isRandomizing || this.exitPromise) return;
+    const generation = this.sessionGeneration;
+    this.isRandomizing = true;
+    try {
+      const loc = await getRandomLocation();
+      if (generation !== this.sessionGeneration || this.disposed || this.exitPromise) return;
+      await this.startSession({ lon: loc.lng, lat: loc.lat, name: loc.name, random: true });
+    } finally {
+      this.isRandomizing = false;
+    }
+  }
+
   async startSession(
-    location: { lon: number; lat: number; name: string },
+    location: { lon: number; lat: number; name: string; random?: boolean },
   ): Promise<void> {
     if (this.disposed || this.isStarting || this.exitPromise) return;
     const generation = ++this.sessionGeneration;
@@ -78,10 +94,52 @@ export class SimSession {
     this.setCacheOnlyPractice(false);
     this.isStarting = true;
     try {
+      if (this.gameLoop) {
+        this.trafficSettingsCleanup?.();
+        this.trafficSettingsCleanup = null;
+        this.traffic?.pause();
+        this.pedestrians?.pause();
+        await this.flightRecorder.stop('session_exit');
+        if (generation !== this.sessionGeneration) return;
+        this.traffic?.dispose();
+        this.traffic = null;
+        this.pedestrians?.dispose();
+        this.pedestrians = null;
+        this.gameLoop.stop();
+        this.gameLoop = null;
+        this.cesiumManager.teardownGlobeToggle();
+        useStore.getState().updateNavigation(null);
+      }
+
+      const attempts = location.random ? 3 : 1;
+      let candidate = location;
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        if (attempt > 0) {
+          const next = await getRandomLocation();
+          candidate = { lon: next.lng, lat: next.lat, name: next.name, random: true };
+        }
+        if (generation !== this.sessionGeneration) return;
+        if (await this.loadLocation(candidate, generation, Boolean(location.random))) return;
+        if (generation !== this.sessionGeneration) return;
+      }
+      throw new Error('No nearby detailed Google 3D geometry found after three urban locations. Try again.');
+    } finally {
+      if (generation === this.sessionGeneration) {
+        if (!this.gameLoop) this.droneAudio.dispose();
+        this.isStarting = false;
+      }
+    }
+  }
+
+  private async loadLocation(
+    location: { lon: number; lat: number; name: string },
+    generation: number,
+    requireDetailedTiles: boolean,
+  ): Promise<boolean> {
     const viewer = this.cesiumManager.getViewer();
 
-    await this.tileLoader.loadPhotorealisticTiles(viewer);
-    if (generation !== this.sessionGeneration) return;
+    const tileset = await this.tileLoader.loadPhotorealisticTiles(viewer);
+    if (generation !== this.sessionGeneration) return false;
 
     // Get rough elevation for initial camera placement (may be orthometric from Google API)
     const roughTerrainHeight = await this.resolveTerrainHeight(
@@ -89,7 +147,7 @@ export class SimSession {
       location.lat,
       location.lon,
     );
-    if (generation !== this.sessionGeneration) return;
+    if (generation !== this.sessionGeneration) return false;
 
     // Show Cesium container
     this.cesiumManager.showContainer();
@@ -110,7 +168,7 @@ export class SimSession {
     });
     this.tileLoader.prepareForNewLocation();
     await this.tileLoader.waitForViewRefinement();
-    if (generation !== this.sessionGeneration) return;
+    if (generation !== this.sessionGeneration) return false;
 
     // After tiles/globe have loaded, query WGS84 ellipsoidal height from the globe.
     // This is consistent with what TerrainSampler.toEnuHeight() uses internally,
@@ -133,7 +191,13 @@ export class SimSession {
     // Find a nearby flyable start point so landmarks and rooftops don't force
     // the drone onto unstable high-detail geometry.
     const spawnPoint = await terrainSampler.findSpawnPoint(spawnAlt);
-    if (generation !== this.sessionGeneration) return;
+    if (generation !== this.sessionGeneration) return false;
+
+    if (requireDetailedTiles) {
+      const covered = await waitForDetailedTileCoverage(tileset, enuToEcef(spawnPoint, enuFrame));
+      if (generation !== this.sessionGeneration || !covered) return false;
+    }
+
     if (import.meta.env.DEV) console.log(
       `Spawn point resolved to ENU (${spawnPoint.x.toFixed(1)}, ${spawnPoint.y.toFixed(1)}, ${spawnPoint.z.toFixed(1)})`,
     );
@@ -169,7 +233,7 @@ export class SimSession {
       },
     });
     await this.tileLoader.waitForViewRefinement();
-    if (generation !== this.sessionGeneration) return;
+    if (generation !== this.sessionGeneration) return false;
 
     // Start game loop with terrain sampler for real-time ground collision
     const sceneExclusions: object[] = [...this.cesiumManager.getEnvironmentPrimitives()];
@@ -238,13 +302,9 @@ export class SimSession {
       () => this.tileLoader.hasRenderableTilesInView(),
     );
 
+    useStore.getState().setLocation({ lat: location.lat, lng: location.lon, name: location.name });
     useStore.getState().setPhase("FLYING");
-    } finally {
-      if (generation === this.sessionGeneration) {
-        if (!this.gameLoop) this.droneAudio.dispose();
-        this.isStarting = false;
-      }
-    }
+    return true;
   }
 
   private async resolveTerrainHeight(
@@ -373,7 +433,7 @@ export class SimSession {
   }
 
   resume(): void {
-    if (this.exitPromise || this.disposed) return;
+    if (this.exitPromise || this.disposed || this.isStarting || this.isRandomizing || !this.gameLoop) return;
     this.applyEnvironmentSettings();
     this.cesiumManager.setEnvironmentPaused(false);
     this.gameLoop?.applyStoreSettings();

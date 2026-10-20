@@ -52,4 +52,54 @@ describe('PauseMenu copy location', () => {
     act(() => { btn!.click(); });
     expect(exportTelemetry).toHaveBeenCalledOnce();
   });
+
+  it('renders Random Location button and shows loading state when clicked', async () => {
+    let finishPromise: () => void;
+    const randomPromise = new Promise<void>((resolve) => {
+      finishPromise = resolve;
+    });
+    const onRandomLocation = vi.fn(() => randomPromise);
+
+    act(() => root.render(
+      <PauseMenu
+        onResume={vi.fn()}
+        onSaveCurrentAsDefault={vi.fn()}
+        onCopyLocation={vi.fn(async () => true)}
+        onChangeLocation={vi.fn(async () => {})}
+        onRandomLocation={onRandomLocation}
+      />,
+    ));
+
+    const btn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Random Location');
+    expect(btn).toBeDefined();
+
+    await act(async () => {
+      btn!.click();
+    });
+
+    expect(onRandomLocation).toHaveBeenCalledOnce();
+    expect(btn!.textContent).toBe('Loading...');
+
+    await act(async () => {
+      finishPromise();
+    });
+
+    expect(btn!.textContent).toBe('Random Location');
+  });
+
+  it('reports random-load failure and permits retry without resuming an empty flight', async () => {
+    const onRandomLocation = vi.fn().mockRejectedValueOnce(new Error('Tiles unavailable')).mockResolvedValue(undefined);
+    act(() => root.render(
+      <PauseMenu onResume={vi.fn()} onSaveCurrentAsDefault={vi.fn()}
+        onCopyLocation={vi.fn(async () => true)} onChangeLocation={vi.fn(async () => {})}
+        onRandomLocation={onRandomLocation} />,
+    ));
+    const button = [...container.querySelectorAll('button')].find(b => b.textContent === 'Random Location')!;
+    await act(async () => button.click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Unable to load');
+    expect([...container.querySelectorAll('button')].find(b => b.textContent === 'Resume')!.disabled).toBe(true);
+    expect(button.disabled).toBe(false);
+    await act(async () => button.click());
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
 });

@@ -5,6 +5,7 @@ import { PhysicsSettings } from '../Settings/PhysicsSettings';
 import { FlightSettings } from '../Settings/FlightSettings';
 import { colors, gradients } from '../theme';
 import { useStore } from '../../store';
+import { getRandomLocation } from '../../game/randomLocation';
 import css from './LocationPicker.module.css';
 import { FlightMinimap } from '../SimView/FlightMinimap';
 import minimapCss from '../SimView/FlightMinimap.module.css';
@@ -21,13 +22,14 @@ function ensureAutocompleteStyles() {
 
 interface Props {
   compact?: boolean;
-  onFlyHere: (location: { lon: number; lat: number; name: string }) => Promise<void>;
+  onFlyHere: (location: { lon: number; lat: number; name: string; random?: boolean }) => Promise<void>;
 }
 
 export function LocationPicker({ onFlyHere, compact = false }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapControllerRef = useRef<MapController | null>(null);
+  const selectionGeneration = useRef(0);
   const defaultLocation = useStore((s) => s.defaultLocation);
   const pickerInitialLocation = useStore((s) => s.pickerInitialLocation);
   const clearPickerInitialLocation = useStore((s) => s.clearPickerInitialLocation);
@@ -35,11 +37,13 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
     lat: number;
     lng: number;
     name: string;
+    random?: boolean;
   } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [settingsPanel, setSettingsPanel] = useState<'none' | 'controller' | 'physics' | 'flight'>('none');
   const [launching, setLaunching] = useState(false);
+  const [randomizing, setRandomizing] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const collapsed = useStore(s => s.minimapCollapsed);
@@ -62,6 +66,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
       : fallbackCenter;
 
     controller.onLocationSelect = (loc) => {
+      selectionGeneration.current++;
       setSelectedLocation(loc);
     };
     controller
@@ -105,7 +110,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
   }, [compact, collapsed, navigation, mapReady]);
 
   const handleFlyHere = async () => {
-    if (!selectedLocation || launching) return;
+    if (!selectedLocation || launching || randomizing) return;
     setLaunching(true);
     setLaunchError(null);
     try {
@@ -113,9 +118,12 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
         lon: selectedLocation.lng,
         lat: selectedLocation.lat,
         name: selectedLocation.name,
+        random: selectedLocation.random,
       });
     } catch {
-      setLaunchError('Unable to start flight. Check your Cesium ion token and access to Google Photorealistic 3D Tiles, then retry.');
+      setLaunchError(selectedLocation.random
+        ? 'No usable Google 3D geometry found. Try Random again or choose a location.'
+        : 'Unable to start flight. Check your Cesium ion token and access to Google Photorealistic 3D Tiles, then retry.');
     } finally {
       setLaunching(false);
     }
@@ -128,6 +136,26 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
     ctrl.goToCurrentLocation()
       .catch((e) => console.warn("Geolocation failed:", e))
       .finally(() => setLocatingUser(false));
+  };
+
+  const handleRandomLocation = async () => {
+    const ctrl = mapControllerRef.current;
+    if (!ctrl || launching || randomizing) return;
+    const generation = ++selectionGeneration.current;
+    setRandomizing(true);
+    try {
+      const loc = await getRandomLocation();
+      if (mapControllerRef.current !== ctrl || generation !== selectionGeneration.current) return;
+      ctrl.setMarker(loc.lat, loc.lng);
+      ctrl.flyTo(loc.lat, loc.lng, 15);
+      setSelectedLocation(loc);
+      setLaunchError(null);
+      if (searchInputRef.current) searchInputRef.current.value = loc.name;
+    } catch {
+      setLaunchError('Unable to select a random urban location. Try again.');
+    } finally {
+      setRandomizing(false);
+    }
   };
 
   return (
@@ -177,6 +205,22 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
           </svg>
         </button>
         <button
+          onClick={handleRandomLocation}
+          title="Random location"
+          disabled={!mapReady || launching || randomizing}
+          className={css.iconButton}
+          style={{ cursor: 'pointer' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+            <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+            <circle cx="16" cy="8" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+            <circle cx="8" cy="16" r="1.5" fill="currentColor" />
+            <circle cx="16" cy="16" r="1.5" fill="currentColor" />
+          </svg>
+        </button>
+        <button
           onClick={() => setSettingsPanel('controller')}
           title="Settings"
           className={css.iconButton}
@@ -199,7 +243,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
         )}
         <button
           onClick={handleFlyHere}
-          disabled={!selectedLocation || launching}
+          disabled={!selectedLocation || launching || randomizing}
           className={css.flyHereButton}
           style={{
             cursor: selectedLocation && !launching ? 'pointer' : 'not-allowed',
