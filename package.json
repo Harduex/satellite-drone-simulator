@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "postinstall": "patch-package --error-on-fail",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
@@ -13,11 +14,14 @@
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
     "@mapbox/vector-tile": "^3.0.0",
-    "cesium": "^1.139.1",
+    "cesium": "1.139.1",
     "pbf": "^5.1.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "zustand": "^5.0.12"
+  },
+  "overrides": {
+    "@cesium/engine": "23.0.1"
   },
   "devDependencies": {
     "@types/cesium": "^1.67.14",
@@ -25,6 +29,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
     "jsdom": "^27.0.1",
+    "patch-package": "8.0.1",
     "typescript": "^5.9.3",
     "vite": "^6.4.1",
     "vite-plugin-cesium": "^1.2.23",

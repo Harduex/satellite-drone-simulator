@@ -18,6 +18,13 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
+Dependency installation applies a version-pinned Cesium engine patch through
+`patch-package`; keep install scripts enabled. It updates skin matrices once after
+all node transforms, avoiding repeated rig calculations during bird animation
+([upstream issue](https://github.com/CesiumGS/cesium/issues/12804)). Production
+builds use Cesium sources to include the patch. When upgrading Cesium, review the
+patch and run `CesiumAnimationPerformance.test.js` before changing the version pins.
+
 ## API Keys
 
 Create a `.env` file with:

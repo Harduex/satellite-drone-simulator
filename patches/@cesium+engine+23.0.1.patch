@@ -1,0 +1,27 @@
+diff --git a/node_modules/@cesium/engine/Source/Scene/Model/ModelSceneGraph.js b/node_modules/@cesium/engine/Source/Scene/Model/ModelSceneGraph.js
+index 31b9e6f..0f8ac51 100644
+--- a/node_modules/@cesium/engine/Source/Scene/Model/ModelSceneGraph.js
++++ b/node_modules/@cesium/engine/Source/Scene/Model/ModelSceneGraph.js
+@@ -776,10 +776,18 @@ ModelSceneGraph.prototype.update = function (frameState, updateForAnimations) {
+       nodeUpdateStage.update(runtimeNode, this, frameState);
+     }
+ 
+-    const disableAnimations =
+-      frameState.mode !== SceneMode.SCENE3D && this._model._projectTo2D;
+-    if (updateForAnimations && !disableAnimations) {
+-      this.updateJointMatrices();
++  }
++
++  const disableAnimations =
++    frameState.mode !== SceneMode.SCENE3D && this._model._projectTo2D;
++  if (updateForAnimations && !disableAnimations) {
++    this.updateJointMatrices();
++  }
++
++  for (i = 0; i < this._runtimeNodes.length; i++) {
++    const runtimeNode = this._runtimeNodes[i];
++    if (!defined(runtimeNode)) {
++      continue;
+     }
+ 
+     for (j = 0; j < runtimeNode.runtimePrimitives.length; j++) {
