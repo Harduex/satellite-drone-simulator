@@ -214,7 +214,6 @@ export class BirdSimulation {
           // Eagle velocity follows its soaring heading
           bird.velocity.x = bird.speed * Math.sin(bird.heading);
           bird.velocity.y = bird.speed * Math.cos(bird.heading);
-          bird.velocity.z += az * dt;
         }
       } else {
         // StarDisplay: topological flocking (up to 7 nearest neighbours in flock)

@@ -3,6 +3,15 @@ import { BirdSimulation } from '../BirdSimulation';
 import { BIRDS_CONFIG, SPECIES_CONFIGS } from '../BirdConfig';
 
 describe('BirdSimulation', () => {
+  it('limits eagle climb acceleration to one integration per step', () => {
+    const sim = new BirdSimulation();
+    sim.spawnFlocks({ x: 0, y: 0, z: 100 });
+    const eagle = sim.getBirds().find(b => b.species === 'eagle')!;
+    const previousVz = eagle.velocity.z;
+    sim.step(0.1);
+    expect(eagle.velocity.z - previousVz).toBeLessThanOrEqual(SPECIES_CONFIGS.eagle.maxAcceleration * 0.1);
+  });
+
   it('spawns configured counts of all three species with color variation', () => {
     const sim = new BirdSimulation();
     sim.spawnFlocks({ x: 0, y: 0, z: 100 });
