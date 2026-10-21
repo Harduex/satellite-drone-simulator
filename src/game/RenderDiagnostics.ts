@@ -1,9 +1,12 @@
 import type * as Cesium from 'cesium';
 import type { TileLoader } from '../world/TileLoader';
 import type { RenderDiagnosticsSnapshot } from '../store/diagnosticsSlice';
+import { PerformanceTimings } from './PerformanceTimings';
 
 export class RenderDiagnostics {
   private removePostRender: Cesium.Event.RemoveCallback | null = null;
+  private removePreRender: Cesium.Event.RemoveCallback | null = null;
+  private renderStart: number | null = null;
   private tileCleanups: Cesium.Event.RemoveCallback[] = [];
   private observedTileset: Cesium.Cesium3DTileset | null = null;
   private visibleTiles = new Set<Cesium.Cesium3DTile>();
@@ -20,15 +23,19 @@ export class RenderDiagnostics {
   private networkTileFetches = 0;
   private browserCacheTileFetches = 0;
   private unknownTileFetches = 0;
+  private lastFrame: number | null = null;
 
   constructor(
     private viewer: Cesium.Viewer,
     private tileLoader: TileLoader,
     private publish: (snapshot: RenderDiagnosticsSnapshot) => void,
+    private timings = new PerformanceTimings(),
   ) {}
 
   start(): void {
     if (this.removePostRender) return;
+    this.timings.setEnabled(true);
+    this.lastFrame = null;
     this.sampleStart = performance.now();
     this.observationStart = this.sampleStart;
     this.frames = this.loadedTiles = this.evictedTiles = this.failedTiles = 0;
@@ -41,10 +48,18 @@ export class RenderDiagnostics {
       this.resourceObserver.observe({ type: 'resource', buffered: false });
     }
     this.attachTileset();
+    this.removePreRender = this.viewer.scene.preRender.addEventListener(() => {
+      this.renderStart = this.timings.begin();
+    });
     this.removePostRender = this.viewer.scene.postRender.addEventListener(() => this.sample());
   }
 
   stop(): void {
+    this.timings.setEnabled(false);
+    this.lastFrame = null;
+    this.renderStart = null;
+    this.removePreRender?.();
+    this.removePreRender = null;
     this.removePostRender?.();
     this.removePostRender = null;
     this.resourceObserver?.disconnect();
@@ -84,9 +99,13 @@ export class RenderDiagnostics {
   }
 
   private sample(): void {
+    if (this.renderStart !== null) this.timings.end('renderSubmission', this.renderStart);
+    this.renderStart = null;
     this.attachTileset();
     this.frames++;
     const now = performance.now();
+    if (this.lastFrame !== null) this.timings.recordFrame(now - this.lastFrame);
+    this.lastFrame = now;
     const elapsed = now - this.sampleStart;
     if (elapsed >= 500) {
       let expired = 0;
@@ -100,6 +119,7 @@ export class RenderDiagnostics {
       const tileset = this.observedTileset;
       const statistics = this.tileLoader.getStreamingStatistics();
       this.publish({
+        performance: this.timings.snapshot(),
         fps: this.frames * 1000 / elapsed,
         frameTimeMs: elapsed / this.frames,
         sampleSeconds: elapsed / 1000,

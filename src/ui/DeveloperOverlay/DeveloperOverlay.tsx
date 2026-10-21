@@ -1,7 +1,17 @@
 import { useEffect } from 'react';
 import type { SimSession } from '../../game/SimSession';
 import { useStore } from '../../store';
+import type { PerformanceStage } from '../../store/diagnosticsSlice';
 import styles from './DeveloperOverlay.module.css';
+
+const STAGE_LABELS: Record<PerformanceStage, string> = {
+  flight: 'Flight total', contacts: 'Contact preparation', physics: '500 Hz steps',
+  surfaceQuery: 'Height query (one call)', traffic: 'Traffic total', trafficSurface: 'Road surfaces',
+  renderSubmission: 'Cesium render submission',
+  trafficGraph: 'Road graphs', trafficSimulation: 'Car simulation', trafficActors: 'Car transforms / admission',
+  pedestrians: 'Pedestrians total', pedestrianSurface: 'Path surfaces', pedestrianGraph: 'Path graphs',
+  pedestrianSimulation: 'Walker simulation', pedestrianActors: 'Walker transforms / admission',
+};
 
 function memory(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(0)} MiB`;
@@ -64,6 +74,34 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
         <strong>{snapshot ? snapshot.fps.toFixed(0) : '—'}</strong><span>FPS</span>
         <span className={styles.frameTime}>{snapshot ? snapshot.frameTimeMs.toFixed(1) : '—'} ms / frame</span>
       </div>
+      {snapshot && <section aria-label="Frame pacing">
+        <dl className={styles.metrics}>
+          <dt>Frame median / p95 / p99</dt>
+          <dd>{snapshot.performance.frameIntervals.count ? [snapshot.performance.frameIntervals.medianMs,
+            snapshot.performance.frameIntervals.p95Ms, snapshot.performance.frameIntervals.p99Ms]
+            .map(ms => ms.toFixed(1)).join(' / ') : '—'} ms</dd>
+          <dt>Worst frame / intervals</dt>
+          <dd>{snapshot.performance.frameIntervals.maxMs.toFixed(1)} ms / {snapshot.performance.frameIntervals.count}</dd>
+          <dt>Intervals &gt;33.3 / &gt;50 ms</dt>
+          <dd>{snapshot.performance.framesOver33Ms} / {snapshot.performance.framesOver50Ms}</dd>
+        </dl>
+        <details>
+          <summary>CPU timings · mean / p95 / max</summary>
+          <dl className={styles.metrics}>
+            {(Object.entries(STAGE_LABELS) as [PerformanceStage, string][]).map(([stage, label]) => {
+              const value = snapshot.performance.stages[stage];
+              return <div className={styles.timingRow} key={stage}>
+                <dt>{label} ({value.count})</dt>
+                <dd>{value.count ? [value.meanMs, value.p95Ms, value.maxMs]
+                  .map(ms => ms.toFixed(2)).join(' / ') : '—'}</dd>
+              </div>;
+            })}
+          </dl>
+          <p className={styles.note}>Milliseconds, up to 600 recent samples per row. Totals include their subphases; do not add rows.
+            CPU wall time includes GPU waits. GPU timing, browser layout and asynchronous tile/model loading are not measured.</p>
+        </details>
+        <p className={styles.note}>Frame intervals: up to 600 recent renders. Samples reset on pause/resume and new flights.</p>
+      </section>}
       <div className={styles.status} data-active={activeRequests || pressure || (!cacheOnlyPractice && (snapshot?.tileFetchesLast5Seconds ?? 0) > 0)}>{status}</div>
       <div className={styles.practiceOption}>
         <button type="button" role="switch" className={styles.practiceToggle}

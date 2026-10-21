@@ -6,6 +6,7 @@ import type { RenderDiagnosticsSnapshot } from '../../store/diagnosticsSlice';
 
 function createScene() {
   const postRender = new Cesium.Event();
+  const preRender = new Cesium.Event();
   const tiles = {
     tileLoad: new Cesium.Event(), tileVisible: new Cesium.Event(),
     tileUnload: new Cesium.Event(), tileFailed: new Cesium.Event(),
@@ -17,15 +18,48 @@ function createScene() {
   };
   const loader = new TileLoader();
   Object.assign(loader, { tileset: tiles });
-  const viewer = { scene: { postRender, globe: { show: false } } } as unknown as Cesium.Viewer;
+  const viewer = { scene: { preRender, postRender, globe: { show: false } } } as unknown as Cesium.Viewer;
   const published: RenderDiagnosticsSnapshot[] = [];
   const monitor = new RenderDiagnostics(viewer, loader, value => published.push(value));
-  return { postRender, tiles, loader, monitor, published };
+  return { preRender, postRender, tiles, loader, monitor, published };
 }
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('RenderDiagnostics', () => {
+  it('measures render submission separately from frame intervals and releases its listener', () => {
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const { monitor, preRender, postRender, published } = createScene();
+    monitor.start();
+    now = 488; preRender.raiseEvent();
+    now = 500; postRender.raiseEvent();
+    expect(published[0]?.performance.stages.renderSubmission).toMatchObject({ count: 1, meanMs: 12, maxMs: 12 });
+    monitor.stop();
+    expect(preRender.numberOfListeners).toBe(0);
+  });
+
+  it('reports frame-interval tails without treating opening the overlay as a frame', () => {
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const { monitor, postRender, published } = createScene();
+    monitor.start();
+    for (const timestamp of [100, 110, 120, 160, 180, 500]) {
+      now = timestamp;
+      postRender.raiseEvent();
+    }
+    expect(published[0]?.performance.frameIntervals).toEqual({
+      count: 5, meanMs: 80, medianMs: 20, p95Ms: 320, p99Ms: 320, maxMs: 320,
+    });
+    monitor.stop();
+    now = 5000;
+    monitor.start();
+    now = 5500;
+    postRender.raiseEvent();
+    expect(published[1]?.performance.frameIntervals.count).toBe(0);
+    monitor.stop();
+  });
+
   it('counts completed tile fetches conservatively, separates known cache hits, and ages out activity', () => {
     let now = 0;
     vi.spyOn(performance, 'now').mockImplementation(() => now);

@@ -11,6 +11,7 @@ import { PEDESTRIANS } from '../pedestrians/PedestrianConfig';
 import type { WalkingPath, WalkingEdge } from '../pedestrians/PedestrianTypes';
 import type { Point3 } from '../traffic/TrafficTypes';
 import type { PedestrianDiagnosticsSnapshot } from '../store/diagnosticsSlice';
+import type { PerformanceTimings } from './PerformanceTimings';
 interface PedestrianOptions {
     viewer: Cesium.Viewer;
     enuFrame: Cesium.Matrix4;
@@ -20,6 +21,7 @@ interface PedestrianOptions {
     exclusionsChanged: (objects: readonly object[]) => void;
     publish: (counters: PedestrianDiagnosticsSnapshot | null) => void;
     diagnosticsEnabled: () => boolean;
+    timings?: PerformanceTimings;
 }
 export class PedestrianController {
     private source: RoadSource<WalkingPath>;
@@ -68,7 +70,13 @@ export class PedestrianController {
                 ? [...new Set([...baseExclusions, ...rendererExclusions])]
                 : [...baseExclusions];
         }
-        const height = scene.sampleHeight(carto, this.cachedExclusions);
+        const queryStart = this.options.timings?.begin() ?? 0;
+        let height: number | undefined;
+        try {
+            height = scene.sampleHeight(carto, this.cachedExclusions);
+        } finally {
+            this.options.timings?.end('surfaceQuery', queryStart);
+        }
         if (height === undefined || !Number.isFinite(height))
             return undefined;
         const position = ecefToEnu(Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height, undefined, this.scratchCartesian), this.inverse);
@@ -125,7 +133,9 @@ export class PedestrianController {
                 const paths = await this.source.loadTiles(selectCoverageTiles({ longitude: Cesium.Math.toDegrees(carto.longitude), latitude: Cesium.Math.toDegrees(carto.latitude) }, PEDESTRIANS), abort.signal);
                 if (this.disposed || this.paused || !this.enabled || generation !== this.generation)
                     return;
+                const graphStart = this.options.timings?.begin() ?? 0;
                 this.surface.prepare(buildPedestrianGraph(paths, center));
+                this.options.timings?.end('pedestrianGraph', graphStart);
             }
             catch (error) {
                 if (!abort.signal.aborted)
@@ -138,17 +148,22 @@ export class PedestrianController {
     private tick(): void {
         if (this.disposed || this.paused || !this.enabled)
             return;
+        const tickStart = this.options.timings?.begin() ?? 0;
         const now = performance.now(), position = this.options.readDronePosition();
         if (this.center && Math.hypot(position.x - this.center.x, position.y - this.center.y) >= PEDESTRIANS.refreshDistance) {
             this.triggeredAt ??= now;
             if (now - this.triggeredAt >= PEDESTRIANS.debounceMs)
                 void this.refresh(position);
         }
+        const surfaceStart = this.options.timings?.begin() ?? 0;
         this.surface.processFrame(position);
+        this.options.timings?.end('pedestrianSurface', surfaceStart);
         if (this.surfaceVersion !== this.surface.version && now - this.lastGraphUpdate >= 500) {
+            const graphStart = this.options.timings?.begin() ?? 0;
             this.simulation.setGraph(this.surface.getValidatedGraph());
             this.surfaceVersion = this.surface.version;
             this.lastGraphUpdate = now;
+            this.options.timings?.end('pedestrianGraph', graphStart);
         }
         this.simulation.setCenter(position);
         const clock = advanceTrafficTime(this.accumulator, (now - this.lastFrame) / 1000);
@@ -158,11 +173,15 @@ export class PedestrianController {
         for (let i = 0; i < clock.steps; i++)
             this.simulation.step(PEDESTRIANS.step);
         const updateMs = performance.now() - start;
+        this.options.timings?.record('pedestrianSimulation', updateMs);
+        const actorsStart = this.options.timings?.begin() ?? 0;
         this.renderer?.update(this.simulation.getFrames(), this.accumulator / PEDESTRIANS.step);
+        this.options.timings?.end('pedestrianActors', actorsStart);
         if (this.options.diagnosticsEnabled() && now - this.lastPublish >= 1000) {
             this.lastPublish = now;
             this.options.publish({ people: this.simulation.getFrames().length, renderedPeople: this.renderer?.getExclusions().length ?? 0, paths: this.surface.getValidatedGraph().edges.size, cachedTiles: this.source.cachedTiles, cachedBytes: this.source.cachedBytes, pendingRequests: this.source.pendingRequests, requestFailures: this.source.requestFailures, refreshes: this.refreshes, updateMs, surfaceSamples: this.surface.samples, surfaceMs: this.surface.sampleMs, pendingPaths: this.surface.pending, rejectedPaths: this.surface.rejectedRoads });
         }
+        this.options.timings?.end('pedestrians', tickStart);
     }
     dispose(): void { if (this.disposed)
         return; this.disposed = true; this.cancel(); this.removeFrame?.(); this.removeFrame = null; this.clearActors(); this.source.clear(); this.options.publish(null); }

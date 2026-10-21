@@ -10,6 +10,7 @@ import { FPVCamera, DEFAULT_CAMERA_CONFIG } from "../camera/FPVCamera";
 import { DroneRenderer } from "../world/DroneRenderer";
 import { CrashDetector } from "./CrashDetector";
 import { TelemetryPublisher } from "./TelemetryPublisher";
+import type { PerformanceTimings } from './PerformanceTimings';
 import { FlightNavigation } from "./FlightNavigation";
 import type { DroneAudio } from "./DroneAudio";
 import { TerrainSampler } from "../world/TerrainSampler";
@@ -77,6 +78,7 @@ export class GameLoop {
     this.recover();
   };
   private audio?: DroneAudio;
+  private timings?: PerformanceTimings;
 
   constructor(params: {
     viewer: Cesium.Viewer;
@@ -87,6 +89,7 @@ export class GameLoop {
     initialPosition?: Vector3;
     sceneExclusions?: object[];
     audio?: DroneAudio;
+    timings?: PerformanceTimings;
   }) {
     this.viewer = params.viewer;
     this.enuFrame = params.enuFrame;
@@ -96,6 +99,7 @@ export class GameLoop {
     this.terrainSampler = params.terrainSampler;
     this.sceneExclusions = params.sceneExclusions ?? [];
     this.audio = params.audio;
+    this.timings = params.timings;
 
     this.physics = new DronePhysics(params.physicsConfig);
     this.surfaceContact = new SurfaceContact(params.physicsConfig);
@@ -261,9 +265,12 @@ export class GameLoop {
     // Clamp to prevent spiral of death
     if (wallDt > MAX_WALL_DT) wallDt = MAX_WALL_DT;
     if (wallDt <= 0) return;
+    const flightStart = this.timings?.begin() ?? 0;
 
     // 2. Sample terrain height at drone position (once per render frame)
+    const contactStart = this.timings?.begin() ?? 0;
     const planes = this.contactSampler.prepare(this.droneState, this.contactRadius, wallDt, timestamp / 1000);
+    this.timings?.end('contacts', contactStart);
     const groundHeight = this.contactSampler.groundHeight ?? this.terrainSampler.getGroundHeight();
     if (this.contactSampler.groundHeight !== null && !this.contactSampler.overlap
       && this.droneState.position.z - groundHeight >= 2 && !this.crashDetector.disabled) {
@@ -273,6 +280,7 @@ export class GameLoop {
     const recoveryUnavailable = useStore.getState().recoveryUnavailable;
 
     // 3. Flight controller + physics substeps at fixed 500Hz
+    const physicsStart = this.timings?.begin() ?? 0;
     this.physicsAccumulator += wallDt;
     let steps = 0;
     while (
@@ -321,6 +329,7 @@ export class GameLoop {
       this.physicsAccumulator -= this.PHYSICS_DT;
       steps++;
     }
+    this.timings?.end('physics', physicsStart);
 
     useStore.getState().setFlightCondition(this.crashDetector.disabled ? 'disabled'
       : this.contactSampler.overlap ? 'geometry' : this.crashDetector.hasImpactFeedback ? 'impact'
@@ -347,6 +356,7 @@ export class GameLoop {
       groundHeight,
       this.windVelocity,
     );
+    this.timings?.end('flight', flightStart);
 
   }
 

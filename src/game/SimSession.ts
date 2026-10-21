@@ -6,6 +6,7 @@ import { TileLoader } from "../world/TileLoader";
 import { TerrainSampler } from "../world/TerrainSampler";
 import { GameLoop } from "./GameLoop";
 import { RenderDiagnostics } from "./RenderDiagnostics";
+import { PerformanceTimings } from './PerformanceTimings';
 import { DroneAudio } from "./DroneAudio";
 import { FlightRecorder } from './FlightRecorder';
 import { TrafficController } from './TrafficController';
@@ -32,6 +33,7 @@ export class SimSession {
   private isStarting = false;
   private isRandomizing = false;
   private renderDiagnostics: RenderDiagnostics | null = null;
+  private readonly timings = new PerformanceTimings();
   private droneAudio = new DroneAudio();
   private flightRecorder: FlightRecorder;
   private exitPromise: Promise<void> | null = null;
@@ -57,6 +59,7 @@ export class SimSession {
       this.renderDiagnostics ??= new RenderDiagnostics(
         this.cesiumManager.getViewer(), this.tileLoader,
         snapshot => useStore.getState().updateRenderDiagnostics(snapshot),
+        this.timings,
       );
       this.renderDiagnostics.start();
     } else {
@@ -186,7 +189,8 @@ export class SimSession {
     const enuFrame = createENUFrame(location.lon, location.lat, terrainHeight);
 
     // Sample actual surface height (including buildings) from 3D tiles
-    const terrainSampler = new TerrainSampler(viewer.scene, enuFrame);
+    this.timings.reset();
+    const terrainSampler = new TerrainSampler(viewer.scene, enuFrame, this.timings);
 
     // Find a nearby flyable start point so landmarks and rooftops don't force
     // the drone onto unstable high-detail geometry.
@@ -251,6 +255,7 @@ export class SimSession {
       initialPosition: spawnPoint,
       sceneExclusions,
       audio: this.droneAudio,
+      timings: this.timings,
     });
 
     // Wire crash callback to Zustand store (no window globals)
@@ -273,6 +278,7 @@ export class SimSession {
       readBaseExclusions: () => terrainSampler.getExclusions(),
       publish: counters => useStore.getState().updateTrafficDiagnostics(counters),
       diagnosticsEnabled: () => useStore.getState().diagnosticsVisible,
+      timings: this.timings,
     });
     this.pedestrians = new PedestrianController({
       viewer, enuFrame, spawn: spawnPoint,
@@ -281,6 +287,7 @@ export class SimSession {
       exclusionsChanged: objects => { pedestrianExclusions = objects; updateActorExclusions(); },
       publish: counters => useStore.getState().updatePedestrianDiagnostics(counters),
       diagnosticsEnabled: () => useStore.getState().diagnosticsVisible,
+      timings: this.timings,
     });
     this.gameLoop.onReset(() => { this.traffic?.reset(); this.pedestrians?.reset(); });
     this.traffic.setEnvironmentExposure(this.environmentExposure);
@@ -422,6 +429,7 @@ export class SimSession {
   }
 
   pause(): void {
+    this.timings.reset();
     this.pedestrians?.pause();
     this.traffic?.pause();
     this.cesiumManager.setEnvironmentPaused(true);
@@ -434,6 +442,7 @@ export class SimSession {
 
   resume(): void {
     if (this.exitPromise || this.disposed || this.isStarting || this.isRandomizing || !this.gameLoop) return;
+    this.timings.reset();
     this.applyEnvironmentSettings();
     this.cesiumManager.setEnvironmentPaused(false);
     this.gameLoop?.applyStoreSettings();

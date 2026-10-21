@@ -6,6 +6,7 @@ import { TrafficSimulation } from "../traffic/TrafficSimulation";
 import { TRAFFIC } from "../traffic/TrafficConfig";
 import { TrafficSurface } from "../world/traffic/TrafficSurface";
 import { TrafficRenderer } from "../world/traffic/TrafficRenderer";
+import type { PerformanceTimings } from './PerformanceTimings';
 import type { Point3, TrafficCounters } from "../traffic/TrafficTypes";
 
 export function advanceTrafficTime(
@@ -32,6 +33,7 @@ interface TrafficOptions {
   readBaseExclusions: () => readonly object[];
   publish: (counters: TrafficCounters | null) => void;
   diagnosticsEnabled: () => boolean;
+  timings?: PerformanceTimings;
 }
 export class TrafficController {
   private source: RoadSource;
@@ -99,7 +101,13 @@ export class TrafficController {
         ? [...new Set([...baseExclusions, ...rendererExclusions])]
         : [...baseExclusions];
     }
-    const height = scene.sampleHeight(cartographic, this.cachedExclusions);
+    const queryStart = this.options.timings?.begin() ?? 0;
+    let height: number | undefined;
+    try {
+      height = scene.sampleHeight(cartographic, this.cachedExclusions);
+    } finally {
+      this.options.timings?.end('surfaceQuery', queryStart);
+    }
     if (height === undefined || !Number.isFinite(height)) return undefined;
     const result = ecefToEnu(
       Cesium.Cartesian3.fromRadians(
@@ -224,7 +232,9 @@ export class TrafficController {
           generation !== this.generation
         )
           return;
+        const graphStart = this.options.timings?.begin() ?? 0;
         this.surface.prepare(buildRoadGraph(segments, center));
+        this.options.timings?.end('trafficGraph', graphStart);
       } catch (error) {
         if (!controller.signal.aborted)
           console.warn(
@@ -238,6 +248,7 @@ export class TrafficController {
   }
   private tick(): void {
     if (this.disposed || this.paused || !this.enabled) return;
+    const tickStart = this.options.timings?.begin() ?? 0;
     const now = performance.now(),
       position = this.options.readDronePosition();
     if (
@@ -249,11 +260,14 @@ export class TrafficController {
       if (now - this.coverageTriggeredAt >= TRAFFIC.debounceMs)
         void this.refresh(position);
     }
+    const surfaceStart = this.options.timings?.begin() ?? 0;
     this.surface.processFrame(position);
+    this.options.timings?.end('trafficSurface', surfaceStart);
     if (
       this.surface.version !== this.surfaceVersion &&
       now - this.lastGraphUpdate >= 500
     ) {
+      const graphStart = this.options.timings?.begin() ?? 0;
       this.simulation.setGraph(this.surface.getValidatedGraph());
       this.surfaceVersion = this.surface.version;
       this.lastGraphUpdate = now;
@@ -261,6 +275,7 @@ export class TrafficController {
         this.simulation.reset(position);
         this.seeded = true;
       }
+      this.options.timings?.end('trafficGraph', graphStart);
     }
     this.simulation.setCenter(position);
     const instant = this.options.readEnvironmentInstant();
@@ -278,10 +293,13 @@ export class TrafficController {
     const start = performance.now();
     for (let i = 0; i < clock.steps; i++) this.simulation.step(TRAFFIC.step);
     this.updateMs = performance.now() - start;
+    this.options.timings?.record('trafficSimulation', this.updateMs);
+    const actorsStart = this.options.timings?.begin() ?? 0;
     this.renderer?.update(
       this.simulation.getFrames(),
       this.accumulator / TRAFFIC.step,
     );
+    this.options.timings?.end('trafficActors', actorsStart);
     if (now - this.lastPublish >= 1000 && this.options.diagnosticsEnabled()) {
       this.lastPublish = now;
       this.options.publish({
@@ -299,6 +317,7 @@ export class TrafficController {
         rejectedRoads: this.surface.rejectedRoads,
       });
     }
+    this.options.timings?.end('traffic', tickStart);
   }
   dispose(): void {
     if (this.disposed) return;

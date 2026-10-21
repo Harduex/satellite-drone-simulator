@@ -1,6 +1,27 @@
 import type { StateCreator } from 'zustand';
 
+export type PerformanceStage = 'flight' | 'contacts' | 'physics' | 'surfaceQuery' | 'renderSubmission'
+  | 'traffic' | 'trafficSurface' | 'trafficGraph' | 'trafficSimulation' | 'trafficActors'
+  | 'pedestrians' | 'pedestrianSurface' | 'pedestrianGraph' | 'pedestrianSimulation' | 'pedestrianActors';
+
+export interface DurationSummary {
+  count: number;
+  meanMs: number;
+  medianMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  maxMs: number;
+}
+
+export interface PerformanceSnapshot {
+  frameIntervals: DurationSummary;
+  framesOver33Ms: number;
+  framesOver50Ms: number;
+  stages: Record<PerformanceStage, DurationSummary>;
+}
+
 export interface RenderDiagnosticsSnapshot {
+  performance: PerformanceSnapshot;
   fps: number;
   frameTimeMs: number;
   sampleSeconds: number;

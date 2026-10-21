@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as Cesium from "cesium";
 import { GameLoop } from "../GameLoop";
+import { PerformanceTimings } from '../PerformanceTimings';
 import { DEFAULT_DRONE_CONFIG, DEFAULT_RATES } from "../../core/physics/droneConfig";
 import type { TerrainSampler } from "../../world/TerrainSampler";
 import { useStore } from "../../store";
@@ -11,11 +12,13 @@ describe("GameLoop wall-clock integration", () => {
   let loop: GameLoop;
   let preUpdate: Cesium.Event;
   let groundHeight = 0;
+  let timings: PerformanceTimings;
 
   beforeEach(() => {
     useStore.setState({ godMode: false });
     clock = 0;
     groundHeight = 0;
+    timings = new PerformanceTimings();
     vi.spyOn(performance, "now").mockImplementation(() => clock);
     Object.defineProperty(navigator, "getGamepads", {
       configurable: true,
@@ -46,6 +49,7 @@ describe("GameLoop wall-clock integration", () => {
       ratesConfig: DEFAULT_RATES,
       terrainSampler,
       initialPosition: { x: 0, y: 0, z: 100 },
+      timings,
     });
     loop.start();
   });
@@ -55,6 +59,22 @@ describe("GameLoop wall-clock integration", () => {
     loop.stop();
     Reflect.deleteProperty(navigator, "getGamepads");
     vi.restoreAllMocks();
+  });
+
+  it('records one flight and substep batch per rendered update while diagnostics are enabled', () => {
+    timings.setEnabled(true);
+    clock = 20;
+    preUpdate.raiseEvent();
+    const snapshot = timings.snapshot();
+    expect(snapshot.stages.flight.count).toBe(1);
+    expect(snapshot.stages.contacts.count).toBe(1);
+    expect(snapshot.stages.physics.count).toBe(1);
+    expect(loop.getDroneState().velocity.z).toBeCloseTo(-0.1962, 3);
+    timings.setEnabled(false);
+    clock = 40;
+    preUpdate.raiseEvent();
+    expect(timings.snapshot().stages.flight.count).toBe(0);
+    expect(loop.getDroneState().velocity.z).toBeCloseTo(-0.3924, 3);
   });
 
   it("notifies spawn reset once so session-owned traffic can rebuild", () => {

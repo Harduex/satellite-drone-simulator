@@ -72,6 +72,18 @@ the nearest mapped settlement must be within 50 km. Remote areas show the countr
 or current coordinates. Labels refresh after 100 m of travel, at most once per
 second, without external geocoding requests. [Data and limitations](src/world/data/ATTRIBUTION.md#offline-flight-labels).
 
+### Performance diagnostics
+
+Press **Ctrl+Shift+D** to open developer diagnostics. Frame pacing shows median,
+p95/p99, worst intervals and counts above 33.3/50 ms. Expand **CPU timings** for
+flight, contact preparation, individual height queries, population preparation,
+simulation, actor updates and Cesium render submission. Each row retains at most
+600 recent samples; percentile ranks use the nearest-rank method. CPU wall times
+can include GPU waits; they are not GPU timings. Totals contain subphases and
+must not be added together. Sampling is disabled when the overlay is closed and
+resets on pause/resume and new flights. Capture comparisons with the same build,
+viewport, settings and route in a foreground browser.
+
 ### Road traffic
 
 **Settings → Flight → Road Traffic** enables simulated cars on public mapped

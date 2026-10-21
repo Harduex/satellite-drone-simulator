@@ -1,6 +1,7 @@
 import * as Cesium from "cesium";
 import type { Vector3 } from "../core/physics/types";
 import { enuToEcef } from "./CoordUtils";
+import type { PerformanceTimings } from '../game/PerformanceTimings';
 
 const MAX_REASONABLE_SURFACE_OFFSET_METERS = 10000;
 export interface SurfaceObservation {
@@ -45,7 +46,7 @@ export class TerrainSampler {
   private scratchEcef = new Cesium.Cartesian3();
   private scratchCarto = new Cesium.Cartographic();
 
-  constructor(scene: Cesium.Scene, enuFrame: Cesium.Matrix4) {
+  constructor(scene: Cesium.Scene, enuFrame: Cesium.Matrix4, private timings?: PerformanceTimings) {
     this.scene = scene;
     this.enuFrame = enuFrame;
 
@@ -104,7 +105,12 @@ export class TerrainSampler {
       return null;
     }
 
-    return this.toEnuHeight(this.scene.sampleHeight(carto, this.objectsToExclude));
+    const start = this.timings?.begin() ?? 0;
+    try {
+      return this.toEnuHeight(this.scene.sampleHeight(carto, this.objectsToExclude));
+    } finally {
+      this.timings?.end('surfaceQuery', start);
+    }
   }
 
   private sampleHeightFromGlobe(carto: Cesium.Cartographic): number | null {
