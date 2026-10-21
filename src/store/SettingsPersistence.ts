@@ -86,6 +86,15 @@ export const SettingsPersistence = {
     catch { console.warn('Road traffic preference could not be saved; using session setting.'); }
   },
 
+  readBirdsEnabled(): boolean {
+    try { return typeof localStorage === 'undefined' || localStorage.getItem('fpvsim_birds') !== 'false'; }
+    catch { return true; }
+  },
+  writeBirdsEnabled(enabled: boolean): void {
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('fpvsim_birds', String(enabled)); }
+    catch { console.warn('Birds preference could not be saved; using session setting.'); }
+  },
+
   readRealTimeOfDay(): boolean {
     try { return typeof localStorage !== "undefined" && localStorage.getItem(REAL_TIME_STORAGE_KEY) === "true"; }
     catch { return false; }

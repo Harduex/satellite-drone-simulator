@@ -12,6 +12,7 @@ const STAGE_LABELS: Record<PerformanceStage, string> = {
   trafficGraph: 'Road graphs', trafficSimulation: 'Car simulation', trafficActors: 'Car transforms / admission',
   pedestrians: 'Pedestrian update', pedestrianSurface: 'Path surfaces', pedestrianGraph: 'Path graphs',
   pedestrianSimulation: 'Walker simulation', pedestrianActors: 'Walker transforms / admission',
+  birds: 'Bird update', birdActors: 'Bird transforms / admission',
 };
 
 function memory(bytes: number): string {

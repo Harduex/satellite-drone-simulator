@@ -26,8 +26,10 @@ export interface SettingsSlice {
   realTimeOfDay: boolean;
   roadTrafficEnabled: boolean;
   pedestriansEnabled: boolean;
+  birdsEnabled: boolean;
   setPedestriansEnabled: (enabled: boolean) => void;
   setRoadTrafficEnabled: (enabled: boolean) => void;
+  setBirdsEnabled: (enabled: boolean) => void;
   setRealTimeOfDay: (enabled: boolean) => void;
   setWindPreset: (preset: keyof typeof WIND_PRESETS) => void;
   defaultLocation: SavedLocation | null;
@@ -64,6 +66,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   realTimeOfDay: SettingsPersistence.readRealTimeOfDay(),
   roadTrafficEnabled: SettingsPersistence.readRoadTrafficEnabled(),
   pedestriansEnabled: SettingsPersistence.readPedestriansEnabled(),
+  birdsEnabled: SettingsPersistence.readBirdsEnabled(),
   setPedestriansEnabled: enabled => {
     SettingsPersistence.writePedestriansEnabled(enabled);
     set({ pedestriansEnabled: enabled });
@@ -71,6 +74,10 @@ export const createSettingsSlice: StateCreator<SettingsSlice> = (set) => ({
   setRoadTrafficEnabled: enabled => {
     SettingsPersistence.writeRoadTrafficEnabled(enabled);
     set({ roadTrafficEnabled: enabled });
+  },
+  setBirdsEnabled: enabled => {
+    SettingsPersistence.writeBirdsEnabled(enabled);
+    set({ birdsEnabled: enabled });
   },
   setRealTimeOfDay: (enabled) => {
     SettingsPersistence.writeRealTimeOfDay(enabled);

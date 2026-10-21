@@ -14,6 +14,8 @@ export function FlightSettings({ onClose }: { onClose: () => void }) {
   const setTraffic = useStore(s => s.setRoadTrafficEnabled);
   const pedestrians = useStore(s => s.pedestriansEnabled);
   const setPedestrians = useStore(s => s.setPedestriansEnabled);
+  const birds = useStore(s => s.birdsEnabled);
+  const setBirds = useStore(s => s.setBirdsEnabled);
   return (
     <div>
       <SettingsPanelHeader title="Flight Settings" onClose={onClose} />
@@ -23,12 +25,18 @@ export function FlightSettings({ onClose }: { onClose: () => void }) {
           checked={traffic} onChange={event => setTraffic(event.target.checked)} />
       </label>
       <p className={css.hint}>Simulated cars on real roads.</p>
-      <label className={css.toggle}>
-        <span>Pedestrians</span>
-        <input type="checkbox" role="switch" aria-label="Pedestrians"
-          checked={pedestrians} onChange={event => setPedestrians(event.target.checked)} />
-      </label>
+      <label className={css.toggle}>
+        <span>Pedestrians</span>
+        <input type="checkbox" role="switch" aria-label="Pedestrians"
+          checked={pedestrians} onChange={event => setPedestrians(event.target.checked)} />
+      </label>
       <p className={css.hint}>Simulated walkers on mapped footpaths.</p>
+      <label className={css.toggle}>
+        <span>Birds</span>
+        <input type="checkbox" role="switch" aria-label="Birds"
+          checked={birds} onChange={event => setBirds(event.target.checked)} />
+      </label>
+      <p className={css.hint}>Flocks and soaring birds in the sky.</p>
       <label className={css.toggle}>
         <span>Live stick display</span>
         <input type="checkbox" role="switch" aria-label="Live stick display"

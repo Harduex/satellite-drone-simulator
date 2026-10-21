@@ -6,6 +6,7 @@ const STAGES: readonly PerformanceStage[] = [
   'populationSurfaces',
   'traffic', 'trafficSurface', 'trafficGraph', 'trafficSimulation', 'trafficActors',
   'pedestrians', 'pedestrianSurface', 'pedestrianGraph', 'pedestrianSimulation', 'pedestrianActors',
+  'birds', 'birdActors',
 ];
 
 class DurationSamples {

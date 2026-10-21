@@ -12,6 +12,7 @@ import { DroneAudio } from "./DroneAudio";
 import { FlightRecorder } from './FlightRecorder';
 import { TrafficController } from './TrafficController';
 import { PedestrianController } from './PedestrianController';
+import { BirdController } from './BirdController';
 import { createRecordingFrameSource } from '../world/RecordingFrameSource';
 import { useStore } from "../store";
 import { meanWindInto, resolveWindConfig } from "../core/physics/WindConfig";
@@ -43,6 +44,7 @@ export class SimSession {
   private sessionGeneration = 0;
   private traffic: TrafficController | null = null;
   private pedestrians: PedestrianController | null = null;
+  private birds: BirdController | null = null;
   private environmentExposure = 1;
   private trafficSettingsCleanup: (() => void) | null = null;
 
@@ -104,6 +106,7 @@ export class SimSession {
         this.trafficSettingsCleanup = null;
         this.traffic?.pause();
         this.pedestrians?.pause();
+        this.birds?.pause();
         this.surfaceScheduler?.dispose(); this.surfaceScheduler = null;
         await this.flightRecorder.stop('session_exit');
         if (generation !== this.sessionGeneration) return;
@@ -111,6 +114,8 @@ export class SimSession {
         this.traffic = null;
         this.pedestrians?.dispose();
         this.pedestrians = null;
+        this.birds?.dispose();
+        this.birds = null;
         this.gameLoop.stop();
         this.gameLoop = null;
         this.cesiumManager.teardownGlobeToggle();
@@ -223,6 +228,7 @@ export class SimSession {
       this.tileLoader.setEnvironmentExposure(exposure);
       this.traffic?.setEnvironmentExposure(exposure);
       this.pedestrians?.setEnvironmentExposure(exposure);
+      this.birds?.setEnvironmentExposure(exposure);
     });
     this.cesiumManager.setEnvironmentAnchor(
       location.lon,
@@ -274,8 +280,9 @@ export class SimSession {
 
     let carExclusions: readonly object[] = [];
     let pedestrianExclusions: readonly object[] = [];
+    let birdExclusions: readonly object[] = [];
     const updateActorExclusions = () => this.gameLoop?.setSceneExclusions([
-      ...sceneExclusions, ...carExclusions, ...pedestrianExclusions,
+      ...sceneExclusions, ...carExclusions, ...pedestrianExclusions, ...birdExclusions,
     ]);
     this.traffic = new TrafficController({
       viewer, enuFrame, spawn: spawnPoint, longitude: location.lon,
@@ -296,16 +303,26 @@ export class SimSession {
       diagnosticsEnabled: () => useStore.getState().diagnosticsVisible,
       timings: this.timings,
     });
-    this.gameLoop.onReset(() => { this.traffic?.reset(); this.pedestrians?.reset(); });
+    this.birds = new BirdController({
+      viewer, enuFrame, spawn: spawnPoint,
+      readDronePosition: () => this.gameLoop?.getDroneState().position ?? spawnPoint,
+      exclusionsChanged: objects => { birdExclusions = objects; updateActorExclusions(); },
+      timings: this.timings,
+    });
+    this.gameLoop.onReset(() => { this.traffic?.reset(); this.pedestrians?.reset(); this.birds?.reset(); });
     this.traffic.setEnvironmentExposure(this.environmentExposure);
     this.traffic.setEnabled(store.roadTrafficEnabled);
     this.traffic.start();
     this.pedestrians.setEnvironmentExposure(this.environmentExposure);
     this.pedestrians.setEnabled(store.pedestriansEnabled);
     this.pedestrians.start();
+    this.birds.setEnvironmentExposure(this.environmentExposure);
+    this.birds.setEnabled(store.birdsEnabled);
+    this.birds.start();
     this.trafficSettingsCleanup = useStore.subscribe((next, previous) => {
       if (next.roadTrafficEnabled !== previous.roadTrafficEnabled) this.traffic?.setEnabled(next.roadTrafficEnabled);
       if (next.pedestriansEnabled !== previous.pedestriansEnabled) this.pedestrians?.setEnabled(next.pedestriansEnabled);
+      if (next.birdsEnabled !== previous.birdsEnabled) this.birds?.setEnabled(next.birdsEnabled);
     });
 
     // Set up distance-based globe toggle (hide within 2km for 3D tile clarity)
@@ -440,6 +457,7 @@ export class SimSession {
     this.timings.reset();
     this.pedestrians?.pause();
     this.traffic?.pause();
+    this.birds?.pause();
     this.cesiumManager.setEnvironmentPaused(true);
     this.flightRecorder.pause();
     const recording = useStore.getState().recording;
@@ -457,6 +475,7 @@ export class SimSession {
     this.gameLoop?.start();
     this.traffic?.resume();
     this.pedestrians?.resume();
+    this.birds?.resume();
     this.surfaceScheduler?.setPaused(false);
     this.flightRecorder.resume();
     useStore.getState().setPhase("FLYING");
@@ -477,6 +496,7 @@ export class SimSession {
     await this.flightRecorder.stop('session_exit');
     this.traffic?.dispose(); this.traffic = null;
     this.pedestrians?.dispose(); this.pedestrians = null;
+    this.birds?.dispose(); this.birds = null;
     this.setCacheOnlyPractice(false);
     this.gameLoop?.stop();
     this.droneAudio.dispose();
