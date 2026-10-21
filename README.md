@@ -87,9 +87,10 @@ viewport, settings and route in a foreground browser.
 ### Road traffic
 
 **Settings → Flight → Road Traffic** enables simulated cars on public mapped
-roads. It defaults on and remembers your choice. Cars use five locally packaged
-CC0 models, including stylized Audi A3 and Mazda CX-5 representations, with varied
-body colors. Their lighting follows the scene's daylight/night exposure; demand
+roads. It defaults on and remembers your choice. Cars use eight locally packaged
+CC0 models, including stylized Audi A3 and Mazda CX-5 representations and three
+retro sports coupes. Sports cars appear randomly with vivid yellow, red or blue
+paint; other cars retain varied body colors. Their lighting follows the scene's daylight/night exposure; demand
 follows the displayed simulator time.
 This represents plausible traffic, without live congestion or real vehicle positions.
 

@@ -11,6 +11,9 @@ import bmesh
 parser = argparse.ArgumentParser()
 parser.add_argument('--output-directory', type=Path, required=True)
 parser.add_argument('--source-directory', type=Path)
+parser.add_argument('--models', nargs='+', choices=[
+    'audi-a3', 'mazda-cx5', 'sports-wedge', 'sports-berlinetta', 'sports-turbo',
+])
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
 args.output_directory.mkdir(parents=True, exist_ok=True)
 
@@ -130,6 +133,117 @@ def make_car(name, length, width, height, wheelbase, suv):
             box('RoofRail',(-.5,side*w*.73,height+.009),(1.6,.028,.018),trim)
     else:
         box('HatchSpoiler',(rear_roof-.06,0,height-.013),(.16,width*.8,.035),paint)
+    export_car(name, length, width, height)
+
+
+def make_sports_car(name, length, width, height, style):
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete(use_global=False)
+    for mat in list(bpy.data.materials):
+        bpy.data.materials.remove(mat)
+    paint = material('BodyPaint', (1, 0, 1), 0, .38)
+    trim = material('Trim', (.018, .024, .03), 0, .85)
+    glass = material('Glass', (.025, .045, .06), .15, .22)
+    details = material('Details', (1, 1, 1), .25, .5, True)
+    half, w = length / 2, width / 2
+    wedge = style == 'wedge'
+    turbo = style == 'turbo'
+    radius, axle = .30, length * .305
+    waist = .69 if wedge else .74
+    # Concave side profiles leave the wheel openings clear of body paint.
+    bottom = [(-half, .22)]
+    arch = radius + .035
+    for x in [-axle, axle]:
+        bottom.append((x - arch, radius))
+        bottom.extend((x + arch * math.cos(angle), radius + arch * math.sin(angle))
+                      for angle in [math.pi - i * math.pi / 12 for i in range(1, 13)])
+    bottom.append((half, .22))
+    top = [(-half, waist * .87), (-half + .30, waist),
+           (.45, waist), (half - .45, .67 if wedge else .70), (half, .38 if wedge else .49)]
+    for side in [-1, 1]:
+        outline = bottom + list(reversed(top))
+        mesh('WheelArchSide', [(x, side * w * .95, z) for x, z in outline],
+             [tuple(range(len(outline)))], paint)
+    vertices = [(x, side * w * .95, z) for side in [-1, 1] for x, z in top]
+    mesh('SculptedDeck', vertices,
+         [(i, i + 1, i + 1 + len(top), i + len(top)) for i in range(len(top) - 1)], paint)
+    box('Underbody', (0, 0, .24), (length * .92, width * .66, .12), trim)
+    for x, z in [(-half, waist * .55), (half, .29 if wedge else .36)]:
+        box('EndPanel', (x, 0, z), (.025, width * .95, .23), paint)
+        box('BumperStrip', (x * 1.002, 0, z - .07), (.03, width * .95, .05), trim)
+    rear_base, front_base = -.95, .80 if wedge else .95
+    rear_roof, front_roof = -.55, .12 if wedge else .22
+    roof_z = height - (.12 if turbo else .025)
+    roof_width = w * (.67 if wedge else .72)
+    cabin = [(rear_base, -w * .86, waist), (rear_base, w * .86, waist),
+             (front_base, -w * .84, waist), (front_base, w * .84, waist),
+             (rear_roof, -roof_width, roof_z), (rear_roof, roof_width, roof_z),
+             (front_roof, -roof_width, roof_z), (front_roof, roof_width, roof_z)]
+    mesh('CabinGlass', cabin, [(0, 4, 6, 2), (1, 3, 7, 5), (0, 1, 5, 4), (2, 6, 7, 3)], glass)
+    mesh('LowRoof', cabin, [(4, 5, 7, 6)], paint)
+    for side in [-1, 1]:
+        for lower, upper in [(rear_base, rear_roof), (front_base, front_roof)]:
+            mesh('WindowPillar', [(lower + offset, side * w * .86, waist)
+                 for offset in [-.035, .035]] +
+                 [(upper + offset, side * roof_width, roof_z) for offset in [.035, -.035]],
+                 [(0, 1, 2, 3)], paint)
+        box('Mirror', (.45, side * (w - .04), waist + .05), (.18, .08, .065), paint)
+        box('DoorHandle', (-.25, side * w * .955, waist - .075), (.15, .012, .025), trim)
+        if wedge:
+            mesh('AngularSideIntake', [(-1.1, side * w * .957, .56),
+                 (-.65, side * w * .957, .62), (-.8, side * w * .957, .37),
+                 (-1.2, side * w * .957, .38)], [(0, 1, 2, 3)], trim)
+        else:
+            box('SideIntake', (-.85, side * w * .957, .59), (.4, .015, .11), trim)
+        for x in [-axle, axle]:
+            y = side * (w - .12)
+            cylinder('SportsTire', x, y, radius, radius, .23, trim, 20)
+            cylinder('AlloyRim', x, y + side * .119, radius, radius * .74, .012, details, 16)
+            cylinder('DarkHub', x, y + side * .127, radius, radius * .24, .014, trim, 12)
+            for spoke in range(5):
+                angle = spoke * math.tau / 5
+                points = [(x + r * math.cos(angle) + s * .025 * math.sin(angle),
+                           y + side * .136,
+                           radius + r * math.sin(angle) - s * .025 * math.cos(angle))
+                          for r, s in [(.08, -1), (.205, -1), (.205, 1), (.08, 1)]]
+                mesh('WheelSpoke', points, [(0, 1, 2, 3)], trim)
+        box('PopupHeadlampCover', (half - .48, side * w * .64, .59 if wedge else .69),
+            (.30, .29, .025), paint)
+        box('FrontLamp', (half + .018, side * w * .64, .34 if wedge else .44),
+            (.018, .28, .07), details, (.9, .93, 1, 1))
+        if wedge:
+            box('TailLamp', (-half - .018, side * w * .61, waist * .61),
+                (.018, .42, .12), details, (.8, .012, .018, 1))
+        else:
+            for y in [.47, .72]:
+                lamp = cylinder('RoundTailLamp', 0, 0, 0, .065, .018, details, 12)
+                # The cylinder helper's axle is Y; rear lamps face along X.
+                for vertex in lamp.data.vertices:
+                    px, py, pz = vertex.co
+                    vertex.co = (-half - .022 + py, side * w * y + px, waist * .61 + pz)
+                for color in lamp.data.color_attributes['Color'].data:
+                    color.color = (.8, .012, .018, 1)
+    for i in range(7):
+        box('EngineLouvre', (-1.1 - i * .09, 0, waist + .012),
+            (.045, width * .53, .02), trim)
+    box('FrontAirIntake', (half + .024, 0, .27 if wedge else .34),
+        (.018, width * .42, .09), trim)
+    if turbo or wedge:
+        wing_z = height - .035
+        for side in [-1, 1]:
+            box('WingUpright', (-half + .27, side * w * .65, (waist + wing_z) / 2),
+                (.09, .045, wing_z - waist), paint)
+        box('RearWing', (-half + .24, 0, wing_z), (.28, width * .91, .055), paint)
+    else:
+        box('RearLip', (-half + .10, 0, waist * .95), (.14, width * .88, .045), trim)
+        for side in [-1, 1]:
+            mesh('RearButtress', [(-.55, side * roof_width, roof_z),
+                 (-1.45, side * w * .86, waist), (-.95, side * w * .86, waist)],
+                 [(0, 1, 2)], paint)
+    export_car(name, length, width, height)
+
+
+def export_car(name, length, width, height):
     bpy.ops.object.select_all(action='SELECT')
     bpy.context.view_layer.objects.active = next(obj for obj in bpy.context.scene.objects if obj.type=='MESH')
     bpy.ops.object.join()
@@ -178,5 +292,15 @@ def make_car(name, length, width, height, wheelbase, suv):
     print(json.dumps({'model':name,'bounds':bounds,'triangles':triangles,'materials':len(document['materials']),'bytes':len(raw)}))
 
 
-make_car('audi-a3',4.343,1.816,1.458,2.630,False)
-make_car('mazda-cx5',4.550,1.840,1.675,2.700,True)
+models = args.models or ['audi-a3', 'mazda-cx5', 'sports-wedge', 'sports-berlinetta', 'sports-turbo']
+if 'audi-a3' in models:
+    make_car('audi-a3',4.343,1.816,1.458,2.630,False)
+if 'mazda-cx5' in models:
+    make_car('mazda-cx5',4.550,1.840,1.675,2.700,True)
+for name, length, width, height, style in [
+    ('sports-wedge', 4.14, 1.89, 1.07, 'wedge'),
+    ('sports-berlinetta', 4.23, 1.80, 1.12, 'berlinetta'),
+    ('sports-turbo', 4.36, 1.90, 1.15, 'turbo'),
+]:
+    if name in models:
+        make_sports_car(name, length, width, height, style)

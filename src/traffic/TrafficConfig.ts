@@ -1,9 +1,12 @@
 export const TRAFFIC_MODELS = [
-  { name: "sedan", length: 4.3 },
-  { name: "hatchback-sports", length: 4.1 },
-  { name: "suv", length: 4.6 },
-  { name: "audi-a3", length: 4.343 },
-  { name: "mazda-cx5", length: 4.55 },
+  { name: "sedan", length: 4.3, paint: "standard" },
+  { name: "hatchback-sports", length: 4.1, paint: "standard" },
+  { name: "suv", length: 4.6, paint: "standard" },
+  { name: "audi-a3", length: 4.343, paint: "standard" },
+  { name: "mazda-cx5", length: 4.55, paint: "standard" },
+  { name: "sports-wedge", length: 4.14, paint: "sports" },
+  { name: "sports-berlinetta", length: 4.23, paint: "sports" },
+  { name: "sports-turbo", length: 4.36, paint: "sports" },
 ] as const;
 
 export const TRAFFIC = {

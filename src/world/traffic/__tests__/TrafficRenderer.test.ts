@@ -2,6 +2,39 @@ import { expect, it, vi } from "vitest";
 import * as Cesium from "cesium";
 import { interpolatePose, TrafficRenderer } from "../TrafficRenderer";
 import type { VehicleFrame } from "../../../traffic/TrafficTypes";
+it.each([
+  [5, "sports-wedge"], [6, "sports-berlinetta"], [7, "sports-turbo"],
+])("loads sports model %i with vivid body paint", async (modelIndex, name) => {
+  const loader = vi.spyOn(Cesium.Model, "fromGltfAsync").mockImplementation(
+    async () => ({ destroy: vi.fn() }) as unknown as Cesium.Model,
+  );
+  const viewer = {
+    scene: { primitives: { add: vi.fn(), remove: vi.fn() } },
+    creditDisplay: { addStaticCredit: vi.fn(), removeStaticCredit: vi.fn() },
+  } as unknown as Cesium.Viewer;
+  const renderer = new TrafficRenderer(viewer, Cesium.Matrix4.IDENTITY, () => {});
+  const pose = { position: { x: 0, y: 0, z: 0 }, heading: 0, pitch: 0 };
+  try {
+    for (let colorIndex = 0; colorIndex < 6; colorIndex++) {
+      renderer.update([{
+        id: colorIndex, modelIndex, colorIndex, previous: pose, current: pose,
+        speed: 0, length: 4.2, edgeId: "a", distance: 0,
+      }], 0);
+      await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(colorIndex + 1));
+      const options = loader.mock.calls[colorIndex]![0];
+      expect(options.url).toContain(`${name}.glb`);
+      const expected = Cesium.Color.fromCssColorString(
+        ["#ffdb00", "#ff2020", "#1677ff"][colorIndex % 3]!,
+      );
+      expect(options.customShader!.uniforms.u_bodyColor!.value).toEqual(
+        new Cesium.Cartesian3(expected.red, expected.green, expected.blue),
+      );
+    }
+  } finally {
+    renderer.dispose();
+    loader.mockRestore();
+  }
+});
 it("uses current scene exposure for loaded and late-loading cars", async () => {
   let resolve!: (model: Cesium.Model) => void;
   const loader = vi.spyOn(Cesium.Model, "fromGltfAsync").mockImplementation(
@@ -22,6 +55,10 @@ it("uses current scene exposure for loaded and late-loading cars", async () => {
     const options = loader.mock.calls[0]![0];
     expect(options.url).toContain("audi-a3.glb");
     const shader = options.customShader!;
+    const paint = Cesium.Color.fromCssColorString("#b93832");
+    expect(shader.uniforms.u_bodyColor!.value).toEqual(
+      new Cesium.Cartesian3(paint.red, paint.green, paint.blue),
+    );
     expect(shader.uniforms.u_environmentExposure!.value).toBe(0.025);
     renderer.setEnvironmentExposure(0.4);
     resolve({ destroy: vi.fn() } as unknown as Cesium.Model);

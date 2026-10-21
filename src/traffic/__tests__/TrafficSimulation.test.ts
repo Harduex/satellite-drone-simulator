@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { TrafficSimulation, demandMultiplier } from "../TrafficSimulation";
 import { buildRoadGraph, poseOnEdge } from "../RoadGraph";
 import type { RoadEdge, VehicleFrame } from "../TrafficTypes";
+import { TRAFFIC_MODELS } from "../TrafficConfig";
 
 function road(
   id: string,
@@ -251,7 +252,10 @@ it("fills but never exceeds the 300-car ceiling on abundant roads", () => {
   simulation.setGraph(buildRoadGraph(roads, { x: 0, y: 0, z: 0 }));
   simulation.reset({ x: 0, y: 0, z: 0 });
   expect(simulation.getFrames()).toHaveLength(300);
-  expect(new Set(simulation.getFrames().map(car => car.modelIndex))).toEqual(new Set([0, 1, 2, 3, 4]));
+  expect(new Set(simulation.getFrames().map(car => car.modelIndex))).toEqual(new Set([0, 1, 2, 3, 4, 5, 6, 7]));
+  for (const car of simulation.getFrames()) {
+    expect(car.length).toBe(TRAFFIC_MODELS[car.modelIndex]!.length);
+  }
   for (let i = 0; i < 100; i++) {
     simulation.step(0.1);
     expect(simulation.getFrames().length).toBeLessThanOrEqual(300);

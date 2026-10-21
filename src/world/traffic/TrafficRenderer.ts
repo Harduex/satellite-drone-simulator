@@ -10,6 +10,7 @@ const PALETTE = [
   "#e4d9bd",
   "#397158",
 ];
+const SPORTS_PALETTE = ["#ffdb00", "#ff2020", "#1677ff"];
 export function interpolatePose(
   a: VehiclePose,
   b: VehiclePose,
@@ -121,8 +122,10 @@ export class TrafficRenderer {
   }
   private load(frame: VehicleFrame): void {
     this.pending.add(frame.id);
+    const model = TRAFFIC_MODELS[frame.modelIndex] ?? TRAFFIC_MODELS[0];
+    const palette = model.paint === "sports" ? SPORTS_PALETTE : PALETTE;
     const color = Cesium.Color.fromCssColorString(
-      PALETTE[frame.colorIndex] ?? PALETTE[0]!,
+      palette[frame.colorIndex % palette.length] ?? palette[0]!,
     );
     const shader = new Cesium.CustomShader({
       uniforms: {
@@ -140,7 +143,7 @@ export class TrafficRenderer {
     });
     const matrix = Cesium.Matrix4.clone(this.frame);
     void Cesium.Model.fromGltfAsync({
-      url: `${import.meta.env.BASE_URL}models/traffic/${(TRAFFIC_MODELS[frame.modelIndex] ?? TRAFFIC_MODELS[0]).name}.glb`,
+      url: `${import.meta.env.BASE_URL}models/traffic/${model.name}.glb`,
       modelMatrix: matrix,
       upAxis: Cesium.Axis.Z,
       forwardAxis: Cesium.Axis.X,

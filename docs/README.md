@@ -41,5 +41,6 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | [Wind and daylight implementation plan](superpowers/plans/2026-10-05-wind-daylight.md) | Completed implementation and verification record |
 | [Road traffic V1 design](superpowers/specs/2026-10-05-road-traffic-design.md) | Implemented/verified locally; five car variants, scene exposure and repeated GPU gates |
 | [Road traffic implementation plan](superpowers/plans/2026-10-05-road-traffic.md) | Native execution record with source, alignment, asset and performance gates |
+| [Sports traffic implementation plan](superpowers/plans/2026-10-21-sports-traffic.md) | Three original retro sports-car variants, vivid paint and verification scope |
 
 Keep experiment findings under `experiments/`. Add further categories when there is a document to place in them. Local assets, screenshots and logs remain outside this tracked documentation tree.
