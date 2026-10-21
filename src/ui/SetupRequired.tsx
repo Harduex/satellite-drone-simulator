@@ -3,7 +3,7 @@ import styles from './SetupRequired.module.css';
 export function SetupRequired() {
   return (
     <div className={styles.root}>
-      <h1 className={styles.title}>FPV Drone Simulator</h1>
+      <h1 className={styles.title}>Satellite Drone Simulator</h1>
       <h2 className={styles.subtitle}>API Configuration Required</h2>
 
       <div className={styles.card}>
