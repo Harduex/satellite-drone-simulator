@@ -56,16 +56,16 @@ export function PauseMenu(
   return (
     <div className={css.overlay}>
       <div className={css.shell}>
-        <header className={css.header}><FlightBrand /><span className={controls.eyebrow}>Flight on hold</span></header>
+        <header className={css.header}><FlightBrand /></header>
         <div className={css.layout}>
           {!settings && <DronePreview />}
           <section className={css.menuGroup} aria-label="Paused flight">
-            <span className={controls.eyebrow}>Paused / {locationName || 'Your flight'}</span>
-            <h1 className={css.pausedTitle}>Take a breath.</h1>
+            <span className={controls.eyebrow}>{locationName || 'Current location'}</span>
+            <h1 className={css.pausedTitle}>Paused</h1>
             <button ref={resumeButton} onClick={onResume} disabled={randomizing || randomError !== null} className={`${controls.primary} ${css.resumeButton}`}>Resume</button>
             {onRestart && <button onClick={onRestart} disabled={randomizing || randomError !== null} className={controls.secondary}>Restart from home</button>}
             <div className={css.actionSection}>
-              <p className={css.sectionLabel}>Find your next line</p>
+              <p className={css.sectionLabel}>Location</p>
               <div className={css.destinations}>
                 <button onClick={onChangeLocation} disabled={randomizing} className={controls.secondary}>Change Location</button>
                 {onRandomLocation && <button onClick={handleRandomLocation} disabled={randomizing} className={controls.secondary}>{randomizing ? 'Loading...' : 'Random Location'}</button>}

@@ -183,21 +183,19 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
       {compact && <FlightMinimap collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} error={mapError} />}
       <div hidden={compact}>
         <header className={css.header}><FlightBrand />
-          <button className={controls.quiet} onClick={() => setShowSettings(true)}>Settings ↗</button>
+          <button className={controls.quiet} onClick={() => setShowSettings(true)}>Settings</button>
         </header>
-        <div className={css.mapCaption}><span className={controls.eyebrow}>Explore without limits</span><p>Find a place. Pick a line. Make it yours.</p></div>
         {mapError && <div role="alert" className={css.errorOverlay}>
           <h1>Map unavailable</h1><p>{mapError}</p><p>Check the Maps API configuration and reload.</p>
         </div>}
         <main className={css.launchDock} aria-label="Choose flight location" aria-busy={launching || randomizing || locatingQuery}>
           <div className={css.destination}>
-            <span className={controls.eyebrow}>Choose your flight line</span>
-            <h1>Somewhere worth flying.</h1>
+            <h1>Flight location</h1>
             <div className={css.place}>
               <strong title={selectedLocation?.name}>{selectedLocation?.name ?? 'Choose a location on the map'}</strong>
               <span>{selectedLocation
                 ? `${Math.abs(selectedLocation.lat).toFixed(4)}°${selectedLocation.lat >= 0 ? 'N' : 'S'} / ${Math.abs(selectedLocation.lng).toFixed(4)}°${selectedLocation.lng >= 0 ? 'E' : 'W'}`
-                : 'Search a city, landmark or click the map.'}</span>
+                : 'Search or click the map.'}</span>
             </div>
           </div>
           <div className={css.discovery}>
@@ -207,7 +205,7 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
                   ref={searchInputRef}
                   type="text"
                   aria-label="Search location"
-                  placeholder="Address or coordinates (e.g. 48.8584, 2.2945)…"
+                  placeholder="Address or coordinates"
                   className={css.searchInput}
                   disabled={!mapReady || launching || randomizing || locatingQuery}
                 />
@@ -225,10 +223,10 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
             </form>
             <div className={css.discoveryActions}>
               <button onClick={handleRandomLocation} title="Random location" disabled={!mapReady || launching || randomizing || locatingQuery} className={controls.secondary}>
-                {randomizing ? 'Choosing…' : '↗ Random location'}
+                {randomizing ? 'Choosing…' : 'Random location'}
               </button>
               <button onClick={handleMyLocation} disabled={!mapReady || locatingUser || launching || randomizing || locatingQuery} title="Go to my location" className={controls.secondary}>
-                {locatingUser ? 'Locating…' : '◎ My location'}
+                {locatingUser ? 'Locating…' : 'My location'}
               </button>
             </div>
           </div>
@@ -236,7 +234,6 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
             <button onClick={handleFlyHere} disabled={!selectedLocation || launching || randomizing || locatingQuery} className={controls.primary}>
               {launching ? 'Loading...' : 'Fly Here'}
             </button>
-            <span>Acro flight · Keyboard or USB controller</span>
           </div>
           {launchError && <p role="alert" className={css.launchError}>{launchError}</p>}
         </main>

@@ -11,7 +11,8 @@ neutral dark surfaces, warm orange primary actions, fine borders and clear
 typographic hierarchy. Retain existing font assets initially to avoid adding font
 requests. Layout and interaction quality take priority over decorative effects.
 
-The home screen has a compact identity header and a bottom launch dock. Selected
+The home screen has a compact identity header and a bottom-centered launch dock,
+sized to its controls rather than stretched across the viewport. Selected
 place details sit on the left, search and secondary discovery actions in the
 middle, and the primary Fly Here action on the right. This arrangement follows
 Afterburn's prototype; typography, colors and controls retain Flight deck's design
@@ -68,6 +69,10 @@ Important instructions and errors wrap rather than disappear. Flex/grid children
 can shrink; buttons retain usable hit areas. Menus scroll within short viewports,
 and primary actions remain reachable. Audit the HUD and recording/diagnostics
 surfaces for the same overflow defects without changing their responsibilities.
+
+Use functional headings (Flight location, Paused, Settings). Omit promotional
+captions, brand taglines and repeated section labels. Keep location coordinates,
+action labels, useful instructions, errors and provider/model attribution visible.
 
 ## Verification
 

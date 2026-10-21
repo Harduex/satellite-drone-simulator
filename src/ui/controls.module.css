@@ -8,4 +8,3 @@
 .eyebrow { color:var(--color-primary); font:500 10px/1.5 var(--font-display); letter-spacing:.14em; text-transform:uppercase; }
 .brand { display:flex; align-items:center; gap:12px; color:var(--color-on-surface); font:600 13px/1.4 var(--font-display); letter-spacing:.03em; }
 .brand svg { width:30px; height:30px; color:var(--color-primary); flex-shrink:0; }
-.brand small { display:block; font:400 9px/1.5 var(--font-display); color:var(--color-on-surface-muted); letter-spacing:.14em; margin-top:3px; }

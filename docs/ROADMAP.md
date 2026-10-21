@@ -96,7 +96,7 @@ Map evidence: [offline/custom maps](experiments/offline-maps.md). Rendering IDs 
 
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
-| UI-COPY | Replace promotional/tagline copy ("Somewhere worth flying.", "Explore without limits", "Make it yours") with concise, functional flight-instrument UI labels | Proposed follow-up | Audit LocationPicker captions and headers; preserve clean typography, minimal aesthetic and accessibility labels |
+| UI-COPY | Simplify picker, pause and settings UI with functional labels and a centered, content-sized launch dock | Implemented and verified locally | Removed promotional captions and redundant labels; location/coordinates sit left of search and launch on desktop, controls stack on mobile. Autocomplete, launch, keyboard throttle ramping, pause/settings and responsive layouts checked; [interface design](superpowers/specs/2026-10-20-interface-redesign.md) |
 | UI-FAVORITES | Flight history and saved favorite places with a selection menu to bookmark and jump directly to locations | Proposed follow-up | Store in local storage/Zustand; define storage quotas, custom naming, coordinate validation and quick-spawn action |
 | UI-FIXES | Fix redesign regressions, specifically initial 3D drone preview material rendering defect (broken shaders/appearance until first pointer move or interaction) and related modal/dock bugs | Proposed follow-up | Investigate DronePreviewRenderer Cesium widget initial frame render/resize triggers and pause menu lifecycle |
 

@@ -30,7 +30,7 @@ export function DronePreview() {
   }, [attempt]);
 
   return <section className={css.preview} aria-label="Your aircraft">
-    <div><span className={controls.eyebrow}>Your aircraft / 01</span><h2>Freestyle quad</h2><p>Racing airframe · Representative preview</p></div>
+    <div><h2>Freestyle quad</h2><p>Representative aircraft preview</p></div>
     <div className={css.stage} onPointerMove={event => {
       const bounds = event.currentTarget.getBoundingClientRect();
       renderer.current?.setPointer((event.clientX - bounds.left) / bounds.width * 2 - 1, (event.clientY - bounds.top) / bounds.height * 2 - 1);

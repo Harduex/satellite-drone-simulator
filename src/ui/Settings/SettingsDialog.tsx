@@ -50,8 +50,7 @@ export function SettingsDialog({ onClose, onExportTelemetry, initialCategory = '
     <dialog ref={dialog} className={css.dialog} aria-labelledby={title} onCancel={event => { event.preventDefault(); onClose(); }}>
       <div className={css.layout}>
         <aside className={css.sidebar}>
-          <span className={controls.eyebrow}>Flight deck / Preferences</span>
-          <h1 id={title}>Make it yours.</h1>
+          <h1 id={title}>Settings</h1>
           <nav aria-label="Settings categories">
             {navigation('flight', 'Flight & environment')}
             {navigation('controller', 'Controller')}
@@ -59,7 +58,7 @@ export function SettingsDialog({ onClose, onExportTelemetry, initialCategory = '
             {navigation('advanced', 'Aircraft tuning')}
             {navigation('developer', 'Developer tools')}
           </nav>
-          <p className={css.note}>Changes save automatically.<br />Your flight stays paused.</p>
+          <p className={css.note}>Changes save automatically.</p>
         </aside>
         <div className={css.content}>
           {category === 'flight' && <FlightSettings onClose={onClose} />}
