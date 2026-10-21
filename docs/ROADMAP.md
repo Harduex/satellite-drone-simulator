@@ -54,6 +54,19 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 
 Evidence and detailed limits: [simulator improvement proposals](experiments/simulator-improvements.md).
 
+## Browser flight performance
+
+Research completed 2026-10-21; implementation remains unapproved. Recommended investigation/implementation order below; [evidence and limits](experiments/browser-performance.md). Preserve 500 Hz physics, contact correctness and current Google/Cesium integration. Population on/off observations isolate combined population cost, not individual subsystem cost or a sustained flight gain.
+
+| ID | Outcome / scope | Horizon / decision status | Dependency / completion gate |
+| --- | --- | --- | --- |
+| PERF1 | Explain frame-time spikes with interval distributions and complete subsystem timings | First / proposed | Extend existing diagnostics; production route baseline; distinguish CPU work, GPU waiting, streaming and optional preparation; no trace credentials in tracked artifacts |
+| PERF2 | Prioritize flight over optional road/path surface preparation | First optimization / proposed | PF1 evidence; shared admission scheduling with contact priority and population fairness; a synchronous query can still exceed the allowance; preserve strict geometry admission and verify visible population, touchdown, stale coverage and lifecycle |
+| PERF3 | Reduce repeated actor allocations, exclusion rebuilding and graph copies | After PERF1 / proposed | PF4 evidence; stable membership-based exclusion lists, scratch pose buffers and cheap counts; measure GC/full tick cost; preserve animation, exclusion correctness and model lifecycle |
+| PERF4 / R5 | Offer measured render-resolution, MSAA, detail and memory choices | After surface baseline / proposed | Existing R5 remains undecided; PF3 evidence; same-route quality A/B, edge shimmer and support-height checks; retain 6 GiB baseline until cache pressure/eviction measurements justify a change |
+| PERF5 | Bound ancillary UI, map and fixed-time environment work | Later / proposed | PF6 evidence; compare minimap expanded/collapsed, time-based telemetry and unchanged exposure guards; measure before redesigning UI |
+| PERF6 | Evaluate residual pose stepping and input-to-display latency | Later / proposed | PF5 evidence; larger frame stalls addressed first; measure physical-radio delivery and camera latency; interpolation may add one 2 ms physics step; no authoritative-state smoothing |
+
 ## Later — richer living-world simulation
 
 | ID | Outcome / scope | Decision status | Dependency / constraint |
