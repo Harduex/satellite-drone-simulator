@@ -1,6 +1,7 @@
 # AGENTS.md
 
 ## Rules
+* Work and commit directly on `master`. Do not create or switch to feature, backup or task branches, or create isolated worktrees, unless the user explicitly authorizes an exception. This repository uses `master`, not `main`.
 * This repository is public. Before every commit, inspect the complete staged diff, staged file list, and commit metadata for secrets, credentials, personal information, machine-local paths, and private conversation context. Run an available secret scanner with redacted output and verify its detection with a synthetic-secret self-test. Do not commit sensitive findings; resolve them first. Keep `.env`, local screenshots, logs, and session artifacts untracked. Record only project-relevant, public-safe instructions in this harness. Local commits are allowed when requested; pushing or publishing requires explicit approval.
 * Use a verified public author identity and privacy-preserving commit email (such as GitHub's noreply address). Do not include personal contact details in commit metadata or messages.
 * Commit each significant, verified change locally after the public-safety checks. Pushing or publishing still requires explicit approval.
