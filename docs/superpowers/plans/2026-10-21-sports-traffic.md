@@ -31,3 +31,11 @@ The main risks are missing fleet variants, incorrect model-to-length mapping, mu
 ## Review focus
 
 Keep model lengths unique because the existing simulation recovers model identity from length. Confirm all six existing random color indices map evenly onto the three sports colors. Preserve original asset bytes, daylight exposure and bounded loading/disposal behavior.
+
+## Sports driving extension
+
+Sports coupes use a separate driving profile: 1.6× road-class cruising speed and 4 m/s² acceleration, versus 2 m/s² for ordinary traffic. Random driver variation remains; turn limits, spacing and junction yielding constrain pursuit speeds. Braking lookahead expands with stopping distance and covers leaders, slower roads, curves and occupied junctions across short road segments. Normal cruising and acceleration targets remain unchanged.
+
+- [x] Exercise all three sports models against ordinary traffic on a clear road.
+- [x] Cover high-speed turns, slower-road transitions, stopped leaders and occupied junctions without abrupt position clamping.
+- [x] Run the full automated suite/build and check browser takeoff, travel, turn, pause and console errors. Clear-road browser comparison uses the actual traffic simulation and renderer; chasing a randomly spawned sports car through city traffic remains a separate flight-feel check.

@@ -90,7 +90,10 @@ viewport, settings and route in a foreground browser.
 roads. It defaults on and remembers your choice. Cars use eight locally packaged
 CC0 models, including stylized Audi A3 and Mazda CX-5 representations and three
 retro sports coupes. Sports cars appear randomly with vivid yellow, red or blue
-paint; other cars retain varied body colors. Their lighting follows the scene's daylight/night exposure; demand
+paint; other cars retain varied body colors. Sports coupes target 1.6× the usual
+road-class cruising speed and accelerate at 4 m/s² instead of 2 m/s². They still
+brake for traffic, slower roads and turns; congestion can hold them behind normal
+cars. Braking lookahead expands with stopping distance. Their lighting follows the scene's daylight/night exposure; demand
 follows the displayed simulator time.
 This represents plausible traffic, without live congestion or real vehicle positions.
 

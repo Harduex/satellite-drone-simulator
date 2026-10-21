@@ -84,6 +84,7 @@ function fleet(
     distance: number;
     speed: number;
     next: string | null;
+    modelIndex?: number;
   }[],
 ) {
   const simulation = new TrafficSimulation(42, [4.3]);
@@ -108,6 +109,96 @@ function fleet(
   );
   return { simulation, frames };
 }
+it.each([5, 6, 7])("gives sports model %i quicker acceleration and higher cruising speed", modelIndex => {
+  const edges = [road("straight", "a", "b", -900, 0, 1800, 0, [], "primary")];
+  const standard = fleet(edges, [{ edgeId: "straight", distance: 0, speed: 0, next: null }]);
+  const sports = fleet(edges, [{ edgeId: "straight", distance: 0, speed: 0, next: null, modelIndex }]);
+  for (let i = 0; i < 10; i++) {
+    standard.simulation.step(0.1);
+    sports.simulation.step(0.1);
+  }
+  expect(standard.frames[0]!.speed).toBeCloseTo(2);
+  expect(sports.frames[0]!.speed).toBeCloseTo(4);
+  for (let i = 0; i < 100; i++) {
+    standard.simulation.step(0.1);
+    sports.simulation.step(0.1);
+  }
+  expect(standard.frames[0]!.speed).toBeCloseTo(16);
+  expect(sports.frames[0]!.speed).toBeCloseTo(25.6);
+  expect(sports.frames[0]!.distance).toBeGreaterThan(standard.frames[0]!.distance + 60);
+});
+it.each([[41.6, 1], [45.76, 1.1]])("brakes a sports car at %i m/s before a distant turn", (speed, speedFactor) => {
+  const edges = Array.from({ length: 90 }, (_, i) =>
+    road("s" + i, "n" + i, "n" + (i + 1), -900 + i * 10, 0, 10, 0,
+      [i === 89 ? "turn" : "s" + (i + 1)], "motorway"),
+  );
+  edges.push(road("turn", "n90", "north", 0, 0, 0, 900, [], "motorway"));
+  const { simulation, frames } = fleet(edges, [
+    { edgeId: "s65", distance: 0, speed, next: "s66", modelIndex: 5 },
+  ]);
+  Object.assign(frames[0]!, { speedFactor });
+  let observed = 0;
+  for (let i = 0; i < 160; i++) {
+    simulation.step(0.1);
+    const car = frames[0]!;
+    if ((car.edgeId === "s89" && car.distance >= 5) ||
+        (car.edgeId === "turn" && car.distance <= 5)) {
+      observed++;
+      expect(car.speed).toBeLessThanOrEqual(5.01);
+    }
+  }
+  expect(observed).toBeGreaterThan(5);
+});
+it("starts braking a sports car for a stopped leader across short edges", () => {
+  const edges = Array.from({ length: 90 }, (_, i) =>
+    road("s" + i, "n" + i, "n" + (i + 1), -900 + i * 10, 0, 10, 0,
+      i === 89 ? [] : ["s" + (i + 1)], "motorway"),
+  );
+  edges[89]!.pendingContinuation = true;
+  const { simulation, frames } = fleet(edges, [
+    { edgeId: "s72", distance: 0, speed: 41.6, next: "s73", modelIndex: 5 },
+    { edgeId: "s89", distance: 5, speed: 0, next: null },
+  ]);
+  simulation.step(0.1);
+  expect(frames[0]!.speed).toBeLessThan(41.6);
+  for (let i = 0; i < 140; i++) {
+    simulation.step(0.1);
+    expect(frames[1]!.current.position.x - frames[0]!.current.position.x)
+      .toBeGreaterThan((frames[0]!.length + frames[1]!.length) / 2);
+  }
+  expect(frames[0]!.speed).toBeLessThan(1);
+});
+it("brakes for an occupied junction beyond multiple short approach edges", () => {
+  const edges = Array.from({ length: 30 }, (_, i) =>
+    road("s" + i, "n" + i, i === 29 ? "join" : "n" + (i + 1),
+      -300 + i * 10, 0, 10, 0, [i === 29 ? "out" : "s" + (i + 1)], "motorway"),
+  );
+  edges.push(
+    road("out", "join", "east", 0, 0, 600, 0, [], "motorway"),
+    road("cross", "south", "join", 0, -100, 0, 100, ["north"], "motorway"),
+    road("north", "join", "north", 0, 0, 0, 10, [], "motorway"),
+  );
+  edges[32]!.pendingContinuation = true;
+  const { simulation, frames } = fleet(edges, [
+    { edgeId: "s0", distance: 0, speed: 41.6, next: "s1", modelIndex: 5 },
+    { edgeId: "cross", distance: 99, speed: 0, next: "north" },
+    { edgeId: "north", distance: 5, speed: 0, next: null },
+  ]);
+  Object.assign(simulation, { reservations: new Map([["join", frames[1]!.id]]) });
+  let observed = 0;
+  for (let i = 0; i < 150; i++) {
+    const before = Number(frames[0]!.edgeId.slice(1)) * 10 + frames[0]!.distance;
+    simulation.step(0.1);
+    const after = Number(frames[0]!.edgeId.slice(1)) * 10 + frames[0]!.distance;
+    expect(after - before).toBeCloseTo(frames[0]!.speed * 0.1, 6);
+    if (frames[0]!.current.position.x > -15) {
+      observed++;
+      expect(frames[0]!.speed).toBeLessThan(10);
+    }
+  }
+  expect(observed).toBeGreaterThan(0);
+  expect(frames[0]!.speed).toBeLessThan(1);
+});
 it.each([
   ["motorway", 28], ["trunk", 24], ["primary", 20],
   ["secondary", 16], ["tertiary", 12], ["minor", 8],
@@ -120,17 +211,17 @@ it.each([
   simulation.reset({ x: 0, y: 0, z: 0 });
   expect(simulation.getFrames()).toHaveLength(count);
 });
-it("adopts the slower road speed before leaving a motorway", () => {
+it.each([[0, 7], [5, 11.2]])("model %i adopts the slower road speed before leaving a motorway", (modelIndex, limit) => {
   const { simulation, frames } = fleet(
     [
       road("fast", "west", "join", -900, 0, 900, 0, ["slow"], "motorway"),
       road("slow", "join", "east", 0, 0, 900, 0, [], "minor"),
     ],
-    [{ edgeId: "fast", distance: 750, speed: 26, next: "slow" }],
+    [{ edgeId: "fast", distance: 650, speed: modelIndex === 5 ? 41.6 : 26, next: "slow", modelIndex }],
   );
   for (let i = 0; i < 200; i++) simulation.step(0.1);
   expect(frames[0]!.edgeId).toBe("slow");
-  expect(frames[0]!.speed).toBeLessThanOrEqual(7.01);
+  expect(frames[0]!.speed).toBeLessThanOrEqual(limit + 0.01);
 });
 it("brakes before the turn curve and stays slow through its exit", () => {
   const { simulation, frames } = fleet(

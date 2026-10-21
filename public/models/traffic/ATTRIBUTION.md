@@ -26,7 +26,7 @@ Body paint is marked magenta for the runtime body-only shader. Windows, lamps an
 
 Overall dimensions follow the [Audi technical sheet](https://www.audi-mediacenter.com/system/production/uploaded_files/18079/file/e7dfbf2097a576a4cf18555de94a397e756d4c92/etd_A3_Sportback_40_TFSI_e_S_tronic.pdf?disposition=attachment) and [Mazda owner's manual](https://www.mazdausa.com/static/manuals/2018/cx5/contents/10020110.html). Width is the published body width; small stylized mirrors fit within that budget. Shapes and proportions are approximate. Contact origin and axes match the Kenney derivatives. Lamps are reflective details, without independent light emission.
 
-Sports-car dimensions are authored proportions, not manufacturer specifications. The wedge and rear-wing silhouettes take broad inspiration from retro Lamborghini and Ferrari shapes without logos or model-specific claims. All three use vivid yellow, red and blue runtime body paint; normal cars retain their existing palette. They use the same random selection and driving rules as other traffic.
+Sports-car dimensions are authored proportions, not manufacturer specifications. The wedge and rear-wing silhouettes take broad inspiration from retro Lamborghini and Ferrari shapes without logos or model-specific claims. All three use vivid yellow, red and blue runtime body paint; normal cars retain their existing palette. They use the same random model selection as other traffic, with a sports driving profile: 1.6× road-class cruising speeds and 4 m/s² acceleration. Traffic spacing, turn limits and junction yielding still apply.
 
 Reproduce the original assets with Blender 5.0+ (development tool only; no runtime dependency):
 

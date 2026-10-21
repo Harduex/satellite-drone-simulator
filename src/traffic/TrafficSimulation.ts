@@ -1,4 +1,4 @@
-import { TRAFFIC, TRAFFIC_MODELS, ROAD_DENSITY, ROAD_SPEED } from "./TrafficConfig";
+import { TRAFFIC, TRAFFIC_MODELS, TRAFFIC_DRIVING, ROAD_DENSITY, ROAD_SPEED } from "./TrafficConfig";
 import { poseOnEdge } from "./RoadGraph";
 import type { Point3, RoadEdge, RoadGraph, VehicleFrame } from "./TrafficTypes";
 
@@ -242,7 +242,7 @@ export class TrafficSimulation {
     }
     return options[0]!.id;
   }
-  private leaderGap(car: Car, edge: RoadEdge): number {
+  private leaderGap(car: Car, edge: RoadEdge, lookahead: number): number {
     let gap = Infinity;
     for (const leader of this.cars)
       if (
@@ -258,7 +258,7 @@ export class TrafficSimulation {
     let traversed = edge.length - car.distance,
       next = car.next;
     const visited = new Set<string>();
-    while (next && traversed < 150 && !visited.has(next)) {
+    while (next && traversed < lookahead && !visited.has(next)) {
       visited.add(next);
       const following = this.graph.edges.get(next);
       if (!following) break;
@@ -329,14 +329,18 @@ export class TrafficSimulation {
         pitch: car.current.pitch,
       };
       car.next ??= this.chooseNext(edge);
-      let available = this.leaderGap(car, edge);
+      // Fast cars must see far enough to stop before hazards across short road segments.
+      const lookahead = Math.max(150, car.speed * car.speed / 10 + car.speed * dt + 12);
+      let available = this.leaderGap(car, edge, lookahead);
       const remaining = edge.length - car.distance;
       if (edge.pendingContinuation && !car.next)
         available = Math.min(
           available,
           Math.max(0, remaining - car.length / 2),
         );
-      let target = ROAD_SPEED[edge.roadClass] * car.speedFactor;
+      const driving = TRAFFIC_DRIVING[TRAFFIC_MODELS[car.modelIndex]?.driving ?? "standard"];
+      const speedFactor = car.speedFactor * driving.speedMultiplier;
+      let target = ROAD_SPEED[edge.roadClass] * speedFactor;
       const next = car.next ? this.graph.edges.get(car.next) : undefined;
       const entry = car.entry ? this.graph.edges.get(car.entry) : undefined;
       if (
@@ -348,12 +352,18 @@ export class TrafficSimulation {
       let approach = edge,
         following = next,
         ahead = remaining;
+      const stopMargin = car.length / 2 + 3;
       const visited = new Set<string>();
-      while (following && ahead < 150 && !visited.has(following.id)) {
+      while (following && ahead < lookahead && !visited.has(following.id)) {
         visited.add(following.id);
+        const junctionOwner = this.reservations.get(approach.end);
+        if (this.contestedNodes.has(approach.end) &&
+            ((junctionOwner !== undefined && junctionOwner !== car.id) ||
+             available - ahead < 8 + car.length / 2 + 4))
+          available = Math.min(available, Math.max(0, ahead - stopMargin));
         const turning = this.bend(approach, following);
         const limit = Math.min(
-          ROAD_SPEED[following.roadClass] * car.speedFactor,
+          ROAD_SPEED[following.roadClass] * speedFactor,
           turning ? 5 : Infinity,
         );
         const span = turning
@@ -362,7 +372,7 @@ export class TrafficSimulation {
         // A braking envelope reaches the next limit before the curve, including one discrete step of margin.
         target = Math.min(
           target,
-          Math.sqrt(limit * limit + 10 * Math.max(0, ahead - span - 2)),
+          Math.sqrt(limit * limit + 10 * Math.max(0, ahead - span - Math.max(2, car.speed * dt))),
         );
         ahead += following.length;
         approach = following;
@@ -373,7 +383,6 @@ export class TrafficSimulation {
       }
       const owner = this.reservations.get(edge.end);
       const contested = this.contestedNodes.has(edge.end);
-      const stopMargin = car.length / 2 + 3;
       if (
         next &&
         remaining < Math.max(20, (car.speed * car.speed) / 10 + stopMargin + 4)
@@ -402,9 +411,10 @@ export class TrafficSimulation {
           this.reservations.set(edge.end, car.id);
       }
       const desiredGap = 4 + car.speed * 1.5;
+      target = Math.min(target, Math.sqrt(10 * Math.max(0, available - 4)));
       if (available < desiredGap)
         target = Math.min(target, Math.max(0, (available - 4) / 1.5));
-      car.speed += Math.max(-5 * dt, Math.min(2 * dt, target - car.speed));
+      car.speed += Math.max(-5 * dt, Math.min(driving.acceleration * dt, target - car.speed));
       const advance = Math.max(0, Math.min(car.speed * dt, available - 1));
       for (const [node, clearance] of this.clearing)
         if (this.reservations.get(node) === car.id) {
