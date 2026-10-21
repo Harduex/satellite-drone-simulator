@@ -25,6 +25,7 @@ export class BirdController {
   private removeFrame: Cesium.Event.RemoveCallback | null = null;
   private lastFrame = 0;
   private accumulator = 0;
+  private elapsedSeconds = 0;
   private lastFrames: BirdFrame[] = [];
   private center: Point3 | null = null;
 
@@ -94,6 +95,7 @@ export class BirdController {
     this.center = { x: initialPos.x, y: initialPos.y, z: initialPos.z };
     this.simulation.spawnFlocks(this.center);
     this.accumulator = 0;
+    this.elapsedSeconds = 0;
     this.lastFrames = this.simulation.step(BIRDS_CONFIG.updateDt);
   }
 
@@ -114,6 +116,7 @@ export class BirdController {
     this.lastFrame = now;
 
     this.accumulator += dt;
+    this.elapsedSeconds += dt;
     const dronePos = this.options.readDronePosition();
 
     // Check if drone has traveled far from flock center (respawn or relocate)
@@ -134,7 +137,7 @@ export class BirdController {
     }
 
     const alpha = Math.max(0, Math.min(1, this.accumulator / stepDt));
-    this.renderer.update(this.lastFrames, alpha);
+    this.renderer.update(this.lastFrames, alpha, this.elapsedSeconds);
 
     this.options.timings?.end('birdActors', tickStart);
   }

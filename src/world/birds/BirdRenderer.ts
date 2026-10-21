@@ -50,6 +50,7 @@ export class BirdRenderer {
   private paused = false;
   private generation = 0;
   private exposure = 1;
+  private elapsedSeconds = 0;
 
   private rotation = new Cesium.Matrix3();
   private local = new Cesium.Matrix4();
@@ -81,8 +82,9 @@ export class BirdRenderer {
     }
   }
 
-  update(frames: readonly BirdFrame[], alpha: number): void {
+  update(frames: readonly BirdFrame[], alpha: number, elapsedSeconds: number): void {
     if (this.disposed || this.paused) return;
+    this.elapsedSeconds = elapsedSeconds;
 
     this.desired = new Set(frames.map(f => f.id));
     let changed = false;
@@ -115,16 +117,21 @@ export class BirdRenderer {
       // Start animation once ready
       if (bird.model.ready && !bird.animated) {
         bird.model.activeAnimations.animateWhilePaused = true;
+        // Daylight can hold Cesium's clock fixed; flight time also stops on pause.
+        const animationTime = (duration: number) =>
+          (this.elapsedSeconds / duration + frame.id * 0.137) % 1;
         try {
           bird.model.activeAnimations.add({
             name: 'fly',
             loop: Cesium.ModelAnimationLoop.REPEAT,
             multiplier: frame.species === 'pigeon' ? 1.6 : frame.species === 'seagull' ? 1.2 : 0.8,
+            animationTime,
           });
         } catch {
           bird.model.activeAnimations.addAll({
             loop: Cesium.ModelAnimationLoop.REPEAT,
             multiplier: 1.0,
+            animationTime,
           });
         }
         bird.animated = true;

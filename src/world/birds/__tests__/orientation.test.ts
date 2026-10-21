@@ -1,18 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as Cesium from 'cesium';
-
-export function makeBirdRotation(
-  heading: number,
-  pitch: number,
-  roll: number,
-  result = new Cesium.Matrix3(),
-): Cesium.Matrix3 {
-  const rotZ = Cesium.Matrix3.fromRotationZ(-heading, new Cesium.Matrix3());
-  const rotX = Cesium.Matrix3.fromRotationX(pitch, new Cesium.Matrix3());
-  const rotY = Cesium.Matrix3.fromRotationY(roll, new Cesium.Matrix3());
-  const m1 = Cesium.Matrix3.multiply(rotZ, rotX, new Cesium.Matrix3());
-  return Cesium.Matrix3.multiply(m1, rotY, result);
-}
+import { makeBirdRotation } from '../BirdRenderer';
 
 describe('makeBirdRotation orientation', () => {
   it('points North (+Y) when heading is 0', () => {
