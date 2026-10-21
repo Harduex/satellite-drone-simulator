@@ -3,8 +3,9 @@ import type { PerformanceTimings } from './PerformanceTimings';
 
 type PrepareSurfaces = (allowQuery: () => boolean) => void;
 const OPTIONAL_SLICE_MS = 2;
-const UPDATE_DEADLINE_MS = 6;
+const UPDATE_DEADLINE_MS = 24;
 const MAX_QUERIES = 2;
+const MAX_STARVATION_FRAMES = 4;
 
 /** Admission limits cannot interrupt a synchronous scene query already in progress. */
 export class PopulationSurfaceScheduler {
@@ -15,6 +16,7 @@ export class PopulationSurfaceScheduler {
   private queries = 0;
   private roadsFirst = true;
   private paused = false;
+  private starvedFrames = 0;
   private readonly allowQuery = () => {
     if (this.queries >= MAX_QUERIES || performance.now() >= this.deadline) return false;
     this.queries++;
@@ -44,14 +46,26 @@ export class PopulationSurfaceScheduler {
   setPaused(paused: boolean): void {
     this.paused = paused;
     this.frameStart = null;
+    this.starvedFrames = 0;
   }
 
   private prepare(): void {
     if (this.paused || this.frameStart === null) return;
     const now = performance.now();
-    this.deadline = Math.min(this.frameStart + UPDATE_DEADLINE_MS, now + OPTIONAL_SLICE_MS);
+    const frameElapsed = now - this.frameStart;
     this.frameStart = null;
-    if (now >= this.deadline) return;
+
+    if (frameElapsed >= UPDATE_DEADLINE_MS) {
+      this.starvedFrames++;
+      if (this.starvedFrames < MAX_STARVATION_FRAMES) {
+        return;
+      }
+      this.starvedFrames = 0;
+    } else {
+      this.starvedFrames = 0;
+    }
+
+    this.deadline = now + OPTIONAL_SLICE_MS;
     this.queries = 0;
     const first = this.roadsFirst ? this.roads : this.paths;
     const second = this.roadsFirst ? this.paths : this.roads;
@@ -64,5 +78,6 @@ export class PopulationSurfaceScheduler {
     this.removePreUpdate?.(); this.removePreUpdate = null;
     this.removePostUpdate?.(); this.removePostUpdate = null;
     this.frameStart = null;
+    this.starvedFrames = 0;
   }
 }

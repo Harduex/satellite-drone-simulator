@@ -115,11 +115,18 @@ export class BirdRenderer {
       // Start animation once ready
       if (bird.model.ready && !bird.animated) {
         bird.model.activeAnimations.animateWhilePaused = true;
-        bird.model.activeAnimations.add({
-          name: 'fly',
-          loop: Cesium.ModelAnimationLoop.REPEAT,
-          multiplier: frame.species === 'pigeon' ? 1.6 : frame.species === 'seagull' ? 1.2 : 0.8,
-        });
+        try {
+          bird.model.activeAnimations.add({
+            name: 'fly',
+            loop: Cesium.ModelAnimationLoop.REPEAT,
+            multiplier: frame.species === 'pigeon' ? 1.6 : frame.species === 'seagull' ? 1.2 : 0.8,
+          });
+        } catch {
+          bird.model.activeAnimations.addAll({
+            loop: Cesium.ModelAnimationLoop.REPEAT,
+            multiplier: 1.0,
+          });
+        }
         bird.animated = true;
       }
 
@@ -170,11 +177,16 @@ export class BirdRenderer {
     const local = Cesium.Matrix4.fromRotationTranslation(this.rotation, this.translation, new Cesium.Matrix4());
     const modelMatrix = Cesium.Matrix4.multiply(this.enuFrame, local, new Cesium.Matrix4());
 
+    const upAxis = cfg.upAxis === 'Y' ? Cesium.Axis.Y : Cesium.Axis.Z;
+    const forwardAxis = cfg.forwardAxis === 'Z' ? Cesium.Axis.Z : Cesium.Axis.Y;
+
     void Cesium.Model.fromGltfAsync({
       url: `${import.meta.env.BASE_URL}models/birds/${cfg.modelName}.glb`,
       modelMatrix,
-      upAxis: Cesium.Axis.Z,
-      forwardAxis: Cesium.Axis.Y,
+      scale: cfg.scale,
+      minimumPixelSize: 18,
+      upAxis,
+      forwardAxis,
       shadows: Cesium.ShadowMode.DISABLED,
       customShader: shader ?? undefined,
       incrementallyLoadTextures: false,

@@ -43,6 +43,9 @@ export interface BirdSpeciesConfig {
   species: BirdSpecies;
   modelName: string;
   wingspan: number;
+  scale: number;
+  upAxis: 'Y' | 'Z';
+  forwardAxis: 'Y' | 'Z';
   cruiseSpeed: number; // m/s
   maxSpeed: number;    // m/s (sprint/flee)
   minSpeed: number;    // m/s (stall speed)

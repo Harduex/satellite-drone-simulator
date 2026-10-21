@@ -43,20 +43,20 @@ export class BirdSimulation {
 
     // 1. Pigeon flocks
     for (let f = 0; f < pigeonFlocks; f++) {
-      const angle = (f / pigeonFlocks) * Math.PI * 2 + Math.PI / 4;
-      const flockDist = 80 + f * 90;
-      const fx = center.x + Math.sin(angle) * flockDist;
-      const fy = center.y + Math.cos(angle) * flockDist;
-      const fz = center.z + 30 + f * 15;
+      // Flock 0 placed directly in front of drone (+Y / North) at low altitude for immediate takeoff view
+      const fx = f === 0 ? center.x : center.x + 35;
+      const fy = f === 0 ? center.y + 28 : center.y + 55;
+      const fz = center.z + (f === 0 ? 10 : 18);
+      const baseHeading = f === 0 ? 0.1 : normalizeAngle(Math.PI / 3);
 
       for (let i = 0; i < pigeonsPerFlock; i++) {
         const id = this.nextId++;
         const colorIndex = i % 4; // slate, brown, black, white
-        const spread = 12;
+        const spread = 8;
         const px = fx + (Math.random() - 0.5) * spread;
         const py = fy + (Math.random() - 0.5) * spread;
-        const pz = fz + (Math.random() - 0.5) * 6;
-        const heading = normalizeAngle(angle + Math.PI / 2 + (Math.random() - 0.5) * 0.5);
+        const pz = fz + (Math.random() - 0.5) * 4;
+        const heading = normalizeAngle(baseHeading + (Math.random() - 0.5) * 0.4);
         const cfg = SPECIES_CONFIGS.pigeon;
         const speed = cfg.cruiseSpeed + (Math.random() - 0.5) * 2;
 
@@ -86,16 +86,16 @@ export class BirdSimulation {
 
     // 2. Seagull groups
     for (let g = 0; g < gullGroups; g++) {
-      const gx = center.x + 120 * (g === 0 ? 1 : -1);
-      const gy = center.y + 100 * (g === 0 ? 1 : -1);
-      const gz = center.z + 45;
+      const gx = center.x + (g === 0 ? -28 : 45);
+      const gy = center.y + (g === 0 ? 40 : 65);
+      const gz = center.z + (g === 0 ? 22 : 30);
 
       for (let i = 0; i < gullsPerGroup; i++) {
         const id = this.nextId++;
-        const spread = 20;
+        const spread = 15;
         const px = gx + (Math.random() - 0.5) * spread;
         const py = gy + (Math.random() - 0.5) * spread;
-        const pz = gz + (Math.random() - 0.5) * 8;
+        const pz = gz + (Math.random() - 0.5) * 6;
         const heading = normalizeAngle(Math.random() * Math.PI * 2);
         const cfg = SPECIES_CONFIGS.seagull;
         const speed = cfg.cruiseSpeed + (Math.random() - 0.5) * 1.5;
@@ -129,9 +129,9 @@ export class BirdSimulation {
       const id = this.nextId++;
       const cfg = SPECIES_CONFIGS.eagle;
       const speed = cfg.cruiseSpeed;
-      const ex = center.x + 50;
-      const ey = center.y + 60;
-      const ez = center.z + 110;
+      const ex = center.x + 20;
+      const ey = center.y + 50;
+      const ez = center.z + 65;
       const heading = normalizeAngle(Math.PI / 4);
 
       const state: BirdState = {
