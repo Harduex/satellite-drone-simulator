@@ -17,6 +17,7 @@ export class DronePreviewRenderer {
   private targetPitch = -0.5;
   private radius = 1;
   private center = new Cesium.Cartesian3();
+  private completeLoad: (() => void) | undefined;
 
   constructor(container: HTMLElement, private readonly onError: (error: unknown) => void) {
     this.credits = document.createElement('div');
@@ -31,7 +32,6 @@ export class DronePreviewRenderer {
     this.canvas = this.scene.canvas;
     this.canvas.setAttribute('aria-label', '3D racing drone');
     this.canvas.setAttribute('role', 'img');
-    this.scene.sphericalHarmonicCoefficients = Array.from({ length: 9 }, (_, i) => new Cesium.Cartesian3(i === 0 ? 1.3 : 0, i === 0 ? 1.3 : 0, i === 0 ? 1.3 : 0));
     this.scene.backgroundColor = Cesium.Color.TRANSPARENT;
     this.scene.screenSpaceCameraController.enableInputs = false;
     this.scene.highDynamicRange = false;
@@ -46,9 +46,16 @@ export class DronePreviewRenderer {
   async load(): Promise<void> {
     // The manual render loop idles at readyEvent, so readiness must include textures.
     const model = await Cesium.Model.fromGltfAsync({ url: '/models/drone/racing-drone.glb', shadows: Cesium.ShadowMode.DISABLED,
-      incrementallyLoadTextures: false });
+      incrementallyLoadTextures: false, environmentMapOptions: { enabled: false } });
     if (this.disposed) { model.destroy(); return; }
+    // A studio view has no geographic atmosphere to generate lighting from.
+    model.imageBasedLighting.imageBasedLightingFactor = new Cesium.Cartesian2(1, 0);
+    model.imageBasedLighting.sphericalHarmonicCoefficients = Array.from({ length: 9 }, (_, i) => new Cesium.Cartesian3(i === 0 ? 3.5 : 0, i === 0 ? 3.5 : 0, i === 0 ? 3.5 : 0));
+    const drawn = new Promise<void>(resolve => { this.completeLoad = resolve; });
     this.scene.primitives.add(model);
+    model.errorEvent.addEventListener(error => {
+      if (!this.disposed) { this.destroy(); this.onError(error); }
+    });
     model.readyEvent.addEventListener(() => {
       if (this.disposed) return;
       Cesium.Cartesian3.clone(model.boundingSphere.center, this.center);
@@ -57,18 +64,25 @@ export class DronePreviewRenderer {
       this.requestFrame();
     });
     this.requestFrame();
+    return drawn;
   }
 
-  setPointer(x: number, y: number): void {
-    if (this.reducedMotion) return;
-    this.targetHeading = 0.6 + Math.max(-1, Math.min(1, x)) * 0.65;
-    this.targetPitch = -0.5 + Math.max(-1, Math.min(1, y)) * 0.2;
+  rotateBy(heading: number, pitch: number): void {
+    this.targetHeading += heading;
+    this.targetPitch = Math.max(-1.45, Math.min(1.45, this.targetPitch + pitch));
+    if (this.reducedMotion) { this.heading = this.targetHeading; this.pitch = this.targetPitch; }
+    this.requestFrame();
+  }
+
+  resetView(): void {
+    this.targetHeading = 0.6; this.targetPitch = -0.5;
+    if (this.reducedMotion) { this.heading = this.targetHeading; this.pitch = this.targetPitch; }
     this.requestFrame();
   }
 
   setReducedMotion(value: boolean): void {
     this.reducedMotion = value;
-    if (value) { this.targetHeading = this.heading = 0.6; this.targetPitch = this.pitch = -0.5; }
+    if (value) { this.heading = this.targetHeading; this.pitch = this.targetPitch; }
     this.requestFrame();
   }
 
@@ -93,7 +107,9 @@ export class DronePreviewRenderer {
       this.scene.camera.lookAtTransform(Cesium.Matrix4.fromTranslation(this.center), new Cesium.HeadingPitchRange(this.heading, this.pitch, range));
     }
     this.scene.requestRender();
+    const framed = this.ready;
     this.widget.render();
+    if (framed) { this.completeLoad?.(); this.completeLoad = undefined; }
     if (!this.ready || Math.abs(this.heading - this.targetHeading) + Math.abs(this.pitch - this.targetPitch) > 0.002) this.requestFrame();
   }
 
@@ -103,6 +119,7 @@ export class DronePreviewRenderer {
     cancelAnimationFrame(this.frame); this.frame = 0;
     this.resize.disconnect();
     if (!this.widget.isDestroyed()) this.widget.destroy();
+    this.completeLoad?.(); this.completeLoad = undefined;
     this.canvas.remove(); this.credits.remove();
   }
 }

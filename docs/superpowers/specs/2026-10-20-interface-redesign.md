@@ -51,12 +51,18 @@ and session callbacks retain responsibility for changes.
 Render the bundled, attributed BlueMesh racing-drone GLB in a dedicated Cesium
 widget; see [asset provenance](../../../public/models/drone/ATTRIBUTION.md). The
 decorative airframe does not define the flight physics configuration. Load its
-textures before model readiness; the manual render loop idles after readiness
-and pointer settling, so texture processing must not depend on pointer input.
-Pointer movement turns the preview within bounded angles; pointer exit returns
-to its resting pose. Reduced-motion preferences disable pointer motion. Touch
-and keyboard users retain the complete static preview. Dispose the widget when
-leaving pause; preview failure must not affect Resume or settings.
+textures before model readiness and use fixed neutral model lighting instead of
+asynchronous atmospheric maps. Keep the loading indicator until a complete,
+framed model has been drawn; loading must not depend on pointer input.
+
+Mouse and touch dragging orbit horizontally around the aircraft, with vertical
+travel clamped away from the poles. Capture the active pointer through release
+or cancellation; retain the selected view afterward. Hover alone does not rotate.
+The focusable preview accepts arrow keys, with Home and Reset view restoring the
+default angle. The preview container has no focus border. Reduced motion removes
+orbit smoothing while retaining deliberate rotation controls. Rendering idles
+when the view settles. Dispose the widget when leaving pause and settle pending
+readiness callbacks; preview failure must not affect Resume or settings.
 
 ## Interaction and layout contract
 
