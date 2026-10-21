@@ -98,7 +98,7 @@ Map evidence: [offline/custom maps](experiments/offline-maps.md). Rendering IDs 
 | --- | --- | --- | --- |
 | UI-COPY | Simplify picker, pause and settings UI with functional labels and a centered launch dock | Implemented and verified locally | Removed promotional captions and redundant labels. Picker uses search/discovery above selected location/coordinates and launch; controls stack on mobile. Shared geometry tokens and [design system](../DESIGN.md) match Flight deck framing. Autocomplete, launch, keyboard throttle ramping, pause/settings and responsive layouts checked; [interface design](superpowers/specs/2026-10-20-interface-redesign.md) |
 | UI-FAVORITES | Flight history and saved favorite places with a selection menu to bookmark and jump directly to locations | Proposed follow-up | Store in local storage/Zustand; define storage quotas, custom naming, coordinate validation and quick-spawn action |
-| UI-FIXES | Fix redesign regressions, specifically initial 3D drone preview material rendering defect (broken shaders/appearance until first pointer move or interaction) and related modal/dock bugs | Proposed follow-up | Investigate DronePreviewRenderer Cesium widget initial frame render/resize triggers and pause menu lifecycle |
+| UI-FIXES | Correct initial 3D drone preview materials and investigate related modal/dock regressions | Preview materials fixed and verified locally; other regressions require individual reproduction | Preview loads textures before model readiness so its manual render loop cannot idle with unfinished materials. Regression tests cover normal/reduced motion; first-open browser check passes without pointer input. Other modal/dock bugs remain proposed follow-ups |
 
 ## Later — original product and recording candidates
 

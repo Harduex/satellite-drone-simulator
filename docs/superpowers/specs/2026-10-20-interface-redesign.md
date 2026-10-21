@@ -48,15 +48,15 @@ and session callbacks retain responsibility for changes.
 
 ## Preview contract
 
-The repository has no detailed drone mesh. Render an original geometric X-frame
-quadcopter matching the representative 5-inch configuration, with four motors,
-propellers, battery and front camera. Reuse MOTOR_LAYOUT for motor placement.
-Use local SVG/CSS geometry and perspective transforms; introduce no rendering
-dependency, asset service or additional WebGL context. Pointer movement tilts and
-turns the preview within bounded angles; pointer exit returns to its resting pose.
-Any idle motion stops for reduced-motion preferences. Touch and keyboard users
-receive the static preview without losing access to actions. Preview failure must
-not affect Resume or settings.
+Render the bundled, attributed BlueMesh racing-drone GLB in a dedicated Cesium
+widget; see [asset provenance](../../../public/models/drone/ATTRIBUTION.md). The
+decorative airframe does not define the flight physics configuration. Load its
+textures before model readiness; the manual render loop idles after readiness
+and pointer settling, so texture processing must not depend on pointer input.
+Pointer movement turns the preview within bounded angles; pointer exit returns
+to its resting pose. Reduced-motion preferences disable pointer motion. Touch
+and keyboard users retain the complete static preview. Dispose the widget when
+leaving pause; preview failure must not affect Resume or settings.
 
 ## Interaction and layout contract
 

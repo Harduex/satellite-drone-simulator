@@ -44,7 +44,9 @@ export class DronePreviewRenderer {
   }
 
   async load(): Promise<void> {
-    const model = await Cesium.Model.fromGltfAsync({ url: '/models/drone/racing-drone.glb', shadows: Cesium.ShadowMode.DISABLED });
+    // The manual render loop idles at readyEvent, so readiness must include textures.
+    const model = await Cesium.Model.fromGltfAsync({ url: '/models/drone/racing-drone.glb', shadows: Cesium.ShadowMode.DISABLED,
+      incrementallyLoadTextures: false });
     if (this.disposed) { model.destroy(); return; }
     this.scene.primitives.add(model);
     model.readyEvent.addEventListener(() => {
