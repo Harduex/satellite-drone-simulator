@@ -40,7 +40,7 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 | P3 | Ground/roof landing practice and bounded side-contact trial; true 3D collisions deferred | [Prototype implemented locally](superpowers/specs/2026-10-19-landing-contacts-design.md); flight-feel feedback and wider coverage checks pending | Cesium/custom flight physics retained. Ground/roof support and restored inferred sides under strict query budgets; sparse coverage and canopy artifacts remain trial limits; true 3D contacts require supported geometry; Standard severe-impact disarming, God mode without damage, Space/UI nearby airborne recovery. Missing geometry does not pause flight and can cause clipping. Underpasses/overhangs remain unsupported. Renderer migration rejected for this scope; [geometry research](experiments/simulator-improvements.md#p3-collision-feasibility) |
 | P3-H | Ground/roof landings with nearby automatic recovery on side impacts | Proposed alternative; not selected for the current solid-wall trial | Compare the bounded wall-contact trial first; preserve a clear distinction between physical contact and automatic recovery |
 | P4 | Battery discharge, voltage sag and current limits | Transient load voltage sag implemented locally; pack discharge deferred | Automatic internal-resistance load sag (~2.5% RPM at full 4-motor load) preserves unlimited free play; battery depletion remains optional-only and deferred |
-| P5 | Self-level flight, practice gates, timed challenges and flight-state replay | Deferred | Separate scope per mode; existing video recording does not provide flight-state replay |
+| P5 | Self-level flight, practice gates, timed challenges and flight-state replay | Deferred; selected challenge subset tracked under GAME1–GAME3 | Separate scope per mode; GAME4 retains deferred ghost racing; existing video recording does not provide flight-state replay |
 | P7 | Spawn at a random urban location from the picker or pause menu | Implemented locally; wider coverage assessment pending | Equal-area sampling within Natural Earth urban polygons, filtered by the land mask; at most three candidates, each requiring nearby rendered detailed textured Google tiles. No flat-terrain fallback for random starts; manual selection retains it. Coastlines and inland water remain approximate. [Dataset provenance and detail heuristic](../src/world/data/ATTRIBUTION.md) |
 | P7-A | Estimate suitable built-up areas without maintaining a city catalog | Implemented locally as the P7 eligibility heuristic | On-demand geographic polygons replace whole-land sampling. Urban extent is dated and does not guarantee Google coverage; runtime validation gates random starts. Measured worldwide success rate remains pending |
 | P8 | Show current country and nearby settlement during flight | Implemented locally; approximate offline labels | Bundled Natural Earth country polygons and settlement points; refresh after 100 m travel, at most once per second. Nearby region labels come from settlement metadata, not region-boundary tests. [Provenance and limits](../src/world/data/ATTRIBUTION.md#offline-flight-labels) |
@@ -53,6 +53,19 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 | F3 | Make crash grace/confirmation independent of render FPS | Proposed; reproduced, fix not approved | Elapsed simulation time independent of HUD publication; retain terrain-sample protection and god-mode separation |
 
 Evidence and detailed limits: [simulator improvement proposals](experiments/simulator-improvements.md).
+
+## Later — optional game mode and real-world challenges
+
+Selected direction for a future trial; implementation is not authorized. Keep the main free-flight mode unchanged. Initial scope combines collectible signals, landing targets and car following; ghost racing remains deferred.
+
+| ID | Outcome / scope | Decision status | Dependency / next decision |
+| --- | --- | --- | --- |
+| GAME1 | Collect signals placed on rooftops and at ground-level locations by flying through them; predefined exploration routes connect interesting places and provide progress and rewards | Selected for initial trial; scope pending | Reuse the real-world map and session lifecycle. Define reachable placement, collection rules, route authoring, scoring and progress persistence; assess placement coverage and frame cost before implementation |
+| GAME2 | Landing pads act as another signal type: earn points by landing successfully without damaging the drone, rather than by flying through the target | Selected for initial trial; scope pending | GAME1 collection/progress and [P3 landing contacts](superpowers/specs/2026-10-19-landing-contacts-design.md). Define valid touchdown, damage checks, stable contact and repeat scoring; account for incomplete ground/roof coverage |
+| GAME3 | Follow a sports car through real-world streets as a flight challenge | Selected for initial trial; scope pending | LW1-SPORT traffic variants; define target selection, following/scoring rules and behavior when the target leaves available road coverage or despawns |
+| GAME4 | Race against a ghost of a previous flight | Deferred | P5 flight-state recording/replay and a separately defined race route; outside the initial GAME1–GAME3 trial |
+
+Sports cars belong to ordinary traffic under LW1-SPORT and can appear outside the game mode. Challenge scoring and rewards remain part of the optional game mode. Foundation references: [traffic design](superpowers/specs/2026-10-05-road-traffic-design.md), [landing contacts](superpowers/specs/2026-10-19-landing-contacts-design.md).
 
 ## Browser flight performance
 
@@ -75,6 +88,7 @@ Research completed 2026-10-21; PERF1 and PERF2 authorized, remaining proposals u
 | LW2-G | Evaluate Google traffic categories as the LW2 input | Proposed; provider undecided | Evaluate Routes coverage, billing and allowed reuse; no scraping TrafficLayer colors or assuming individual-car positions |
 | LW5 | Richer junction/demand behavior with SUMO | Proposed; undecided | Consider a prepared district only if lightweight traffic is inadequate; separate runtime is new infrastructure |
 | LW1-D | Detailed car interiors, animated wheels and vehicle sounds | Deferred | Independent visual/audio budgets and optional controls; [traffic design](superpowers/specs/2026-10-05-road-traffic-design.md) |
+| LW1-SPORT | Add sports-car variants that appear randomly among ordinary traffic, including outside the game mode | Selected for future trial; scope pending | Reuse LW1 traffic ownership and population budgets; define spawn frequency and licensed lightweight assets. Provides targets for GAME3; distinct driving behavior remains undecided |
 | LW6-X | Pedestrian crossings and interaction with cars | Proposed follow-up | Verified pedestrian placement, mapped crossing topology and bounded interaction; keep simple path walking independent |
 | LW1-L | Richer lanes, overtaking, signals and jurisdiction-specific driving side | Proposed; outside traffic V1 | Reliable lane/direction/signal data; conservative topology and placement, then combined performance validation |
 | LW1-S | Dynamic vehicle shadows and adaptive population scaling | Proposed; outside traffic V1 | Avoid conflict with photographed shadows; preserve explicit caps and measured frame-time gates |
