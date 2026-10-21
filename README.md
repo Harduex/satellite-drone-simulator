@@ -103,6 +103,13 @@ are excluded. Lane direction
 uses available map tags and approximate right-hand driving. Bridges and road/mesh
 alignment are best effort; height probes cannot identify every flat roof.
 
+Road and path surface preparation shares a cooperative 2 ms allowance after the
+flight update, with at most two height queries per display frame. Preparation
+defers when preceding scene updates have already used 6 ms; roads and paths
+alternate priority. A synchronous height query can exceed the allowance. Busy
+frames can therefore delay population appearance. Contact sampling and 500 Hz
+flight physics retain their existing timing and validation rules.
+
 Road geometry comes from OpenFreeMap/OpenMapTiles, based on OpenStreetMap. No extra
 key or backend is needed. Provider credits appear in the flight and recording.
 The developer overlay exposes traffic counters separately from Google tile counters.

@@ -155,9 +155,6 @@ export class PedestrianController {
             if (now - this.triggeredAt >= PEDESTRIANS.debounceMs)
                 void this.refresh(position);
         }
-        const surfaceStart = this.options.timings?.begin() ?? 0;
-        this.surface.processFrame(position);
-        this.options.timings?.end('pedestrianSurface', surfaceStart);
         if (this.surfaceVersion !== this.surface.version && now - this.lastGraphUpdate >= 500) {
             const graphStart = this.options.timings?.begin() ?? 0;
             this.simulation.setGraph(this.surface.getValidatedGraph());
@@ -182,6 +179,12 @@ export class PedestrianController {
             this.options.publish({ people: this.simulation.getFrames().length, renderedPeople: this.renderer?.getExclusions().length ?? 0, paths: this.surface.getValidatedGraph().edges.size, cachedTiles: this.source.cachedTiles, cachedBytes: this.source.cachedBytes, pendingRequests: this.source.pendingRequests, requestFailures: this.source.requestFailures, refreshes: this.refreshes, updateMs, surfaceSamples: this.surface.samples, surfaceMs: this.surface.sampleMs, pendingPaths: this.surface.pending, rejectedPaths: this.surface.rejectedRoads });
         }
         this.options.timings?.end('pedestrians', tickStart);
+    }
+    prepareSurfaces(allowQuery: () => boolean): void {
+        if (this.disposed || this.paused || !this.enabled) return;
+        const start = this.options.timings?.begin() ?? 0;
+        this.surface.processFrame(this.options.readDronePosition(), allowQuery);
+        this.options.timings?.end('pedestrianSurface', start);
     }
     dispose(): void { if (this.disposed)
         return; this.disposed = true; this.cancel(); this.removeFrame?.(); this.removeFrame = null; this.clearActors(); this.source.clear(); this.options.publish(null); }

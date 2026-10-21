@@ -79,7 +79,7 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
     }
     this.version++;
   }
-  processFrame(center?: Point3): void {
+  processFrame(center?: Point3, allowQuery?: () => boolean): void {
     const start = this.now();
     this.samples = 0;
     this.sampleMs = 0;
@@ -118,6 +118,7 @@ export class TrafficSurface<E extends SurfaceEdge = RoadEdge> {
         b = job.points.at(-1)!;
       const length = Math.hypot(b.x - a.x, b.y - a.y);
       const side = this.limits.lateral > 0 ? (job.probe === 1 ? this.limits.lateral : job.probe === 2 ? -this.limits.lateral : 0) : 0;
+      if (allowQuery && !allowQuery()) break;
       const height = this.sample(
         side
           ? {

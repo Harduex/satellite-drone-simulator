@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand';
 
 export type PerformanceStage = 'flight' | 'contacts' | 'physics' | 'surfaceQuery' | 'renderSubmission'
+  | 'populationSurfaces'
   | 'traffic' | 'trafficSurface' | 'trafficGraph' | 'trafficSimulation' | 'trafficActors'
   | 'pedestrians' | 'pedestrianSurface' | 'pedestrianGraph' | 'pedestrianSimulation' | 'pedestrianActors';
 

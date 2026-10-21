@@ -7,6 +7,7 @@ import { TerrainSampler } from "../world/TerrainSampler";
 import { GameLoop } from "./GameLoop";
 import { RenderDiagnostics } from "./RenderDiagnostics";
 import { PerformanceTimings } from './PerformanceTimings';
+import { PopulationSurfaceScheduler } from './PopulationSurfaceScheduler';
 import { DroneAudio } from "./DroneAudio";
 import { FlightRecorder } from './FlightRecorder';
 import { TrafficController } from './TrafficController';
@@ -34,6 +35,7 @@ export class SimSession {
   private isRandomizing = false;
   private renderDiagnostics: RenderDiagnostics | null = null;
   private readonly timings = new PerformanceTimings();
+  private surfaceScheduler: PopulationSurfaceScheduler | null = null;
   private droneAudio = new DroneAudio();
   private flightRecorder: FlightRecorder;
   private exitPromise: Promise<void> | null = null;
@@ -102,6 +104,7 @@ export class SimSession {
         this.trafficSettingsCleanup = null;
         this.traffic?.pause();
         this.pedestrians?.pause();
+        this.surfaceScheduler?.dispose(); this.surfaceScheduler = null;
         await this.flightRecorder.stop('session_exit');
         if (generation !== this.sessionGeneration) return;
         this.traffic?.dispose();
@@ -263,6 +266,10 @@ export class SimSession {
       useStore.getState().triggerCrashFlash();
     });
 
+    this.surfaceScheduler = new PopulationSurfaceScheduler(viewer.scene,
+      allowQuery => this.traffic?.prepareSurfaces(allowQuery),
+      allowQuery => this.pedestrians?.prepareSurfaces(allowQuery), this.timings);
+    this.surfaceScheduler.start();
     this.gameLoop.start();
 
     let carExclusions: readonly object[] = [];
@@ -429,6 +436,7 @@ export class SimSession {
   }
 
   pause(): void {
+    this.surfaceScheduler?.setPaused(true);
     this.timings.reset();
     this.pedestrians?.pause();
     this.traffic?.pause();
@@ -449,6 +457,7 @@ export class SimSession {
     this.gameLoop?.start();
     this.traffic?.resume();
     this.pedestrians?.resume();
+    this.surfaceScheduler?.setPaused(false);
     this.flightRecorder.resume();
     useStore.getState().setPhase("FLYING");
   }
@@ -461,6 +470,7 @@ export class SimSession {
   }
 
   private async finishSession(): Promise<void> {
+    this.surfaceScheduler?.dispose(); this.surfaceScheduler = null;
     this.trafficSettingsCleanup?.(); this.trafficSettingsCleanup = null;
     this.traffic?.pause();
     this.pedestrians?.pause();

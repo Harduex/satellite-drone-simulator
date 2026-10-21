@@ -260,9 +260,6 @@ export class TrafficController {
       if (now - this.coverageTriggeredAt >= TRAFFIC.debounceMs)
         void this.refresh(position);
     }
-    const surfaceStart = this.options.timings?.begin() ?? 0;
-    this.surface.processFrame(position);
-    this.options.timings?.end('trafficSurface', surfaceStart);
     if (
       this.surface.version !== this.surfaceVersion &&
       now - this.lastGraphUpdate >= 500
@@ -319,6 +316,14 @@ export class TrafficController {
     }
     this.options.timings?.end('traffic', tickStart);
   }
+
+  prepareSurfaces(allowQuery: () => boolean): void {
+    if (this.disposed || this.paused || !this.enabled) return;
+    const start = this.options.timings?.begin() ?? 0;
+    this.surface.processFrame(this.options.readDronePosition(), allowQuery);
+    this.options.timings?.end('trafficSurface', start);
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;

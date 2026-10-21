@@ -3,6 +3,7 @@ import type { DurationSummary, PerformanceSnapshot, PerformanceStage } from '../
 const SAMPLE_LIMIT = 600;
 const STAGES: readonly PerformanceStage[] = [
   'flight', 'contacts', 'physics', 'surfaceQuery', 'renderSubmission',
+  'populationSurfaces',
   'traffic', 'trafficSurface', 'trafficGraph', 'trafficSimulation', 'trafficActors',
   'pedestrians', 'pedestrianSurface', 'pedestrianGraph', 'pedestrianSimulation', 'pedestrianActors',
 ];

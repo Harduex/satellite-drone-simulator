@@ -1,6 +1,37 @@
 import { expect, it } from "vitest";
 import { TrafficSurface } from "../TrafficSurface";
 import { buildRoadGraph } from "../../../traffic/RoadGraph";
+it('defers unobserved stations without advancing or backing off the pending surface job', () => {
+  const graph = buildRoadGraph([{ id: 'deferred', roadClass: 'minor', oneway: 1,
+    bridge: false, layer: 0, points: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 25, z: 0 }],
+  }], { x: 0, y: 0, z: 0 });
+  const sampled: number[] = [];
+  const surface = new TrafficSurface(point => { sampled.push(point.y); return 0; },
+    () => 0, { samples: 8, ms: 2, spacing: 25, lateral: 0 });
+  surface.prepare(graph);
+  surface.processFrame(undefined, () => false);
+  expect(sampled).toEqual([]);
+  expect(surface.pending).toBe(1);
+  let admitted = false;
+  surface.processFrame(undefined, () => { if (admitted) return false; admitted = true; return true; });
+  expect(sampled).toEqual([0]);
+  surface.processFrame();
+  expect(sampled).toEqual([0, 25]);
+  expect(surface.getValidatedGraph().edges.size).toBe(1);
+});
+it.each([false, true])('preserves lateral roof rejection when one query is admitted per frame (roof=%s)', roof => {
+  const graph = buildRoadGraph([{ id: 'roof-check', roadClass: 'minor', oneway: 1,
+    bridge: false, layer: 0, points: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 50, z: 0 }],
+  }], { x: 0, y: 0, z: 0 });
+  const surface = new TrafficSurface(point => roof && point.x === 0 ? 10 : 0, () => 0);
+  surface.prepare(graph);
+  for (let frame = 0; frame < 12; frame++) {
+    let remaining = 1;
+    surface.processFrame(undefined, () => remaining-- > 0);
+  }
+  expect(surface.getValidatedGraph().edges.size).toBe(roof ? 0 : 1);
+  expect(surface.rejectedRoads).toBe(roof ? 1 : 0);
+});
 it("finishes an overlapping road while coverage keeps refreshing", () => {
   const graph = buildRoadGraph([{ id: "overlap", roadClass: "primary", oneway: 1,
     bridge: false, layer: 0, points: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 100, z: 0 }],

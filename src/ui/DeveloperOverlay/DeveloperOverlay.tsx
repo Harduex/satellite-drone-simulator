@@ -6,10 +6,11 @@ import styles from './DeveloperOverlay.module.css';
 
 const STAGE_LABELS: Record<PerformanceStage, string> = {
   flight: 'Flight total', contacts: 'Contact preparation', physics: '500 Hz steps',
-  surfaceQuery: 'Height query (one call)', traffic: 'Traffic total', trafficSurface: 'Road surfaces',
+  surfaceQuery: 'Height query (one call)', traffic: 'Traffic update', trafficSurface: 'Road surfaces',
   renderSubmission: 'Cesium render submission',
+  populationSurfaces: 'Population surfaces / frame',
   trafficGraph: 'Road graphs', trafficSimulation: 'Car simulation', trafficActors: 'Car transforms / admission',
-  pedestrians: 'Pedestrians total', pedestrianSurface: 'Path surfaces', pedestrianGraph: 'Path graphs',
+  pedestrians: 'Pedestrian update', pedestrianSurface: 'Path surfaces', pedestrianGraph: 'Path graphs',
   pedestrianSimulation: 'Walker simulation', pedestrianActors: 'Walker transforms / admission',
 };
 
@@ -154,8 +155,8 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
           <dt>Road cache · tiles / memory</dt><dd>{traffic.cachedTiles} / {memory(traffic.cachedBytes)}</dd>
           <dt>Road requests / failures</dt><dd>{traffic.pendingRequests} / {traffic.requestFailures}</dd>
           <dt>Surface pending / rejected</dt><dd>{traffic.pendingSurfaceRoads} / {traffic.rejectedRoads}</dd>
-          <dt>Update / surface ms</dt><dd>{traffic.updateMs.toFixed(2)} / {traffic.surfaceMs.toFixed(2)}</dd>
-          <dt>Surface samples / refreshes</dt><dd>{traffic.surfaceSamples} / {traffic.refreshes}</dd>
+          <dt>Simulation / last surface ms</dt><dd>{traffic.updateMs.toFixed(2)} / {traffic.surfaceMs.toFixed(2)}</dd>
+          <dt>Last samples / refreshes</dt><dd>{traffic.surfaceSamples} / {traffic.refreshes}</dd>
         </dl> : <p className={styles.note}>{trafficEnabled ? 'Preparing nearby roads…' : 'Road traffic is off.'}</p>}
       </section>
       <section aria-label="Pedestrian diagnostics">
@@ -164,7 +165,7 @@ export function DeveloperOverlay({ session }: { session: SimSession }) {
           <dt>People / rendered</dt><dd>{pedestrians.people} / {pedestrians.renderedPeople}</dd>
           <dt>Paths / validated</dt><dd>{pedestrians.pendingPaths} / {pedestrians.paths}</dd>
           <dt>Path cache · tiles / memory</dt><dd>{pedestrians.cachedTiles} / {memory(pedestrians.cachedBytes)}</dd>
-          <dt>Surface samples / ms</dt><dd>{pedestrians.surfaceSamples} / {pedestrians.surfaceMs.toFixed(2)}</dd>
+          <dt>Last surface samples / ms</dt><dd>{pedestrians.surfaceSamples} / {pedestrians.surfaceMs.toFixed(2)}</dd>
           <dt>Rejected paths / refreshes</dt><dd>{pedestrians.rejectedPaths} / {pedestrians.refreshes}</dd>
         </dl> : <p className={styles.note}>{pedestriansEnabled ? 'Preparing nearby paths…' : 'Pedestrians are off.'}</p>}
       </section>

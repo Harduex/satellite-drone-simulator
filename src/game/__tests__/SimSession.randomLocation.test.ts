@@ -64,6 +64,7 @@ function createFixture() {
     sampleHeightSupported: true,
     sampleHeight: vi.fn(() => 25),
     preUpdate: new Cesium.Event(),
+    postUpdate: new Cesium.Event(),
     primitives: { add: vi.fn(), remove: vi.fn() },
   };
   const viewer = {
@@ -94,6 +95,21 @@ function createFixture() {
 }
 
 describe('SimSession random location switching', () => {
+  it('owns one preparation listener across location changes and removes it on exit', async () => {
+    const { session, scene } = createFixture();
+    await session.startSession({ lon: 2, lat: 48, name: 'First' });
+    expect(scene.postUpdate.numberOfListeners).toBe(1);
+    session.pause();
+    const before = scene.sampleHeight.mock.calls.length;
+    scene.preUpdate.raiseEvent(); scene.postUpdate.raiseEvent();
+    expect(scene.sampleHeight.mock.calls.length).toBe(before);
+    session.resume();
+    await session.startSession({ lon: 3, lat: 48, name: 'Second' });
+    expect(scene.postUpdate.numberOfListeners).toBe(1);
+    await session.endSession();
+    expect(scene.postUpdate.numberOfListeners).toBe(0);
+  });
+
   it('loads random location and updates phase to FLYING', async () => {
     const { session, world } = createFixture();
 
