@@ -189,23 +189,15 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
           <h1>Map unavailable</h1><p>{mapError}</p><p>Check the Maps API configuration and reload.</p>
         </div>}
         <main className={css.launchDock} aria-label="Choose flight location" aria-busy={launching || randomizing || locatingQuery}>
-          <div className={css.destination}>
-            <h1>Flight location</h1>
-            <div className={css.place}>
-              <strong title={selectedLocation?.name}>{selectedLocation?.name ?? 'Choose a location on the map'}</strong>
-              <span>{selectedLocation
-                ? `${Math.abs(selectedLocation.lat).toFixed(4)}°${selectedLocation.lat >= 0 ? 'N' : 'S'} / ${Math.abs(selectedLocation.lng).toFixed(4)}°${selectedLocation.lng >= 0 ? 'E' : 'W'}`
-                : 'Search or click the map.'}</span>
-            </div>
-          </div>
           <div className={css.discovery}>
             <form onSubmit={handleLocate} className={css.searchForm}>
-              <label className={css.searchBar}><span aria-hidden="true">⌕</span>
+              <label className={css.searchBar}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
                 <input
                   ref={searchInputRef}
                   type="text"
                   aria-label="Search location"
-                  placeholder="Address or coordinates"
+                  placeholder="Search a place or coordinates"
                   className={css.searchInput}
                   disabled={!mapReady || launching || randomizing || locatingQuery}
                 />
@@ -222,12 +214,23 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
               </label>
             </form>
             <div className={css.discoveryActions}>
-              <button onClick={handleRandomLocation} title="Random location" disabled={!mapReady || launching || randomizing || locatingQuery} className={controls.secondary}>
+              <button onClick={handleRandomLocation} title="Random location" disabled={!mapReady || launching || randomizing || locatingQuery} className={controls.quiet}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-4 4M3 17h3c5 0 5-10 10-10h5M17 13l4 4-4 4M3 7h3c2 0 3 1 4 3m4 4c1 2 2 3 4 3h3" /></svg>
                 {randomizing ? 'Choosing…' : 'Random location'}
               </button>
-              <button onClick={handleMyLocation} disabled={!mapReady || locatingUser || launching || randomizing || locatingQuery} title="Go to my location" className={controls.secondary}>
+              <button onClick={handleMyLocation} disabled={!mapReady || locatingUser || launching || randomizing || locatingQuery} title="Go to my location" className={controls.quiet}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2" /><path d="M12 2v3m0 14v3M2 12h3m14 0h3" /></svg>
                 {locatingUser ? 'Locating…' : 'My location'}
               </button>
+            </div>
+          </div>
+          <div className={css.destination}>
+            <svg className={css.locationIcon} viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
+            <div className={css.place}>
+              <h1 title={selectedLocation?.name}>{selectedLocation?.name ?? 'Choose a flight location'}</h1>
+              <span>{selectedLocation
+                ? `${Math.abs(selectedLocation.lat).toFixed(4)}°${selectedLocation.lat >= 0 ? 'N' : 'S'} / ${Math.abs(selectedLocation.lng).toFixed(4)}°${selectedLocation.lng >= 0 ? 'E' : 'W'}`
+                : 'Click the map or search above.'}</span>
             </div>
           </div>
           <div className={css.launchAction}>

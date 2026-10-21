@@ -12,19 +12,17 @@ typographic hierarchy. Retain existing font assets initially to avoid adding fon
 requests. Layout and interaction quality take priority over decorative effects.
 
 The home screen has a compact identity header and a bottom-centered launch dock,
-sized to its controls rather than stretched across the viewport. Selected
-place details sit on the left, search and secondary discovery actions in the
-middle, and the primary Fly Here action on the right. This arrangement follows
-Afterburn's prototype; typography, colors and controls retain Flight deck's design
-system. The dock stacks on narrow screens. Random location and My location form
-the secondary discovery group. Settings has its own clearly
+bounded to 760px rather than stretched across the viewport. Search and quiet
+Random location / My location actions form the upper row. A fine divider separates
+the selected place and coordinates on the lower left from Fly Here on the lower
+right. The dock stacks on narrow screens. Dimensions, spacing and framing follow
+the shared [Flight deck design system](../../../DESIGN.md). Settings has its own clearly
 labelled entry. Search, map clicks, saved defaults, loading, random eligibility
 checks and launch errors retain their existing behavior. Provider attribution and
 map controls remain visible. The shared Google map remains mounted during flight.
 
-Remove the green cast from Flight deck surfaces, text and preview materials.
-The palette candidates are P1 neutral Graphite (recommended), P2 blue-gray Slate,
-and P3 warm Ink. All use the same orange accent and component styles.
+Use the neutral Graphite palette with the shared orange accent. Surfaces and
+text have no green cast; exact palette values live in the design system tokens.
 
 Pause uses two columns on wide screens: flight actions beside a lightweight
 interactive quadcopter preview. Resume is primary. Restart from home follows;
@@ -70,7 +68,7 @@ can shrink; buttons retain usable hit areas. Menus scroll within short viewports
 and primary actions remain reachable. Audit the HUD and recording/diagnostics
 surfaces for the same overflow defects without changing their responsibilities.
 
-Use functional headings (Flight location, Paused, Settings). Omit promotional
+Use functional headings (selected destination, Paused, Settings). Omit promotional
 captions, brand taglines and repeated section labels. Keep location coordinates,
 action labels, useful instructions, errors and provider/model attribution visible.
 

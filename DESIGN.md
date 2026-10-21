@@ -1,86 +1,81 @@
-# Design System Documentation: The Kinetic HUD
+# Flight deck design system
 
-## 1. Overview & Creative North Star
-**Creative North Star: The Kinetic HUD**
-This design system is engineered for high-velocity decision-making and surgical precision. It moves away from the "friendly" rounded corners of the modern web, instead embracing the cold, calculated aesthetic of a drone pilot’s command center.
+The map and flight view are the focus. UI uses neutral graphite surfaces, warm
+orange primary actions, restrained borders and concise functional labels. Avoid
+promotional captions, decorative numbering and repeated headings.
 
-The system breaks the "template" look through intentional asymmetry—utilizing wide gutters and offset data blocks—and a typography scale that favors dramatic contrast between massive display headers and microscopic, high-density labels. We are not building a website; we are building a tactical overlay. The UI should feel like a projection on a glass cockpit: weightless, luminous, and absolute.
+## Sources of truth
 
----
+- `src/ui/theme.css`: colors, typography, spacing, control geometry and global
+  interaction states. Use CSS custom properties in component styles.
+- `src/ui/theme.ts`: matching colors and gradients for JavaScript consumers.
+  Dimensions and framing belong in CSS, not in a second JavaScript token table.
+- `src/ui/controls.module.css`: primary, secondary and quiet buttons, compact
+  labels and the shared brand. Reuse these classes before defining controls.
+- [Interface design](docs/superpowers/specs/2026-10-20-interface-redesign.md):
+  picker, pause and settings behavior and responsive layout contracts.
 
-## 2. Colors
-The palette is rooted in deep obsidian tones with high-luminance accents designed to draw the eye to critical telemetry data.
+## Palette and typography
 
-* **Primary (`#ffb693` / Safety Orange):** Reserved for active flight states, critical warnings, and primary action triggers.
-* **Secondary (`#bdf4ff` / Electric Cyan):** Used for steady-state data, navigation, and secondary telemetry.
-* **Neutral Surface (`#131314`):** The "void." A deep charcoal that provides the canvas for light-emitting elements.
+| Role | Token / value | Use |
+| --- | --- | --- |
+| Base surface | `--color-surface` / `#121213` | Header, settings sidebar, recessed inputs |
+| Panel surface | `--color-surface-container-low` / `#1c1c1f` | Floating picker and settings content |
+| Hover surface | `--color-surface-container-high` / `#2b2b30` | Hover and active navigation |
+| Primary | `--color-primary` / `#ffbd70` | Main action and selected-location accent |
+| Text | `--color-on-surface` / `#f0eeeb` | Titles and action labels |
+| Secondary text | `--color-on-surface-variant` / `#c8c6cc` | Secondary controls and descriptions |
+| Muted text | `--color-on-surface-muted` / `#a6a5ac` | Coordinates, supporting instructions |
+| Fine frame | `--color-outline-variant` / 20% neutral | Panel/input borders and section dividers |
+| Focus | `--color-secondary` / `#bdf4ff` | Keyboard focus outline |
 
-### The "No-Line" Rule
-Standard 1px solid borders are strictly prohibited for defining sections. Structural boundaries must be defined solely through background color shifts. Use `surface_container_low` against `surface` to denote a sidebar, or `surface_container_high` to define a workspace.
+Use existing Space Grotesk display and Inter body assets. Reuse `--fs-*` size
+tokens where applicable. A selected destination is a 16px medium-weight title;
+coordinates are 11px supporting text with tabular numerals. Longer content wraps
+or truncates within its container; truncated place names retain a full title.
 
-### Surface Hierarchy & Nesting
-Treat the UI as a series of stacked, semi-transparent glass panes.
-* **Base:** `surface` (#131314)
-* **Level 1 Container:** `surface_container_low` (#1c1b1c)
-* **Active Overlays:** `surface_container_highest` (#353436)
-Each nested layer should move "closer" to the pilot by increasing in tonal value, creating depth through luminance rather than drop shadows.
+## Dimensions and framing
 
-### The "Glass & Gradient" Rule
-To achieve a high-end "cockpit" feel, main CTAs and hero elements should utilize a subtle linear gradient from `primary` (#ffb693) to `primary_container` (#ff6b00) at a 135-degree angle. For floating panels, use `surface_variant` with a 60% opacity and a 20px backdrop-blur to simulate frosted glass.
+| Role | Token | Dimension |
+| --- | --- | --- |
+| Standard control | `--control-height` | 44px minimum |
+| Search / prominent action | `--control-height-prominent` | 48px minimum |
+| Compact nested action / close control | `--control-height-compact` | 36px minimum |
+| Icon / text gap | `--control-gap` | 12px |
+| Control corners | `--radius-control` | 2px |
+| Panel corners | `--radius-panel` | 0px |
+| Floating panel shadow | `--shadow-panel` | Diffuse shadow against detailed map imagery |
 
----
+Spacing scale: `--space-xs` 4px, `--space-sm` 8px, `--space-md` 16px,
+`--space-lg` 24px, `--space-xl` 32px. Use 24px panel padding on desktop,
+16px on mobile, and 16px between related groups. Content-specific widths and
+responsive breakpoints stay local to the component.
 
-## 3. Typography
-The typographic system utilizes a "High-Tech Editorial" approach, pairing the geometric aggression of **Space Grotesk** with the neutral, surgical legibility of **Inter**.
+Panels have a 1px fine frame and square corners. Inputs use the same fine frame
+with 2px corners and a recessed surface. Buttons use 2px corners. Keep the orange
+primary action solid; secondary controls use a fine outline, while quiet actions
+have no frame. Thin outline icons share a consistent stroke and retain text
+labels. Do not use different corner treatments for controls within one panel.
 
-* **Display & Headlines (Space Grotesk):** Used for mission titles, status headers, and large-scale data points. The character of the font—sharp and wide—reinforces the "Drone Pilot" aesthetic.
-* **Body & Titles (Inter):** Used for technical descriptions and navigational labels. Inter provides the high-performance legibility required for dense information environments.
-* **Labels (Space Grotesk):** Set in `label-sm` (0.6875rem), these should often be uppercase with a 0.05em letter-spacing to mimic technical serial numbers and telemetry tags.
+## Picker composition
 
----
+The bottom-centered panel is 760px wide at most, with viewport margins and no
+stretch across wide monitors. Search is the primary entry point on the upper
+row, followed by quiet Random location and My location actions. One fine divider
+separates discovery from the selected destination and coordinates on the lower
+left, with Fly Here on the lower right. This aligns the destination with the
+action it will perform.
 
-## 4. Elevation & Depth
-In this design system, depth is a function of light and layering, not physics and shadows.
+On smaller screens, discovery shortcuts move below search. On mobile, Fly Here
+spans the panel width beneath the location. Panel height is bounded and scrollable
+in short viewports. Keep map attribution visible; preserve search/autocomplete,
+map selection, launch errors and existing loading/disabled states.
 
-* **The Layering Principle:** Avoid shadows. Instead, place a `surface_container_lowest` (#0e0e0f) card on a `surface_container_low` (#1c1b1c) background to create a "recessed" look. Alternatively, use a `surface_bright` layer to indicate an elevated "pop-up" state.
-* **Ambient Shadows:** If a floating effect is required (e.g., a modal), use an ultra-diffused shadow: `box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5)`. Never use harsh, dark-grey drop shadows.
-* **The "Ghost Border":** For elements that require containment (like input fields), use the `outline_variant` token at 20% opacity. This creates a "barely-there" tactical frame that suggests a boundary without cluttering the visual field.
-* **Sharp Corners:** The `roundedness` scale is set to `0px` globally. Every element—from buttons to cards—must feature hard, 90-degree corners to maintain the "Machined" look.
+## Interaction and accessibility
 
----
-
-## 5. Components
-
-### Buttons
-* **Primary:** Solid `primary` color, `on_primary` text. Sharp corners. No shadow.
-* **Secondary:** Ghost border (`outline_variant` at 40%) with `secondary` text.
-* **States:** On hover, primary buttons should "glow" using a subtle outer box-shadow of the same color at 30% opacity.
-
-### Input Fields
-* **Style:** No background fill. Only a bottom border (Ghost Border style) or a full thin `outline_variant` frame at 20% opacity.
-* **Typography:** All input text should use `body-md` (Inter) for maximum clarity.
-
-### Cards & Lists
-* **Rule:** Forbid the use of divider lines.
-* **Execution:** Separate list items using `spacing.2` (0.4rem) of vertical white space or by alternating background tones between `surface_container_low` and `surface_container`.
-
-### Tactical Overlays (Chips)
-* **Design:** Small, rectangular blocks using `tertiary_container`. These should look like data tags on a radar screen.
-
-### Navigation Highlighting
-* Instead of a traditional underline or background change, use a 2px vertical "Active Bar" in `primary` orange to the left of the active menu item.
-
----
-
-## 6. Do's and Don'ts
-
-### Do:
-* **Use Asymmetry:** Place data labels in the far corners of containers to maximize the feeling of a wide-angle HUD.
-* **Embrace Monochromaticity:** Use 90% charcoal and black, saving the `primary` orange only for things that require immediate pilot intervention.
-* **Prioritize Density:** High-performance users prefer seeing more data at once. Use the smaller end of the spacing scale (`0.5` to `2.5`) for internal component padding.
-
-### Don't:
-* **No Rounded Corners:** Never use `border-radius`. It breaks the tactical precision of the system.
-* **No Generic Icons:** Use ultra-thin (1pt) stroke icons. Avoid "filled" or "chunky" iconography which feels like a consumer app.
-* **No Soft Gradients:** Avoid "sunset" or "rainbow" gradients. If using gradients, keep them within the same tonal family (e.g., `secondary` to `secondary_container`).
-* **No 100% Opaque Borders:** High-contrast borders create visual "noise." Stick to Tonal Layering or Ghost Borders.
+All controls retain visible keyboard focus, hover, pressed and disabled states.
+Use semantic buttons, labelled inputs and decorative SVG icons hidden from
+assistive technology. Loading actions communicate progress in their labels;
+errors remain readable and use `role="alert"`. Respect reduced-motion preferences.
+Settings contains keyboard focus and restores it on close. Escape closes
+settings before resuming a paused flight.

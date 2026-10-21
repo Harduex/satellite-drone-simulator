@@ -1,4 +1,4 @@
-.primary,.secondary,.quiet { display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:44px; padding:12px 17px; font:600 13px/1.4 var(--font-body); text-align:center; border-radius:2px; overflow-wrap:anywhere; }
+.primary,.secondary,.quiet { display:inline-flex; align-items:center; justify-content:center; gap:var(--control-gap); min-height:var(--control-height); padding:12px 17px; font:600 13px/1.4 var(--font-body); text-align:center; border-radius:var(--radius-control); overflow-wrap:anywhere; }
 .primary { background:var(--color-primary); color:var(--color-on-primary); border:1px solid transparent; }
 .primary:hover:not(:disabled) { background:#ffcb91; box-shadow:0 0 0 3px rgba(255,189,112,.14); }
 .secondary { background:transparent; color:var(--color-on-surface); border:1px solid var(--color-outline-variant); }

@@ -9,7 +9,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | [Project README](../README.md) | Setup, controls, current behavior and technical overview |
 | [Product roadmap](ROADMAP.md) | Outcomes, Now/Next/Later horizons, dependencies and decision status; central index of postponed ideas and undecided proposals |
 | [Product requirements](../SATELLITE_DRONE_SIM_PRD.md) | Historical MVP requirements; future candidates moved to the product roadmap |
-| [Design](../DESIGN.md) | Existing design reference |
+| [Design](../DESIGN.md) | Flight deck design system: shared tokens, control dimensions, panel framing and picker composition |
 | [Implementation plan](../PLAN.md) | Historical implementation plan; verify current status against code |
 
 ## Experiments

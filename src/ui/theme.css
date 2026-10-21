@@ -1,6 +1,4 @@
-/* ── Design Tokens as CSS Custom Properties ──────────────────
-   Mirrors theme.ts. Import in main.tsx so all CSS modules can use var(--xxx).
-   Keep theme.ts for the ~15 dynamic inline styles that read tokens in JS. */
+/* Shared UI tokens. Colors and gradients also live in theme.ts for JS consumers. */
 
 :root {
   /* Colors — Surfaces */
@@ -57,6 +55,15 @@
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
+
+  /* Flight deck geometry */
+  --control-height: 44px;
+  --control-height-prominent: 48px;
+  --control-height-compact: 36px;
+  --control-gap: 12px;
+  --radius-control: 2px;
+  --radius-panel: 0px;
+  --shadow-panel: 0 16px 48px #0006, 0 2px 8px #0003;
 
   /* Glass effect */
   --glass-bg: rgba(28, 28, 31, 0.85);

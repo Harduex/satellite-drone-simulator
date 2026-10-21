@@ -1,6 +1,6 @@
 // ── Design Token System ─────────────────────────────────────
-// Centralizes all DESIGN.md values. Every UI component imports from here.
-// See DESIGN.md for the "Kinetic HUD" creative specification.
+// Colors and gradients for JS consumers; CSS layout tokens live in theme.css.
+// See DESIGN.md for the Flight deck design system.
 
 // ── Colors ──────────────────────────────────────────────────
 export const colors = {
