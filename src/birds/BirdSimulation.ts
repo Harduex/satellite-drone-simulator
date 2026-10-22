@@ -30,6 +30,7 @@ export class BirdSimulation {
   private previousPoses = new Map<number, BirdPose>();
   private nextId = 1;
   private baseAltitude = 0;
+  private center: Point3 = { x: 0, y: 0, z: 0 };
   private eagleAngle = 0;
 
   constructor() {}
@@ -38,6 +39,7 @@ export class BirdSimulation {
     this.birds = [];
     this.previousPoses.clear();
     this.baseAltitude = center.z;
+    this.center = { ...center };
 
     const { pigeonFlocks, pigeonsPerFlock, gullGroups, gullsPerGroup, eagles } = BIRDS_CONFIG.flockCounts;
 
@@ -281,6 +283,15 @@ export class BirdSimulation {
             bird.flapping = (Math.sin(bird.flapPhase * 0.7) > 0.2);
           }
         }
+      }
+
+      const toCenterX = this.center.x - bird.position.x;
+      const toCenterY = this.center.y - bird.position.y;
+      const radius = Math.hypot(toCenterX, toCenterY);
+      if (radius > BIRDS_CONFIG.maxActiveRadius) {
+        const acceleration = cfg.maxAcceleration * Math.min(1, (radius - BIRDS_CONFIG.maxActiveRadius) / 50);
+        ax += toCenterX / radius * acceleration;
+        ay += toCenterY / radius * acceleration;
       }
 
       // Altitude boundary confinement

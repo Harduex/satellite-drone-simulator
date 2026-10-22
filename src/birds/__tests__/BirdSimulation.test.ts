@@ -1,8 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { BirdSimulation } from '../BirdSimulation';
 import { BIRDS_CONFIG, SPECIES_CONFIGS } from '../BirdConfig';
 
 describe('BirdSimulation', () => {
+  it.each([0.1, 0.5, 0.9])('keeps flocks near a stationary drone during a long flight (random=%s)', value => {
+    const random = vi.spyOn(Math, 'random').mockReturnValue(value);
+    try {
+      const sim = new BirdSimulation();
+      const center = { x: 2000, y: -1000, z: 100 };
+      sim.spawnFlocks(center);
+      for (let step = 0; step < 1800; step++) {
+        sim.step(.1, center);
+        for (const bird of sim.getBirds()) {
+          expect(Math.hypot(bird.position.x - center.x, bird.position.y - center.y))
+            .toBeLessThan(BIRDS_CONFIG.despawnRadius);
+        }
+      }
+    } finally {
+      random.mockRestore();
+    }
+  });
   it('limits eagle climb acceleration to one integration per step', () => {
     const sim = new BirdSimulation();
     sim.spawnFlocks({ x: 0, y: 0, z: 100 });
