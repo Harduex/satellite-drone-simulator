@@ -155,8 +155,7 @@ Flock alarms propagate over time; independent solo flyers do not share alarms.
 Birds settle back into normal flight after the threat passes. Pause freezes both
 motion and wing animation. Altitudes are relative to encounter origins; birds do
 not detect scanned buildings, trees or terrain. Model credits are available in
-[asset attribution](public/models/birds/ATTRIBUTION.md). The original swallow is
-provisional; replacement with a free, already animated web asset is deferred.
+[asset attribution](public/models/birds/ATTRIBUTION.md). The swallow is an original animated model with reproducible Blender source.
 
 ## Controls
 

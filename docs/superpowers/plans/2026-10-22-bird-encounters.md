@@ -29,7 +29,7 @@ Birds carry independent encounter origins, solo membership and alarm state.
 Files: swallow generator, `public/models/birds/swallow.glb`, attribution,
 `src/world/birds/BirdRenderer.ts` and tests.
 
-- [x] Retain and validate the original provisional animated swallow and its reproducible generator. Replacement with a free, already animated web asset is deferred under BIRDS-ASSET in the roadmap.
+- [x] Retain and validate the original animated swallow and its reproducible generator. Optional replacement with a free, already animated web asset is tracked under BIRDS-ASSET in the roadmap.
 - [x] Write failing renderer tests for swallow loading, flap/glide state, exposure and late-load disposal.
 - [x] Drive animation from per-bird flight state; preserve daylight independence and pause behavior.
 
@@ -63,7 +63,7 @@ not establish visibility, chase behavior or frame performance.
 
 ## Verification and disposition
 
-- Simulation, controller and renderer changes are complete. The original provisional swallow and generator remain. Web-model replacement is deferred under BIRDS-ASSET; it is not a release gate for the current implementation.
+- Simulation, controller and renderer changes are complete. The original animated swallow and generator remain. Optional web-model replacement is tracked under BIRDS-ASSET; it is not a release gate for the current implementation.
 - Full suite: 81 files, 654 tests passed. Production build and whitespace checks passed. Windows sandbox temporary-file rename restrictions required verification outside the sandbox.
 - Sustained pursuit test follows a solo bird for two minutes and more than 1.5 km, retaining its identity, escape state and the 30-bird population. Another regression verifies solo alarm isolation. Repeated travel tests cover 10 km of moving coverage and a 2 km climb. Camera tests use real tilted ECEF frusta at four headings.
 - Browser checks exercised search, takeoff, 97 m horizontal travel, heading changes, pause and recovery. Earlier checks visually observed a flock and a solo bird; model admission confirmed all 30 loaded. Final runtime confirmed asset credits and no console errors. Species close-ups and a sustained manual chase were not performed; pursuit and species behavior are covered automatically.
