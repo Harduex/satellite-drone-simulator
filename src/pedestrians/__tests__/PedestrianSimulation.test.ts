@@ -2,6 +2,23 @@ import { expect, it } from 'vitest';
 import { PedestrianSimulation } from '../PedestrianSimulation';
 import { buildPedestrianGraph } from '../PedestrianGraph';
 const graphAt = (x = 0) => buildPedestrianGraph(Array.from({ length: 12 }, (_, i) => ({ id: String(i), pathClass: 'footway' as const, points: [{ x, y: i * 10, z: 5 }, { x: x + 300, y: i * 10, z: 5 }] })), { x, y: 0, z: 0 });
+it('does not walk into a stationary person processed later in the step', () => {
+    const sim = new PedestrianSimulation();
+    const graph = graphAt();
+    sim.setGraph(graph);
+    const [walker, stopped] = sim.getFrames();
+    const edge = [...graph.edges.values()][0]!;
+    for (const [person, distance, speed] of [[walker!, 100, 1.6], [stopped!, 100.85, 0]] as const) {
+        person.edgeId = edge.id;
+        person.distance = distance;
+        person.speed = speed;
+        person.current = { position: { x: distance, y: 0, z: 5 }, heading: Math.PI / 2, pitch: 0 };
+        person.previous = person.current;
+    }
+    sim.step(.1);
+    expect(stopped!.current.position.x - walker!.current.position.x).toBeGreaterThanOrEqual(.8);
+    expect(walker!.walked).toBe(0);
+});
 it('populates a 300-metre path with 26 people and keeps spawn separation', () => {
     const sim = new PedestrianSimulation();
     sim.setGraph(buildPedestrianGraph([{ id: 'density', pathClass: 'footway', points: [{ x: -150, y: 0, z: 5 }, { x: 150, y: 0, z: 5 }] }], { x: 0, y: 0, z: 0 }));

@@ -52,7 +52,7 @@ export class PedestrianSimulation {
             if (!this.nearby(pose.position))
                 continue;
             // Narrow mapped centerlines cannot support passing crowds safely.
-            const crowded = survivors.some(other => Math.hypot(other.current.position.x - pose.position.x, other.current.position.y - pose.position.y) < .8);
+            const crowded = this.people.some(other => other.id !== person.id && Math.hypot(other.current.position.x - pose.position.x, other.current.position.y - pose.position.y) < .8);
             if (!crowded) {
                 person.walked += Math.hypot(pose.position.x - person.current.position.x, pose.position.y - person.current.position.y);
                 person.current = pose;
