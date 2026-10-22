@@ -29,7 +29,7 @@ describe('BirdSimulation', () => {
     expect(eagle.velocity.z - previousVz).toBeLessThanOrEqual(SPECIES_CONFIGS.eagle.maxAcceleration * 0.1);
   });
 
-  it('spawns configured counts of all three species with color variation', () => {
+  it('spawns configured counts of all four species with color variation', () => {
     const sim = new BirdSimulation();
     sim.spawnFlocks({ x: 0, y: 0, z: 100 });
     const birds = sim.getBirds();
@@ -37,6 +37,8 @@ describe('BirdSimulation', () => {
     const expectedTotal =
       BIRDS_CONFIG.flockCounts.pigeonFlocks * BIRDS_CONFIG.flockCounts.pigeonsPerFlock +
       BIRDS_CONFIG.flockCounts.gullGroups * BIRDS_CONFIG.flockCounts.gullsPerGroup +
+      BIRDS_CONFIG.flockCounts.swallowFlocks * BIRDS_CONFIG.flockCounts.swallowsPerFlock +
+      BIRDS_CONFIG.flockCounts.soloFlyers +
       BIRDS_CONFIG.flockCounts.eagles;
 
     expect(birds.length).toBe(expectedTotal);
@@ -45,8 +47,8 @@ describe('BirdSimulation', () => {
     const gulls = birds.filter(b => b.species === 'seagull');
     const eagles = birds.filter(b => b.species === 'eagle');
 
-    expect(pigeons.length).toBe(24);
-    expect(gulls.length).toBe(5);
+    expect(pigeons.length).toBe(13);
+    expect(gulls.length).toBe(6);
     expect(eagles.length).toBe(1);
 
     // Color variation for pigeons (0=slate, 1=brown, 2=black, 3=white)

@@ -116,7 +116,8 @@ alignment are best effort; height probes cannot identify every flat roof.
 
 Road and path surface preparation shares a cooperative 2 ms allowance after the
 flight update, with at most two height queries per display frame. Preparation
-defers when preceding scene updates have already used 6 ms; roads and paths
+defers when preceding scene updates have already used 24 ms, admitting a slice
+after four consecutive busy frames to prevent starvation; roads and paths
 alternate priority. A synchronous height query can exceed the allowance. Busy
 frames can therefore delay population appearance. Contact sampling and 500 Hz
 flight physics retain their existing timing and validation rules.
@@ -140,6 +141,22 @@ path, capped at 110. Access restrictions, indoor/elevated paths and segments wit
 heights and gentle, continuous slopes; ordinary roadside sidewalks are not generated.
 People spawn at random path positions at least 2 m apart, walk at 1–1.6 m/s and
 randomly choose connected paths. Dead ends and leaving the radius retire them.
+
+## Birds
+
+The Birds setting enables 30 nearby birds: two pigeon flocks of six, five gulls,
+nine swallows, three independent solo flyers and one eagle. Encounters begin at
+varied bearings and replenish individually as flight moves onward. Nearby or
+camera-visible groups stay alive; distant groups replenish outside the view.
+A chase target therefore keeps its identity while it remains nearby or visible.
+
+Approaching the birds triggers bounded escape turns, faster flight and flapping.
+Flock alarms propagate over time; independent solo flyers do not share alarms.
+Birds settle back into normal flight after the threat passes. Pause freezes both
+motion and wing animation. Altitudes are relative to encounter origins; birds do
+not detect scanned buildings, trees or terrain. Model credits are available in
+[asset attribution](public/models/birds/ATTRIBUTION.md). The original swallow is
+provisional; replacement with a free, already animated web asset is deferred.
 
 ## Controls
 

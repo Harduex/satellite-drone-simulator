@@ -1,4 +1,4 @@
-import type { Point3, BirdPose, BirdState, BirdFrame } from './BirdTypes';
+import type { Point3, BirdPose, BirdState, BirdFrame, BirdSpecies } from './BirdTypes';
 import { SPECIES_CONFIGS, BIRDS_CONFIG } from './BirdConfig';
 
 function distSq(a: Point3, b: Point3): number {
@@ -29,8 +29,9 @@ export class BirdSimulation {
   private birds: BirdState[] = [];
   private previousPoses = new Map<number, BirdPose>();
   private nextId = 1;
-  private baseAltitude = 0;
-  private center: Point3 = { x: 0, y: 0, z: 0 };
+  private origins = new Map<number, Point3>();
+  private alarms = new Map<number, number>();
+  private elapsed = 0;
   private eagleAngle = 0;
 
   constructor() {}
@@ -38,123 +39,78 @@ export class BirdSimulation {
   spawnFlocks(center: Point3): void {
     this.birds = [];
     this.previousPoses.clear();
-    this.baseAltitude = center.z;
-    this.center = { ...center };
-
-    const { pigeonFlocks, pigeonsPerFlock, gullGroups, gullsPerGroup, eagles } = BIRDS_CONFIG.flockCounts;
-
-    // 1. Pigeon flocks
-    for (let f = 0; f < pigeonFlocks; f++) {
-      // Flock 0 placed directly in front of drone (+Y / North) at low altitude for immediate takeoff view
-      const fx = f === 0 ? center.x : center.x + 35;
-      const fy = f === 0 ? center.y + 28 : center.y + 55;
-      const fz = center.z + (f === 0 ? 10 : 18);
-      const baseHeading = f === 0 ? 0.1 : normalizeAngle(Math.PI / 3);
-
-      for (let i = 0; i < pigeonsPerFlock; i++) {
-        const id = this.nextId++;
-        const colorIndex = i % 4; // slate, brown, black, white
-        const spread = 8;
-        const px = fx + (Math.random() - 0.5) * spread;
-        const py = fy + (Math.random() - 0.5) * spread;
-        const pz = fz + (Math.random() - 0.5) * 4;
-        const heading = normalizeAngle(baseHeading + (Math.random() - 0.5) * 0.4);
-        const cfg = SPECIES_CONFIGS.pigeon;
-        const speed = cfg.cruiseSpeed + (Math.random() - 0.5) * 2;
-
-        const vx = speed * Math.sin(heading);
-        const vy = speed * Math.cos(heading);
-
-        const state: BirdState = {
-          id,
-          species: 'pigeon',
-          flockId: 10 + f,
-          colorIndex,
-          position: { x: px, y: py, z: pz },
-          velocity: { x: vx, y: vy, z: 0 },
-          heading,
-          pitch: 0,
-          roll: 0,
-          speed,
-          flapping: true,
-          flapPhase: Math.random() * Math.PI * 2,
-          panicTimer: 0,
-        };
-
-        this.birds.push(state);
-        this.previousPoses.set(id, this.createPose(state));
-      }
+    this.origins.clear();
+    this.alarms.clear();
+    this.elapsed = 0;
+    this.eagleAngle = 0;
+    const counts = BIRDS_CONFIG.flockCounts;
+    const groups: [BirdSpecies, number][] = [
+      ...Array.from({ length: counts.pigeonFlocks }, (): [BirdSpecies, number] => ['pigeon', counts.pigeonsPerFlock]),
+      ...Array.from({ length: counts.gullGroups }, (): [BirdSpecies, number] => ['seagull', counts.gullsPerGroup]),
+      ...Array.from({ length: counts.swallowFlocks }, (): [BirdSpecies, number] => ['swallow', counts.swallowsPerFlock]),
+      ['pigeon', 1], ['seagull', 1], ['swallow', 1], ['eagle', counts.eagles],
+    ];
+    for (const [index, [species, count]] of groups.entries()) {
+      const origin = this.encounterOrigin(center, 40, 140);
+      this.addGroup(this.makeGroup(species, count, index, origin), origin);
     }
+  }
 
-    // 2. Seagull groups
-    for (let g = 0; g < gullGroups; g++) {
-      const gx = center.x + (g === 0 ? -28 : 45);
-      const gy = center.y + (g === 0 ? 40 : 65);
-      const gz = center.z + (g === 0 ? 22 : 30);
+  private encounterOrigin(center: Point3, minRadius: number, maxRadius: number): Point3 {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.sqrt(minRadius * minRadius + Math.random() * (maxRadius * maxRadius - minRadius * minRadius));
+    return { x: center.x + Math.sin(angle) * radius, y: center.y + Math.cos(angle) * radius, z: center.z };
+  }
 
-      for (let i = 0; i < gullsPerGroup; i++) {
-        const id = this.nextId++;
-        const spread = 15;
-        const px = gx + (Math.random() - 0.5) * spread;
-        const py = gy + (Math.random() - 0.5) * spread;
-        const pz = gz + (Math.random() - 0.5) * 6;
-        const heading = normalizeAngle(Math.random() * Math.PI * 2);
-        const cfg = SPECIES_CONFIGS.seagull;
-        const speed = cfg.cruiseSpeed + (Math.random() - 0.5) * 1.5;
-
-        const vx = speed * Math.sin(heading);
-        const vy = speed * Math.cos(heading);
-
-        const state: BirdState = {
-          id,
-          species: 'seagull',
-          flockId: 20 + g,
-          colorIndex: 0,
-          position: { x: px, y: py, z: pz },
-          velocity: { x: vx, y: vy, z: 0 },
-          heading,
-          pitch: 0,
-          roll: 0,
-          speed,
-          flapping: Math.random() > 0.4,
-          flapPhase: Math.random() * Math.PI * 2,
-          panicTimer: 0,
-        };
-
-        this.birds.push(state);
-        this.previousPoses.set(id, this.createPose(state));
-      }
-    }
-
-    // 3. Eagle (solitary, soaring high)
-    for (let e = 0; e < eagles; e++) {
-      const id = this.nextId++;
-      const cfg = SPECIES_CONFIGS.eagle;
-      const speed = cfg.cruiseSpeed;
-      const ex = center.x + 20;
-      const ey = center.y + 50;
-      const ez = center.z + 65;
-      const heading = normalizeAngle(Math.PI / 4);
-
-      const state: BirdState = {
-        id,
-        species: 'eagle',
-        flockId: 99,
-        colorIndex: 0,
-        position: { x: ex, y: ey, z: ez },
-        velocity: { x: speed * Math.sin(heading), y: speed * Math.cos(heading), z: 0 },
-        heading,
-        pitch: 0,
-        roll: 0.25, // bank into circular thermal
-        speed,
-        flapping: false, // soaring/gliding
-        flapPhase: 0,
-        panicTimer: 0,
+  private makeGroup(species: BirdSpecies, count: number, flockId: number, origin: Point3): BirdState[] {
+    const cfg = SPECIES_CONFIGS[species];
+    const heading = Math.random() * Math.PI * 2;
+    const altitude = origin.z + (species === 'eagle' ? 65 : cfg.minAltitude + 8 + Math.random() * 14);
+    return Array.from({ length: count }, (_, i) => {
+      const direction = normalizeAngle(heading + (Math.random() - .5) * .3);
+      const speed = cfg.cruiseSpeed + (species === 'eagle' ? 0 : Math.random() - .5);
+      return {
+        id: this.nextId++, species, flockId, colorIndex: species === 'pigeon' ? i % 4 : 0,
+        position: { x: origin.x + (Math.random() - .5) * 8, y: origin.y + (Math.random() - .5) * 8, z: altitude + (Math.random() - .5) * 3 },
+        velocity: { x: speed * Math.sin(direction), y: speed * Math.cos(direction), z: 0 },
+        heading: direction, pitch: 0, roll: 0, speed,
+        flapping: species !== 'eagle', flapPhase: Math.random() * Math.PI * 2, panicTimer: 0,
       };
+    });
+  }
 
-      this.birds.push(state);
-      this.previousPoses.set(id, this.createPose(state));
+  private addGroup(group: BirdState[], origin: Point3): void {
+    for (const bird of group) {
+      this.birds.push(bird);
+      this.previousPoses.set(bird.id, this.createPose(bird));
+      this.origins.set(bird.flockId, { ...origin });
     }
+  }
+
+  maintainPopulation(center: Point3, isVisible: (point: Point3) => boolean): void {
+    for (const [flockId] of this.origins) {
+      const group = this.birds.filter(b => b.flockId === flockId);
+      if (!group.length || group.some(b => dist(b.position, center) <= BIRDS_CONFIG.despawnRadius || isVisible(b.position))) continue;
+      for (let attempt = 0; attempt < BIRDS_CONFIG.spawnAttempts; attempt++) {
+        const origin = this.encounterOrigin(center, BIRDS_CONFIG.spawnMinRadius, BIRDS_CONFIG.spawnMaxRadius);
+        const replacement = this.makeGroup(group[0]!.species, group.length, flockId, origin);
+        if (replacement.some(b => isVisible(b.position))) continue;
+        const retired = new Set(group.map(b => b.id));
+        this.birds = this.birds.filter(b => !retired.has(b.id));
+        for (const id of retired) { this.previousPoses.delete(id); this.alarms.delete(id); }
+        this.addGroup(replacement, origin);
+        return;
+      }
+      return;
+    }
+  }
+
+  getFrames(): BirdFrame[] {
+    return this.birds.map(bird => ({
+      id: bird.id, species: bird.species, colorIndex: bird.colorIndex,
+      previous: this.previousPoses.get(bird.id) ?? this.createPose(bird),
+      current: this.createPose(bird), flapping: bird.flapping,
+    }));
   }
 
   getBirds(): readonly BirdState[] {
@@ -162,7 +118,9 @@ export class BirdSimulation {
   }
 
   step(dt: number, dronePos?: Point3): BirdFrame[] {
-    if (this.birds.length === 0) return [];
+    if (!Number.isFinite(dt) || dt <= 0 || this.birds.length === 0) return this.getFrames();
+    dt = Math.min(dt, BIRDS_CONFIG.updateDt);
+    this.elapsed += dt;
 
     // Save previous poses for interpolation
     for (const bird of this.birds) {
@@ -171,13 +129,15 @@ export class BirdSimulation {
 
     // 1. Threat detection & panic wave
     if (dronePos) {
-      this.processThreat(dronePos, dt);
+      this.processThreat(dronePos);
     }
 
     // 2. Physics & flocking step per bird
     for (let i = 0; i < this.birds.length; i++) {
       const bird = this.birds[i]!;
       const cfg = SPECIES_CONFIGS[bird.species];
+      const previousHeading = bird.heading;
+      const origin = this.origins.get(bird.flockId)!;
 
       if (bird.panicTimer > 0) {
         bird.panicTimer = Math.max(0, bird.panicTimer - dt);
@@ -197,9 +157,9 @@ export class BirdSimulation {
         bird.heading = normalizeAngle(bird.heading + turnRate * dt);
         // Bank into the turn
         bird.roll = Math.max(-cfg.maxBankAngle, Math.min(cfg.maxBankAngle, (bird.speed * turnRate) / 9.81));
-        
+
         // Gentle altitude wave
-        const targetAlt = this.baseAltitude + 120 + Math.sin(this.eagleAngle * 0.5) * 20;
+        const targetAlt = origin.z + 120 + Math.sin(this.eagleAngle * 0.5) * 20;
         az = (targetAlt - bird.position.z) * 0.5;
 
         // Flee response if drone near
@@ -270,8 +230,8 @@ export class BirdSimulation {
           const fleeX = bird.position.x - dronePos.x;
           const fleeY = bird.position.y - dronePos.y;
           const fleeDist = Math.hypot(fleeX, fleeY) || 1;
-          ax += (fleeX / fleeDist) * cfg.maxAcceleration * 1.8;
-          ay += (fleeY / fleeDist) * cfg.maxAcceleration * 1.8;
+          ax += (fleeX / fleeDist) * cfg.maxAcceleration * (0.35 + 1.45 * Math.max(0, 1 - dist(bird.position, dronePos) / cfg.threatRadius));
+          ay += (fleeY / fleeDist) * cfg.maxAcceleration * (0.35 + 1.45 * Math.max(0, 1 - dist(bird.position, dronePos) / cfg.threatRadius));
           az += ((bird.id % 2 === 0 ? 1 : -0.5) * 3); // scatter vertically
           bird.flapping = true;
         } else {
@@ -285,18 +245,18 @@ export class BirdSimulation {
         }
       }
 
-      const toCenterX = this.center.x - bird.position.x;
-      const toCenterY = this.center.y - bird.position.y;
+      const toCenterX = origin.x - bird.position.x;
+      const toCenterY = origin.y - bird.position.y;
       const radius = Math.hypot(toCenterX, toCenterY);
-      if (radius > BIRDS_CONFIG.maxActiveRadius) {
-        const acceleration = cfg.maxAcceleration * Math.min(1, (radius - BIRDS_CONFIG.maxActiveRadius) / 50);
+      if (radius > BIRDS_CONFIG.encounterRoamRadius) {
+        const acceleration = cfg.maxAcceleration * Math.min(1, (radius - BIRDS_CONFIG.encounterRoamRadius) / 50);
         ax += toCenterX / radius * acceleration;
         ay += toCenterY / radius * acceleration;
       }
 
       // Altitude boundary confinement
-      const minZ = this.baseAltitude + cfg.minAltitude;
-      const maxZ = this.baseAltitude + cfg.maxAltitude;
+      const minZ = origin.z + cfg.minAltitude;
+      const maxZ = origin.z + cfg.maxAltitude;
       if (bird.position.z < minZ) {
         az += (minZ - bird.position.z) * 4;
       } else if (bird.position.z > maxZ) {
@@ -317,9 +277,10 @@ export class BirdSimulation {
       bird.velocity.z += az * dt;
 
       // Speed limits
-      const targetSpeed = bird.panicTimer > 0 ? cfg.maxSpeed : cfg.cruiseSpeed;
+      const urgency = bird.panicTimer > 0 ? Math.max(bird.panicTimer / BIRDS_CONFIG.panicDurationSeconds, dronePos ? 1 - dist(bird.position, dronePos) / cfg.threatRadius : 0) : 0;
+      const targetSpeed = cfg.cruiseSpeed + (cfg.maxSpeed - cfg.cruiseSpeed) * Math.min(1, urgency);
       let currentSpeed = Math.hypot(bird.velocity.x, bird.velocity.y, bird.velocity.z) || 1;
-      
+
       // Speed restoration toward target
       const speedDiff = targetSpeed - currentSpeed;
       const speedAdjust = Math.max(-cfg.maxAcceleration, Math.min(cfg.maxAcceleration, speedDiff * 2)) * dt;
@@ -334,8 +295,16 @@ export class BirdSimulation {
 
       // Compute heading, pitch, and roll from velocity & turn
       const hSpeed = Math.hypot(bird.velocity.x, bird.velocity.y) || 0.1;
-      const newHeading = normalizeAngle(Math.atan2(bird.velocity.x, bird.velocity.y));
-      const turnRate = angleDiff(newHeading, bird.heading) / dt;
+      const desiredHeading = normalizeAngle(
+        radius > BIRDS_CONFIG.encounterRoamRadius && bird.panicTimer === 0
+          ? Math.atan2(toCenterX, toCenterY)
+          : Math.atan2(bird.velocity.x, bird.velocity.y),
+      );
+      const headingChange = Math.max(-cfg.maxTurnRate * dt, Math.min(cfg.maxTurnRate * dt, angleDiff(desiredHeading, previousHeading)));
+      const newHeading = normalizeAngle(previousHeading + headingChange);
+      const turnRate = headingChange / dt;
+      bird.velocity.x = hSpeed * Math.sin(newHeading);
+      bird.velocity.y = hSpeed * Math.cos(newHeading);
 
       bird.heading = newHeading;
       bird.pitch = Math.atan2(bird.velocity.z, hSpeed);
@@ -350,43 +319,32 @@ export class BirdSimulation {
       bird.position.z += bird.velocity.z * dt;
     }
 
-    // Produce frames
-    return this.birds.map(bird => ({
-      id: bird.id,
-      species: bird.species,
-      colorIndex: bird.colorIndex,
-      previous: this.previousPoses.get(bird.id) ?? this.createPose(bird),
-      current: this.createPose(bird),
-      flapping: bird.flapping,
-    }));
+    return this.getFrames();
   }
 
-  private processThreat(dronePos: Point3, dt: number): void {
+  private processThreat(dronePos: Point3): void {
     const newlyPanicked: BirdState[] = [];
-
-    // Check direct threat
     for (const bird of this.birds) {
-      const cfg = SPECIES_CONFIGS[bird.species];
-      const d = dist(bird.position, dronePos);
-      if (d < cfg.threatRadius) {
+      const alarmAt = this.alarms.get(bird.id);
+      if (alarmAt !== undefined && alarmAt <= this.elapsed) {
+        this.alarms.delete(bird.id);
         if (bird.panicTimer <= 0) {
+          bird.panicTimer = BIRDS_CONFIG.panicDurationSeconds * .9;
           newlyPanicked.push(bird);
         }
+      }
+      if (dist(bird.position, dronePos) < SPECIES_CONFIGS[bird.species].threatRadius) {
+        if (bird.panicTimer <= 0) newlyPanicked.push(bird);
         bird.panicTimer = BIRDS_CONFIG.panicDurationSeconds;
       }
     }
-
-    // Agitation wave propagation to flock members within wave distance
-    if (newlyPanicked.length > 0) {
-      const waveDist = BIRDS_CONFIG.agitationWaveSpeed * dt * 2;
-      for (const source of newlyPanicked) {
-        for (const other of this.birds) {
-          if (other.flockId === source.flockId && other.panicTimer <= 0) {
-            if (dist(source.position, other.position) < waveDist) {
-              other.panicTimer = BIRDS_CONFIG.panicDurationSeconds * 0.9;
-            }
-          }
-        }
+    for (const source of newlyPanicked) {
+      for (const other of this.birds) {
+        if (other.flockId !== source.flockId || other.panicTimer > 0) continue;
+        const distance = dist(source.position, other.position);
+        if (distance > BIRDS_CONFIG.alarmRadius) continue;
+        const at = this.elapsed + distance / BIRDS_CONFIG.agitationWaveSpeed;
+        this.alarms.set(other.id, Math.min(this.alarms.get(other.id) ?? Infinity, at));
       }
     }
   }

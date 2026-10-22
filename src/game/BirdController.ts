@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { enuToEcef } from '../world/CoordUtils';
 import { BirdSimulation } from '../birds/BirdSimulation';
 import { BirdRenderer } from '../world/birds/BirdRenderer';
 import { BIRDS_CONFIG } from '../birds/BirdConfig';
@@ -27,7 +28,15 @@ export class BirdController {
   private accumulator = 0;
   private elapsedSeconds = 0;
   private lastFrames: BirdFrame[] = [];
-  private center: Point3 | null = null;
+  private visibilityVolume: Cesium.CullingVolume | null = null;
+  private visibilitySphere = new Cesium.BoundingSphere(new Cesium.Cartesian3(), 25);
+  private isVisible = (point: Point3): boolean => {
+    const camera = this.options.viewer.scene.camera;
+    this.visibilityVolume ??= camera.frustum.computeCullingVolume(camera.positionWC, camera.directionWC, camera.upWC);
+    const world = enuToEcef(point, this.options.enuFrame);
+    Cesium.Cartesian3.clone(world, this.visibilitySphere.center);
+    return this.visibilityVolume.computeVisibility(this.visibilitySphere) !== Cesium.Intersect.OUTSIDE;
+  };
 
   constructor(private options: BirdControllerOptions) {}
 
@@ -92,8 +101,7 @@ export class BirdController {
     this.renderer.setEnvironmentExposure(this.exposure);
 
     const initialPos = this.options.readDronePosition();
-    this.center = { x: initialPos.x, y: initialPos.y, z: initialPos.z };
-    this.simulation.spawnFlocks(this.center);
+    this.simulation.spawnFlocks(initialPos);
     this.accumulator = 0;
     this.elapsedSeconds = 0;
     this.lastFrames = this.simulation.step(BIRDS_CONFIG.updateDt);
@@ -104,7 +112,7 @@ export class BirdController {
     this.renderer = null;
     this.options.exclusionsChanged([]);
     this.lastFrames = [];
-    this.center = null;
+    this.visibilityVolume = null;
   }
 
   private tick(): void {
@@ -119,27 +127,21 @@ export class BirdController {
     this.elapsedSeconds += dt;
     const dronePos = this.options.readDronePosition();
 
-    // Check if drone has traveled far from flock center (respawn or relocate)
-    if (this.center) {
-      const distFromCenter = Math.hypot(dronePos.x - this.center.x, dronePos.y - this.center.y);
-      if (distFromCenter > BIRDS_CONFIG.despawnRadius) {
-        this.center = { x: dronePos.x, y: dronePos.y, z: dronePos.z };
-        this.simulation.spawnFlocks(this.center);
-        this.accumulator = 0;
-        this.lastFrames = this.simulation.step(BIRDS_CONFIG.updateDt);
-      }
-    }
+    this.visibilityVolume = null;
 
     const stepDt = BIRDS_CONFIG.updateDt;
     while (this.accumulator >= stepDt) {
+      this.simulation.maintainPopulation(dronePos, this.isVisible);
       this.lastFrames = this.simulation.step(stepDt, dronePos);
       this.accumulator -= stepDt;
     }
 
     const alpha = Math.max(0, Math.min(1, this.accumulator / stepDt));
+    const actorsStart = this.options.timings?.begin() ?? 0;
     this.renderer.update(this.lastFrames, alpha, this.elapsedSeconds);
 
-    this.options.timings?.end('birdActors', tickStart);
+    this.options.timings?.end('birdActors', actorsStart);
+    this.options.timings?.end('birds', tickStart);
   }
 
   dispose(): void {

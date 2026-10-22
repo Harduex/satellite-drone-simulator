@@ -8,6 +8,12 @@ export const PIGEON_COLORS = [
 ] as const;
 
 export const SPECIES_CONFIGS: Record<BirdSpecies, BirdSpeciesConfig> = {
+  swallow: {
+    species: 'swallow', modelName: 'swallow', wingspan: .34, scale: 1.8,
+    upAxis: 'Z', forwardAxis: 'Y', cruiseSpeed: 16, maxSpeed: 28, minSpeed: 8,
+    maxAcceleration: 16, maxTurnRate: 2.6, maxBankAngle: 1.05,
+    threatRadius: 40, minAltitude: 8, maxAltitude: 70, separationDistance: 1.8,
+  },
   pigeon: {
     species: 'pigeon',
     modelName: 'pigeon',
@@ -67,16 +73,23 @@ export const SPECIES_CONFIGS: Record<BirdSpecies, BirdSpeciesConfig> = {
 export const BIRDS_CONFIG = {
   updateRateHz: 10,
   updateDt: 0.1, // 100ms per simulation step
-  maxActiveRadius: 500, // meters from drone
   despawnRadius: 650,   // meters
   topologicalNeighbors: 7, // StarDisplay rule
   panicDurationSeconds: 4.5,
   agitationWaveSpeed: 30, // m/s propagation speed to flock neighbours
+  alarmRadius: 60,
+  encounterRoamRadius: 180,
+  spawnMinRadius: 120,
+  spawnMaxRadius: 280,
+  spawnAttempts: 8,
   flockCounts: {
     pigeonFlocks: 2,
-    pigeonsPerFlock: 12,
+    pigeonsPerFlock: 6,
     gullGroups: 1,
     gullsPerGroup: 5,
+    swallowFlocks: 1,
+    swallowsPerFlock: 9,
+    soloFlyers: 3,
     eagles: 1,
   },
 } as const;

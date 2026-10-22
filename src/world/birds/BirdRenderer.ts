@@ -2,6 +2,11 @@ import * as Cesium from 'cesium';
 import type { BirdFrame, BirdSpecies } from '../../birds/BirdTypes';
 import { SPECIES_CONFIGS } from '../../birds/BirdConfig';
 
+const BIRD_CREDIT = 'Birds (adapted): <a href="https://sketchfab.com/3d-models/animated-bird-pigeon-797d27b68af3453e865149435df6aa30">dudecon</a>, '
+  + '<a href="https://sketchfab.com/3d-models/low-poly-seagull-with-animation-rigged-985024328902444c8270c0f09acc897e">simonaskLDE</a>, '
+  + '<a href="https://sketchfab.com/3d-models/low-poly-eagle-60578c2b11064a2da915ea899614b0b8">Nikola1998</a> '
+  + '(<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>)';
+
 export function makeBirdRotation(
   heading: number,
   pitch: number,
@@ -32,6 +37,9 @@ interface RenderBird {
   shader: Cesium.CustomShader | null;
   animated: boolean;
   species: BirdSpecies;
+  flapping: boolean;
+  phase: number;
+  animationElapsed: number;
 }
 
 function interpolateAngle(a: number, b: number, t: number): number {
@@ -115,16 +123,25 @@ export class BirdRenderer {
       }
 
       // Start animation once ready
+      bird.flapping = frame.flapping;
       if (bird.model.ready && !bird.animated) {
         bird.model.activeAnimations.animateWhilePaused = true;
         // Daylight can hold Cesium's clock fixed; flight time also stops on pause.
-        const animationTime = (duration: number) =>
-          (this.elapsedSeconds / duration + frame.id * 0.137) % 1;
+        const animationTime = (duration: number) => {
+          const dt = Math.max(0, this.elapsedSeconds - bird.animationElapsed);
+          bird.animationElapsed = this.elapsedSeconds;
+          if (bird.flapping && duration > 0) {
+            bird.phase = (bird.phase + dt / duration) % 1;
+          } else {
+            const toGlide = bird.phase > .5 ? 1 - bird.phase : -bird.phase;
+            bird.phase = (bird.phase + toGlide * Math.min(1, dt * 8) + 1) % 1;
+          }
+          return bird.phase;
+        };
         try {
           bird.model.activeAnimations.add({
             name: 'fly',
             loop: Cesium.ModelAnimationLoop.REPEAT,
-            multiplier: frame.species === 'pigeon' ? 1.6 : frame.species === 'seagull' ? 1.2 : 0.8,
             animationTime,
           });
         } catch {
@@ -160,23 +177,22 @@ export class BirdRenderer {
     const generation = this.generation;
     const cfg = SPECIES_CONFIGS[frame.species];
 
-    let shader: Cesium.CustomShader | null = null;
-    if (frame.species === 'pigeon') {
-      const tint = PIGEON_TINTS[frame.colorIndex] ?? PIGEON_TINTS[0]!;
-      shader = new Cesium.CustomShader({
-        uniforms: {
-          u_environmentExposure: { type: Cesium.UniformType.FLOAT, value: this.exposure },
-          u_birdTint: { type: Cesium.UniformType.VEC3, value: tint },
-        },
-        fragmentShaderText: `
-          void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
-            material.diffuse *= u_birdTint;
-            material.diffuse *= u_environmentExposure;
-            material.emissive *= u_environmentExposure;
-          }
-        `,
-      });
-    }
+    const tint = frame.species === 'pigeon'
+      ? PIGEON_TINTS[frame.colorIndex] ?? PIGEON_TINTS[0]!
+      : PIGEON_TINTS[0]!;
+    const shader = new Cesium.CustomShader({
+      uniforms: {
+        u_environmentExposure: { type: Cesium.UniformType.FLOAT, value: this.exposure },
+        u_birdTint: { type: Cesium.UniformType.VEC3, value: tint },
+      },
+      fragmentShaderText: `
+        void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+          material.diffuse *= u_birdTint;
+          material.diffuse *= u_environmentExposure;
+          material.emissive *= u_environmentExposure;
+        }
+      `,
+    });
 
     const pose = frame.current;
     makeBirdRotation(pose.heading, pose.pitch, pose.roll, this.rotation);
@@ -192,6 +208,8 @@ export class BirdRenderer {
       modelMatrix,
       scale: cfg.scale,
       minimumPixelSize: 18,
+      credit: BIRD_CREDIT,
+      showCreditsOnScreen: true,
       upAxis,
       forwardAxis,
       shadows: Cesium.ShadowMode.DISABLED,
@@ -212,6 +230,9 @@ export class BirdRenderer {
           shader,
           animated: false,
           species: frame.species,
+          flapping: frame.flapping,
+          phase: frame.flapping ? (frame.id * .137) % 1 : 0,
+          animationElapsed: this.elapsedSeconds,
         });
         this.exclusionsChanged();
       })

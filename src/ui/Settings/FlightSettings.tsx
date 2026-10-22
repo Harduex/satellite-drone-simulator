@@ -25,11 +25,11 @@ export function FlightSettings({ onClose }: { onClose: () => void }) {
           checked={traffic} onChange={event => setTraffic(event.target.checked)} />
       </label>
       <p className={css.hint}>Simulated cars on real roads.</p>
-      <label className={css.toggle}>
-        <span>Pedestrians</span>
-        <input type="checkbox" role="switch" aria-label="Pedestrians"
-          checked={pedestrians} onChange={event => setPedestrians(event.target.checked)} />
-      </label>
+      <label className={css.toggle}>
+        <span>Pedestrians</span>
+        <input type="checkbox" role="switch" aria-label="Pedestrians"
+          checked={pedestrians} onChange={event => setPedestrians(event.target.checked)} />
+      </label>
       <p className={css.hint}>Simulated walkers on mapped footpaths.</p>
       <label className={css.toggle}>
         <span>Birds</span>

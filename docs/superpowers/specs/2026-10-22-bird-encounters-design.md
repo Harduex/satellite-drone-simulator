@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-22
 **Scope:** Continuous nearby bird encounters, solo flyers, swallows and drone avoidance.
-**Status:** Proposed design; implementation requested, detailed behavior awaiting approval.
+**Status:** Implemented locally with the provisional swallow retained. Web-model replacement is deferred under BIRDS-ASSET in the roadmap.
 
 ## Design
 
@@ -16,7 +16,7 @@ remain client-side, using packaged assets and the existing Birds switch.
 | B2 | Scatter encounters around the current flight area with varied bearings, heights and headings | Remove fixed north-facing placements. Use the real camera orientation, including tilt and aspect ratio, to test candidate visibility. |
 | B3 | Start with two pigeon flocks of six, five gulls, nine swallows, three independent solo flyers and one eagle | Add variety within the existing 30-model budget. Solo pigeon, gull and swallow each have independent flock membership. |
 | B4 | Keep visible or nearby chased birds alive while the drone travels | Population refresh cannot teleport a chase target. If no safe replacement is available, defer turnover. |
-| B5 | Make swallows visibly distinct with pointed wings, a forked tail and fast banked flight | A recolored existing species does not satisfy the new bird type. Package an original animated model with reproducible source, following the traffic-asset generator pattern. |
+| B5 | Make swallows visibly distinct with pointed wings, a forked tail and fast banked flight | Retain the original provisional animated swallow. A free, already animated web model with public redistribution rights remains the replacement requirement. |
 | B6 | Strengthen existing avoidance with distance-sensitive escape steering, bounded turns, timed flock alarm propagation and gradual recovery | Birds react to approach without snapping direction. Independent birds do not receive another solo bird's flock alarm. |
 | B7 | Drive flap/glide appearance from simulated flight state | Fleeing birds visibly flap; gliding birds hold an appropriate wing pose. Animation and motion freeze on pause. |
 
@@ -59,5 +59,7 @@ Regression tests cover repeated travel, stationary flight, camera directions,
 visible target retention, bounded counts, solo isolation, swallow registration,
 escape and recovery, alarm propagation, interpolation, pause/reset and late loads.
 The build and affected tests pass. Foreground browser checks exercise takeoff,
-travel and turns, inspect all species and solo birds, and compare population
-frame timings against the current implementation under comparable loading.
+travel, turns, visible birds, credits and active-flight timing. Automated checks
+cover species loading and sustained pursuit. These observations do not establish
+a controlled before/after performance benchmark; detailed visual limits are
+recorded in the implementation plan.

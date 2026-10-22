@@ -1,4 +1,4 @@
-export type BirdSpecies = 'pigeon' | 'seagull' | 'eagle';
+export type BirdSpecies = 'pigeon' | 'seagull' | 'eagle' | 'swallow';
 
 export interface Point3 {
   x: number;
