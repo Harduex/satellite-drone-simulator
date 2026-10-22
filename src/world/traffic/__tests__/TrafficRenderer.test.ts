@@ -2,6 +2,34 @@ import { expect, it, vi } from "vitest";
 import * as Cesium from "cesium";
 import { interpolatePose, TrafficRenderer } from "../TrafficRenderer";
 import type { VehicleFrame } from "../../../traffic/TrafficTypes";
+it('places a loaded car at its road pose before adding it to the scene', async () => {
+  const pose = { position: { x: 120, y: 45, z: 8 }, heading: 0.7, pitch: 0.1 };
+  const loader = vi.spyOn(Cesium.Model, 'fromGltfAsync').mockImplementation(async options => {
+    return { modelMatrix: options.modelMatrix, destroy: vi.fn() } as unknown as Cesium.Model;
+  });
+  const add = vi.fn();
+  const viewer = {
+    scene: { primitives: { add, remove: vi.fn() } },
+    creditDisplay: { addStaticCredit: vi.fn(), removeStaticCredit: vi.fn() },
+  } as unknown as Cesium.Viewer;
+  const renderer = new TrafficRenderer(viewer, Cesium.Matrix4.IDENTITY, () => {});
+  try {
+    renderer.update([{ id: 1, modelIndex: 0, colorIndex: 0, previous: pose, current: pose,
+      speed: 0, length: 4.3, edgeId: 'a', distance: 0 }], 0);
+    await vi.waitFor(() => expect(add).toHaveBeenCalledOnce());
+    const matrix = add.mock.calls[0]![0].modelMatrix;
+    expect(Cesium.Matrix4.getTranslation(matrix, new Cesium.Cartesian3())).toEqual(
+      new Cesium.Cartesian3(120, 45, 8.12),
+    );
+    const initial = Cesium.Matrix4.clone(matrix);
+    renderer.update([{ id: 1, modelIndex: 0, colorIndex: 0, previous: pose, current: pose,
+      speed: 0, length: 4.3, edgeId: 'a', distance: 0 }], 0);
+    expect(matrix).toEqual(initial);
+  } finally {
+    renderer.dispose();
+    loader.mockRestore();
+  }
+});
 it.each([
   [5, "sports-wedge"], [6, "sports-berlinetta"], [7, "sports-turbo"],
 ])("loads sports model %i with vivid body paint", async (modelIndex, name) => {

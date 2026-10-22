@@ -141,7 +141,17 @@ export class TrafficRenderer {
       fragmentShaderText:
         "void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) { if (material.diffuse.r > 0.95 && material.diffuse.b > 0.95 && material.diffuse.g < 0.01) { material.diffuse = u_bodyColor; } material.diffuse *= u_environmentExposure; material.emissive *= u_environmentExposure; }",
     });
-    const matrix = Cesium.Matrix4.clone(this.frame);
+    const pose = frame.current;
+    const rotation = Cesium.Matrix3.fromHeadingPitchRoll(
+      new Cesium.HeadingPitchRoll(pose.heading - Math.PI / 2, pose.pitch, 0),
+      this.scratchRotation,
+    );
+    Cesium.Matrix4.fromRotationTranslation(
+      rotation,
+      new Cesium.Cartesian3(pose.position.x, pose.position.y, pose.position.z + 0.12),
+      this.scratchLocal,
+    );
+    const matrix = Cesium.Matrix4.multiply(this.frame, this.scratchLocal, new Cesium.Matrix4());
     void Cesium.Model.fromGltfAsync({
       url: `${import.meta.env.BASE_URL}models/traffic/${model.name}.glb`,
       modelMatrix: matrix,
