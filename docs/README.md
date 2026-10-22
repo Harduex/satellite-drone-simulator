@@ -32,6 +32,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 
 | Document | Status |
 | --- | --- |
+| [Bird encounters](superpowers/specs/2026-10-22-bird-encounters-design.md) | Proposed behavior for gradual distribution, solo flyers, swallows and drone avoidance; implementation pending design approval |
 | [Flight interface redesign](superpowers/specs/2026-10-20-interface-redesign.md) | Flight deck interface implemented locally; shared settings, bottom launch dock and real 3D aircraft preview verified |
 | [Landing and approximate building contacts](superpowers/specs/2026-10-19-landing-contacts-design.md) | Bounded wall-contact trial; ground/roof landings retained; sparse probes, contact retention and coverage limits documented |
 | [Landing contacts implementation plan](superpowers/plans/2026-10-19-landing-contacts.md) | Native implementation scope and verification steps |
