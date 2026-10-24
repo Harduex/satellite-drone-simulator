@@ -112,7 +112,7 @@ Map evidence: [offline/custom maps](experiments/offline-maps.md). Rendering IDs 
 
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
-| UI-FAVORITES | Flight history and saved favorite places with a selection menu to bookmark and jump directly to locations | Proposed follow-up | Store in local storage/Zustand; define storage quotas, custom naming, coordinate validation and quick-spawn action |
+| UI-FAVORITES | Flight history and saved favorite places with a selection menu to bookmark and launch directly at locations | In progress — design awaiting approval | [Saved places design](superpowers/specs/2026-10-24-saved-places-design.md). Immediate launch selected; proposed local persistence, 50 favorites and 20 recent successful launch locations |
 | UI-NAV | Pin a destination on the map by geographic coordinates and show the destination and a plotted route on the in-flight minimap, providing GPS-style guidance toward the selected location | Proposed follow-up; scope pending | Reuse Q4 minimap and map selection; define destination replacement/removal and arrival behavior. Decide whether the route is a direct flight line or a navigable path; obstacle-aware routing and altitude guidance require separate feasibility checks. Related UI-FAVORITES covers saved places; GAME1 covers predefined exploration routes |
 
 ## Later — original product and recording candidates
@@ -122,7 +122,6 @@ These candidates were recovered from the original PRD/plan or explicit exclusion
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
 | DRONE-BUILDER | Multiple drone profiles and a builder using frame, motor KV, propeller and optional battery configuration | Proposed; historical PRD | Calibrated profiles and parameter validation; default unlimited play remains; source: [original PRD](../SATELLITE_DRONE_SIM_PRD.md) |
-| SPAWN1 | Choose starting height on the location/start screen before pressing Fly Here | Proposed; implementation deferred | Reuse the existing spawn-altitude setting. Define height relative to the sampled surface, safe limits, persistence and reset behavior; horizontal spawn position is unchanged |
 | NET-MULTIPLAYER | WebRTC peer positions without shared physics | Proposed; historical PRD | Session/network ownership, privacy and synchronization; infrastructure needs separate evaluation |
 | CAM-XR | FPV goggles through WebXR | Proposed; historical PRD | Device/browser support, input compatibility and rendering budget |
 | CAM-VIEWS | Third-person/alternate cameras and optional lens distortion | Proposed; historical PRD/plan | Preserve FPV defaults, camera sync and visibility; [original plan](../PLAN.md) |
