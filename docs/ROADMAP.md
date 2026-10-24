@@ -1,6 +1,6 @@
 # Product roadmap
 
-Updated 2026-10-22. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
+Updated 2026-10-24. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
 
 ## Outcomes and constraints
 
@@ -14,22 +14,14 @@ Updated 2026-10-22. This roadmap preserves direction and postponed ideas. Horizo
 
 **In progress** = authorized work underway. **Selected next** = preferred direction awaiting its own researched scope. **Deferred** = explicitly postponed. **Proposed** = discussed, undecided. **Implemented locally** = code exists locally; not a deployment claim. **Not selected** = recorded assessment recommends against current adoption.
 
-Pedestrians and increased population density are implemented locally, with manual flight verification accepted on 2026-10-18. Live aircraft are deferred because no suitable direct-browser feed is verified. Optional weather remains the next selected candidate, pending its own researched scope. Other rows are grouped by outcome without invented delivery commitments.
+Implemented features are consolidated under [Completed locally](#completed-locally). Remaining validation has separate follow-up rows.
+Optional weather remains the next selected candidate, pending researched scope. Live aircraft remain deferred until a suitable direct-browser feed is verified.
 
-## Now — verified bounded traffic milestone
-
-| ID | Outcome / scope | Decision status | Dependency / completion gate |
-| --- | --- | --- | --- |
-| LW1 | Nearby cars on mapped roads with bounded simulation/render work and color variation | Implemented and verified locally | [Traffic design](superpowers/specs/2026-10-05-road-traffic-design.md), [execution and performance record](superpowers/plans/2026-10-05-road-traffic.md) |
-| LW1-A | Lightweight Audi A3 and Mazda CX-5 representations; car appearance follows scene daylight/night exposure | Implemented and verified locally | [Asset provenance](../public/models/traffic/ATTRIBUTION.md); day/night, lifecycle and repeated performance gates passed |
-
-## Near-term — pedestrians, optional weather and deferred aircraft
+## Next — optional weather and deferred aircraft
 
 | ID | Outcome / scope | Decision status | Dependency / next decision |
 | --- | --- | --- | --- |
-| LW6 | Nearby people walking on verified footpaths and pedestrian streets, with varied clothing and simple animation | Implemented locally; manual flight verification accepted 2026-10-18 | [Current placement rules](../README.md#road-traffic). Caps are 300 cars and 110 people. Pending surface probes survive overlapping refreshes and prioritize nearby surfaces. Cars replenish sooner, weighted by road length and class. Geometric rejection remains strict. Manual acceptance closes the combined flight-performance and street-visibility gate; it does not establish full-cap GPU performance across hardware or visibility beneath scanned vegetation. Surface queries remain a measured flight cost. Crossings and car interaction remain separate follow-ups |
 | LW3 | Nearby simple aircraft driven by public flight-position reports worldwide | Deferred 2026-10-18 | Resume only when a suitable free worldwide feed supports direct access from an ordinary browser tab without extensions, user setup or a relay. [Source checks](experiments/living-world-research.md#aircraft-source-checks--2026-10-07) and [2026-10-18 recheck](experiments/living-world-research.md#aircraft-feasibility-recheck--2026-10-18) found no provider meeting all requirements. No operator contact is planned. Verify freshness, real altitude, distance cap, coverage gaps, stale-data behavior and combined performance before adoption |
-| BIRDS | Nearby flocks and solo birds for ambient wildlife and chase encounters; toggle in Settings | Implemented locally | [Encounter design](superpowers/specs/2026-10-22-bird-encounters-design.md): gradual replacement outside the view, retention of chase targets, swallows, three solo flyers and stronger avoidance within the 30-bird budget. Original animated swallow retained. Habitat classification, obstacle avoidance and scoring remain outside this change |
 | BIRDS-ASSET | Optionally replace the original swallow with a downloaded model | Later; optional improvement, current original model accepted | Must be free, already animated and licensed for redistribution in this public repository. Keep the original animated model unless a suitable replacement is verified. |
 | LW4 / P6 | Optional weather-driven atmosphere and wind for experimentation | Selected next; researched scope pending | Reuse wind/daylight controls. Verify free-use terms, forecast resolution, failure fallback and choice of moderated versus actual conditions |
 
@@ -41,14 +33,10 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 | --- | --- | --- | --- |
 | P3 | Ground/roof landing practice and bounded side-contact trial; true 3D collisions deferred | [Prototype implemented locally](superpowers/specs/2026-10-19-landing-contacts-design.md); flight-feel feedback and wider coverage checks pending | Cesium/custom flight physics retained. Ground/roof support and restored inferred sides under strict query budgets; sparse coverage and canopy artifacts remain trial limits; true 3D contacts require supported geometry; Standard severe-impact disarming, God mode without damage, Space/UI nearby airborne recovery. Missing geometry does not pause flight and can cause clipping. Underpasses/overhangs remain unsupported. Renderer migration rejected for this scope; [geometry research](experiments/simulator-improvements.md#p3-collision-feasibility) |
 | P3-H | Ground/roof landings with nearby automatic recovery on side impacts | Proposed alternative; not selected for the current solid-wall trial | Compare the bounded wall-contact trial first; preserve a clear distinction between physical contact and automatic recovery |
-| P4 | Battery discharge, voltage sag and current limits | Transient load voltage sag implemented locally; pack discharge deferred | Automatic internal-resistance load sag (~2.5% RPM at full 4-motor load) preserves unlimited free play; battery depletion remains optional-only and deferred |
+| P4 | Optional battery discharge and current limits | Deferred | Transient voltage sag is implemented under P4-SAG. Preserve unlimited free play by default |
 | P5 | Self-level flight, practice gates, timed challenges and flight-state replay | Deferred; selected challenge subset tracked under GAME1–GAME3 | Separate scope per mode; GAME4 retains deferred ghost racing; existing video recording does not provide flight-state replay |
-| P7 | Spawn at a random urban location from the picker or pause menu | Implemented locally; wider coverage assessment pending | Equal-area sampling within Natural Earth urban polygons, filtered by the land mask; at most three candidates, each requiring nearby rendered detailed textured Google tiles. No flat-terrain fallback for random starts; manual selection retains it. Coastlines and inland water remain approximate. [Dataset provenance and detail heuristic](../src/world/data/ATTRIBUTION.md) |
-| P7-A | Estimate suitable built-up areas without maintaining a city catalog | Implemented locally as the P7 eligibility heuristic | On-demand geographic polygons replace whole-land sampling. Urban extent is dated and does not guarantee Google coverage; runtime validation gates random starts. Measured worldwide success rate remains pending |
-| P8 | Show current country and nearby settlement during flight | Implemented locally; approximate offline labels | Bundled Natural Earth country polygons and settlement points; refresh after 100 m travel, at most once per second. Nearby region labels come from settlement metadata, not region-boundary tests. [Provenance and limits](../src/world/data/ATTRIBUTION.md#offline-flight-labels) |
 | R1 | Calibrate drag, rotor response and flight envelope against real-flight data | Real-flight calibration pending reference measurements | [Baseline validation](../README.md#calibration-sources) covers static bench points, torque mechanics, rotor precession, transient rate bounds and Acro maneuvers. Recorded stick/gyro/RPM/voltage and flight-speed data from a known 5-inch 6S build are still needed; numerical consistency alone does not establish calibration |
-| R2 | Propwash and descent thrust loss | Implemented locally (first-order wake model) | Descent into own slipstream reduces thrust up to 16% and adds bounded pitch/roll shimmer; empirical blackbox tuning remains under R1 |
-| R3 | Ground effect and wall/building aerodynamics | Ground cushion implemented locally; wall aerodynamics deferred | Upright flight within 2.5 rotor diameters of sampled ground boosts lift up to 15%; wall/building airflow still requires 3D proximity geometry |
+| R3 | Wall/building aerodynamics | Deferred | Requires 3D proximity geometry. Ground effect is implemented under R3-GROUND |
 | R4 | Controller profiles per device | Proposed | Current mapping uses one shared storage key; validate device identity, persistence and reconnect behavior |
 | R5 | Graphics quality and memory presets | Proposed | Measured budgets across hardware; intentional 6 GiB cache remains the baseline |
 | R6 | Stick endpoint and travel range calibration for controllers | Proposed; implementation not authorized | Record physical min/max travel per axis alongside center offset; scale sub-ranges (e.g. 1000–2000µs / non-unitary USB throws) so full physical stick deflection reaches 100% (-1.0 to +1.0) on all channels |
@@ -73,12 +61,10 @@ Sports cars belong to ordinary traffic under LW1-SPORT and can appear outside th
 
 ## Browser flight performance
 
-Research completed 2026-10-21; PERF1 and PERF2 authorized, remaining proposals undecided. Recommended order below; [evidence and limits](experiments/browser-performance.md). Preserve 500 Hz physics, contact correctness and current Google/Cesium integration. Population on/off observations isolate combined population cost, not individual subsystem cost or a sustained flight gain.
+Research completed 2026-10-21. PERF1 and PERF2 are implemented locally; remaining optimization proposals are undecided. Recommended order below; [evidence and limits](experiments/browser-performance.md). Preserve 500 Hz physics, contact correctness and current Google/Cesium integration. Population on/off observations isolate combined population cost, not individual subsystem cost or a sustained flight gain.
 
 | ID | Outcome / scope | Horizon / decision status | Dependency / completion gate |
 | --- | --- | --- | --- |
-| PERF1 | Explain frame-time spikes with interval distributions and subsystem timings | Implemented locally | Existing overlay now includes bounded frame median/p95/p99/max, long intervals and CPU phase statistics; GPU timing remains unavailable. [Usage and measurement limits](../README.md#performance-diagnostics). Controlled production route comparison remains required for optimization claims |
-| PERF2 | Prioritize flight over optional road/path surface preparation | Implemented locally; extended comparison pending | Shared post-update admission: cooperative 2 ms, at most two queries, defer after 6 ms of preceding updates, alternate queue priority. A synchronous query can overrun. Automated checks cover deferral, geometry rejection and lifecycle; browser checks cover takeoff, travel, turn, pause and nearby people. Production static comparisons reached different car counts and do not establish a matched-load FPS gain. Controlled routes, full-cap performance, touchdown and stale coverage remain validation gates |
 | PERF3 | Reduce repeated actor allocations, exclusion rebuilding and graph copies | After PERF1 / proposed | PF4 evidence; stable membership-based exclusion lists, scratch pose buffers and cheap counts; measure GC/full tick cost; preserve animation, exclusion correctness and model lifecycle |
 | PERF4 / R5 | Offer measured render-resolution, MSAA, detail and memory choices | After surface baseline / proposed | Existing R5 remains undecided; PF3 evidence; same-route quality A/B, edge shimmer and support-height checks; retain 6 GiB baseline until cache pressure/eviction measurements justify a change |
 | PERF5 | Bound ancillary UI, map and fixed-time environment work | Later / proposed | PF6 evidence; compare minimap expanded/collapsed, time-based telemetry and unchanged exposure guards; measure before redesigning UI |
@@ -92,7 +78,6 @@ Research completed 2026-10-21; PERF1 and PERF2 authorized, remaining proposals u
 | LW2-G | Evaluate Google traffic categories as the LW2 input | Proposed; provider undecided | Evaluate Routes coverage, billing and allowed reuse; no scraping TrafficLayer colors or assuming individual-car positions |
 | LW5 | Richer junction/demand behavior with SUMO | Proposed; undecided | Consider a prepared district only if lightweight traffic is inadequate; separate runtime is new infrastructure |
 | LW1-D | Detailed car interiors, animated wheels and vehicle sounds | Deferred | Independent visual/audio budgets and optional controls; [traffic design](superpowers/specs/2026-10-05-road-traffic-design.md) |
-| LW1-SPORT | Add sports-car variants that appear randomly among ordinary traffic, including outside the game mode | Implemented locally; nearby street appearance of each variant remains to be verified | Three original CC0 retro coupes use existing random model selection, yellow/red/blue paint and unchanged population caps. Sports driving targets 1.6× normal cruising speeds with 4 m/s² acceleration; stopping-distance lookahead, traffic braking, road-class transitions and turn limits constrain pursuit speeds. Fleet tests cover all eight models; all nine sports model/color combinations render in Cesium. Browser search, launch, flight travel/turn, pause and traffic population checked; actor counts do not establish nearby visibility. [Asset provenance](../public/models/traffic/ATTRIBUTION.md), [scope and checks](superpowers/plans/2026-10-21-sports-traffic.md). Provides targets for GAME3 |
 | LW6-X | Pedestrian crossings and interaction with cars | Proposed follow-up | Verified pedestrian placement, mapped crossing topology and bounded interaction; keep simple path walking independent |
 | LW1-L | Richer lanes, overtaking, signals and jurisdiction-specific driving side | Proposed; outside traffic V1 | Reliable lane/direction/signal data; conservative topology and placement, then combined performance validation |
 | LW1-S | Dynamic vehicle shadows and adaptive population scaling | Proposed; outside traffic V1 | Avoid conflict with photographed shadows; preserve explicit caps and measured frame-time gates |
@@ -123,14 +108,12 @@ Detailed research: [living-world sources and constraints](experiments/living-wor
 
 Map evidence: [offline/custom maps](experiments/offline-maps.md). Rendering IDs are namespaced because historical lists also used R1–R6. The [current assessment](audits/quick-wins-2026-10.md) supersedes their API/quota assumptions. The original proposal-only document is retired; earlier revisions remain in Git history.
 
-## Later — flight deck interface, saved locations and visual polish
+## Later — saved locations and navigation
 
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
-| UI-COPY | Simplify picker, pause and settings UI with functional labels and a centered launch dock | Implemented and verified locally | Removed promotional captions and redundant labels. Picker uses search/discovery above selected location/coordinates and launch; controls stack on mobile. Shared geometry tokens and [design system](../DESIGN.md) match Flight deck framing. Autocomplete, launch, keyboard throttle ramping, pause/settings and responsive layouts checked; [interface design](superpowers/specs/2026-10-20-interface-redesign.md) |
 | UI-FAVORITES | Flight history and saved favorite places with a selection menu to bookmark and jump directly to locations | Proposed follow-up | Store in local storage/Zustand; define storage quotas, custom naming, coordinate validation and quick-spawn action |
 | UI-NAV | Pin a destination on the map by geographic coordinates and show the destination and a plotted route on the in-flight minimap, providing GPS-style guidance toward the selected location | Proposed follow-up; scope pending | Reuse Q4 minimap and map selection; define destination replacement/removal and arrival behavior. Decide whether the route is a direct flight line or a navigable path; obstacle-aware routing and altitude guidance require separate feasibility checks. Related UI-FAVORITES covers saved places; GAME1 covers predefined exploration routes |
-| UI-FIXES | Complete first-open 3D drone preview and direct rotation controls; investigate related modal/dock regressions | Preview textures, studio lighting and drag rotation implemented locally; other regressions require individual reproduction | Model-owned neutral lighting avoids deferred atmospheric shading; loading remains visible until the framed model is drawn. Mouse/touch drag retains orientation, with keyboard rotation and Reset view. Regression coverage includes normal/reduced motion and disposal; other modal/dock bugs remain proposed follow-ups |
 
 ## Later — original product and recording candidates
 
@@ -169,15 +152,43 @@ The separate rendering proposal lists are removed. Corrected technical notes ret
 | GFX-R5 | Detail normal maps | M–L / uncertain | Defer. Correct the material member and tangent-to-eye transform; establish stable coordinates across tiles, surface selection and distance fade. `positionMC.xz` is not a guaranteed ground projection. Normal changes need appropriate lit material/normals and may clash with baked photographs. Prefer authored materials on licensed local maps before altering all Google surfaces. |
 | GFX-R6 | Hillshade imagery overlay | S prototype / M production; low | Skip for normal Google flight. Globe lighting already exists, and the globe is hidden nearby. The proposed Stamen Terrain layer is a colored cartographic basemap with roads/labels, not pure hillshade; even its background contains landcover coloring. Production authentication/attribution and extra requests are added surface area. See [Stamen Terrain layers](https://docs.stadiamaps.com/map-styles/stamen-terrain/) and [authentication](https://docs.stadiamaps.com/authentication/). |
 
-## Implemented foundation
+## Remaining validation and regression checks
 
-| ID | Outcome | Evidence |
+Implementation status does not close these checks. No sustained performance gain or worldwide coverage claim follows from local implementation.
+
+| ID | Outcome / scope | Decision status | Dependency / completion gate |
+| --- | --- | --- | --- |
+| P7-CHECK | Assess random urban spawn coverage | Pending validation | P7/P7-A: measure worldwide success rate. Urban polygons are dated; coastline/water masks are approximate. Each start still requires detailed textured Google tiles |
+| LW1-SPORT-CHECK | Verify nearby street appearance of every sports-car variant | Pending validation | LW1-SPORT: fleet tests and all nine model/color combinations render in Cesium. Population counts alone do not establish nearby visibility |
+| PERF2-CHECK | Validate surface scheduling across controlled routes and population loads | Pending validation | PERF2: compare matched production routes; check full-cap performance, touchdown and stale coverage. Earlier static comparisons used different car counts. Synchronous queries can overrun the cooperative budget |
+| UI-FIXES-CHECK | Reproduce remaining modal/dock regressions individually | Proposed follow-up | UI-FIXES preview is implemented. Establish a concrete reproduction before selecting another fix |
+
+## Completed locally
+
+These entries record implemented scope, not deployment. Evidence links retain detailed implementation and verification limits.
+Further validation remains above; future extensions remain in their outcome sections.
+
+| ID | Implemented outcome | Evidence / limits |
 | --- | --- | --- |
-| P1 | Wind presets/direction/gusts and subtle rotor airflow texture without independent wind hiss | [Wind/daylight design](superpowers/specs/2026-10-05-wind-daylight-design.md), [verification](superpowers/plans/2026-10-05-wind-daylight.md) |
-| P2 | Real-time Sun/Moon and pleasant default daylight | Same design/verification; photographed Google shadows remain a limitation |
-| Q4 | Corner minimap with heading, home guidance and bounded trail | [Rendering assessment](audits/quick-wins-2026-10.md) |
-| REC-VIDEO | In-flight local video recording with scene/provider credits | [Recording design](superpowers/specs/2026-10-04-flight-recording-design.md), [implementation record](superpowers/plans/2026-10-04-flight-recording.md); provider-use permission remains a release caveat |
-| F4 | Cache documentation matches intentional 6 GiB plus view overflow | [README](../README.md) |
+| LW1 | Bounded nearby road traffic with color variation | Implemented and verified locally. [Design](superpowers/specs/2026-10-05-road-traffic-design.md), [execution and performance](superpowers/plans/2026-10-05-road-traffic.md) |
+| LW1-A | Audi A3 and Mazda CX-5 models with daylight/night exposure | Day/night, lifecycle and repeated performance gates passed. [Asset provenance](../public/models/traffic/ATTRIBUTION.md) |
+| LW6 | Animated pedestrians on verified paths; increased population density | Manual flight/performance and street-visibility acceptance recorded 2026-10-18. Caps: 300 cars, 110 people. [Placement rules](../README.md#road-traffic). Full-cap performance across hardware and visibility beneath scanned vegetation remain unestablished; crossings remain LW6-X |
+| BIRDS | Nearby flocks, solo flyers, continuous encounters and drone avoidance; Settings toggle | [Encounter design](superpowers/specs/2026-10-22-bird-encounters-design.md). Original animated swallow retained; 30-bird budget. Habitat classification and obstacle avoidance remain outside implemented scope; scoring remains under GAME-MODES |
+| P4-SAG | Transient battery load voltage sag | Internal-resistance load sag reduces RPM by approximately 2.5% at full four-motor load. Unlimited free play retained; discharge/current limits remain P4. [Physics baseline](../README.md#calibration-sources) |
+| P7 / P7-A | Random urban spawning with geographic eligibility and rendered-detail checks | [Dataset provenance and heuristic](../src/world/data/ATTRIBUTION.md). At most three candidates; random starts have no flat-terrain fallback. Wider coverage remains P7-CHECK |
+| P8 | Approximate offline country and nearby settlement labels | Refresh after 100 m travel, at most once per second. Region labels use settlement metadata, not region boundaries. [Provenance and limits](../src/world/data/ATTRIBUTION.md#offline-flight-labels) |
+| R2 | First-order propwash/descent thrust loss and bounded pitch/roll shimmer | Up to 16% thrust loss. Empirical tuning remains R1. [Physics baseline](../README.md#calibration-sources) |
+| R3-GROUND | Ground cushion near sampled surfaces | Up to 15% lift boost within 2.5 rotor diameters during upright flight. Wall airflow remains R3. [Physics baseline](../README.md#calibration-sources) |
+| PERF1 | Frame interval distributions and CPU subsystem diagnostics | [Usage and measurement limits](../README.md#performance-diagnostics). Median/p95/p99/max and long intervals included; GPU timing unavailable. Diagnostics do not establish optimization gains |
+| PERF2 | Shared bounded admission for road/path surface preparation | [Evidence and limits](experiments/browser-performance.md). Cooperative 2 ms/two-query budget; defer after 6 ms of preceding updates, alternate queue priority. Automated and browser checks recorded; extended comparison remains PERF2-CHECK |
+| LW1-SPORT | Three original sports-car variants with vivid paint and faster bounded driving | [Implementation and checks](superpowers/plans/2026-10-21-sports-traffic.md), [provenance](../public/models/traffic/ATTRIBUTION.md). Target cruise 1.6× normal speed; traffic/turn constraints retained. Nearby variant visibility remains LW1-SPORT-CHECK |
+| UI-COPY | Simplified picker, pause/settings labels and responsive launch dock | Autocomplete, launch, throttle ramping, pause/settings and responsive layouts verified locally. [Interface design](superpowers/specs/2026-10-20-interface-redesign.md), [design system](../DESIGN.md) |
+| UI-FIXES | Textured 3D drone preview with studio lighting, drag/keyboard rotation and reset | First draw gates loading; orientation retained. Normal/reduced-motion and disposal coverage recorded. [Interface design](superpowers/specs/2026-10-20-interface-redesign.md). Other regressions require UI-FIXES-CHECK |
+| P1 | Wind presets, direction/gusts and rotor airflow texture | [Design](superpowers/specs/2026-10-05-wind-daylight-design.md), [verification](superpowers/plans/2026-10-05-wind-daylight.md) |
+| P2 | Real-time Sun/Moon and pleasant default daylight | [Design and limits](superpowers/specs/2026-10-05-wind-daylight-design.md). Photographed Google shadows remain |
+| Q4 | Corner minimap with heading, home guidance and trail | [Rendering assessment](audits/quick-wins-2026-10.md) |
+| REC-VIDEO | Local flight video recording with provider credits | [Design](superpowers/specs/2026-10-04-flight-recording-design.md), [verification](superpowers/plans/2026-10-04-flight-recording.md). Provider-use permission remains a release caveat |
+| F4 | Documentation of intentional 6 GiB cache plus view overflow | [README](../README.md) |
 
 ## Maintaining this roadmap
 
