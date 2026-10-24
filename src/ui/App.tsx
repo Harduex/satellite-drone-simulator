@@ -1,10 +1,12 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useStore } from '../store';
 import { LocationPicker } from './LocationPicker/LocationPicker';
 import { SimView } from './SimView/SimView';
 import { SetupRequired } from './SetupRequired';
 import { ServiceProvider, useServices } from './ServiceProvider';
 import { DeveloperOverlay } from './DeveloperOverlay/DeveloperOverlay';
+import { PlacesDialog } from './Places/PlacesDialog';
+import type { SavedLocation } from '../store/settingsSlice';
 import { RecordingControls } from './RecordingControls/RecordingControls';
 
 export function App() {
@@ -23,6 +25,7 @@ export function App() {
 
 function AppContent() {
   const phase = useStore((s) => s.phase);
+  const [places, setPlaces] = useState<{ selection: SavedLocation | null } | null>(null);
   const { simSession } = useServices();
 
   // ESC key handler
@@ -46,14 +49,19 @@ function AppContent() {
       <RecordingControls session={simSession} />
       <DeveloperOverlay session={simSession} />
       <LocationPicker compact={phase !== 'PICKER'}
+        onOpenPlaces={selection => setPlaces({ selection })}
         onFlyHere={(location) => simSession.startSession(location)}
       />
       {(phase === 'FLYING' || phase === 'PAUSED') && (
         <SimView
           session={simSession}
           isPaused={phase === 'PAUSED'}
+          onOpenPlaces={() => setPlaces({ selection: simSession.getCurrentLocationForPicker() })}
         />
       )}
+      {places && <PlacesDialog selection={places.selection} onClose={() => setPlaces(null)}
+        onLaunch={location => simSession.launchSavedPlace(location)}
+        onReturnToPicker={async () => { await simSession.endSession(); setPlaces(null); }} />}
     </>
   );
 }

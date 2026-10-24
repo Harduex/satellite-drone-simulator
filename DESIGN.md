@@ -71,6 +71,15 @@ spans the panel width beneath the location. Panel height is bounded and scrollab
 in short viewports. Keep map attribution visible; preserve search/autocomplete,
 map selection, launch errors and existing loading/disabled states.
 
+## Saved places
+
+Places uses one native dialog from the picker and pause menu. Favorites and Recent
+have separate lists. Each row puts the immediate launch action beside quiet
+save/rename/remove controls. Inline forms keep names and validation beside the place.
+The panel uses existing graphite surfaces, orange selection accents and shared controls.
+Mobile rows stack their actions; the dialog remains scrollable within the viewport.
+Escape closes Places before the flight pause shortcut can run.
+
 ## Interaction and accessibility
 
 All controls retain visible keyboard focus, hover, pressed and disabled states.

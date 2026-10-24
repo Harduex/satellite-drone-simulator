@@ -108,11 +108,10 @@ Detailed research: [living-world sources and constraints](experiments/living-wor
 
 Map evidence: [offline/custom maps](experiments/offline-maps.md). Rendering IDs are namespaced because historical lists also used R1–R6. The [current assessment](audits/quick-wins-2026-10.md) supersedes their API/quota assumptions. The original proposal-only document is retired; earlier revisions remain in Git history.
 
-## Later — saved locations and navigation
+## Later — destination guidance
 
 | ID | Outcome / scope | Decision status | Dependency / constraint |
 | --- | --- | --- | --- |
-| UI-FAVORITES | Flight history and saved favorite places with a selection menu to bookmark and launch directly at locations | In progress — design awaiting approval | [Saved places design](superpowers/specs/2026-10-24-saved-places-design.md). Immediate launch selected; proposed local persistence, 50 favorites and 20 recent successful launch locations |
 | UI-NAV | Pin a destination on the map by geographic coordinates and show the destination and a plotted route on the in-flight minimap, providing GPS-style guidance toward the selected location | Proposed follow-up; scope pending | Reuse Q4 minimap and map selection; define destination replacement/removal and arrival behavior. Decide whether the route is a direct flight line or a navigable path; obstacle-aware routing and altitude guidance require separate feasibility checks. Related UI-FAVORITES covers saved places; GAME1 covers predefined exploration routes |
 
 ## Later — original product and recording candidates
@@ -181,6 +180,7 @@ Further validation remains above; future extensions remain in their outcome sect
 | PERF1 | Frame interval distributions and CPU subsystem diagnostics | [Usage and measurement limits](../README.md#performance-diagnostics). Median/p95/p99/max and long intervals included; GPU timing unavailable. Diagnostics do not establish optimization gains |
 | PERF2 | Shared bounded admission for road/path surface preparation | [Evidence and limits](experiments/browser-performance.md). Cooperative 2 ms/two-query budget; defer after 6 ms of preceding updates, alternate queue priority. Automated and browser checks recorded; extended comparison remains PERF2-CHECK |
 | LW1-SPORT | Three original sports-car variants with vivid paint and faster bounded driving | [Implementation and checks](superpowers/plans/2026-10-21-sports-traffic.md), [provenance](../public/models/traffic/ATTRIBUTION.md). Target cruise 1.6× normal speed; traffic/turn constraints retained. Nearby variant visibility remains LW1-SPORT-CHECK |
+| UI-FAVORITES | Saved favorite places and recent successful flight locations, with immediate launch from picker/pause | [Design and behavior](superpowers/specs/2026-10-24-saved-places-design.md), [implementation and verification](superpowers/plans/2026-10-24-saved-places.md). Local lists: 50 favorites, 20 recent places; current-position bookmarking, rename/remove and storage-failure feedback |
 | UI-COPY | Simplified picker, pause/settings labels and responsive launch dock | Autocomplete, launch, throttle ramping, pause/settings and responsive layouts verified locally. [Interface design](superpowers/specs/2026-10-20-interface-redesign.md), [design system](../DESIGN.md) |
 | UI-FIXES | Textured 3D drone preview with studio lighting, drag/keyboard rotation and reset | First draw gates loading; orientation retained. Normal/reduced-motion and disposal coverage recorded. [Interface design](superpowers/specs/2026-10-20-interface-redesign.md). Other regressions require UI-FIXES-CHECK |
 | P1 | Wind presets, direction/gusts and rotor airflow texture | [Design](superpowers/specs/2026-10-05-wind-daylight-design.md), [verification](superpowers/plans/2026-10-05-wind-daylight.md) |

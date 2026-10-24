@@ -8,6 +8,7 @@ import css from './PauseMenu.module.css';
 
 interface Props {
   onResume: () => void;
+  onOpenPlaces?: () => void;
   onSaveCurrentAsDefault: () => void;
   onCopyLocation: () => Promise<boolean>;
   onExportTelemetry?: () => void;
@@ -19,7 +20,7 @@ interface Props {
 const COPY_FEEDBACK_MS = 1500;
 
 export function PauseMenu(
-  { onResume, onSaveCurrentAsDefault, onCopyLocation, onExportTelemetry, onChangeLocation, onRestart, onRandomLocation }: Props,
+  { onResume, onOpenPlaces, onSaveCurrentAsDefault, onCopyLocation, onExportTelemetry, onChangeLocation, onRestart, onRandomLocation }: Props,
 ) {
   const [settings, setSettings] = useState<'flight' | 'developer' | null>(null);
   const resumeButton = useRef<HTMLButtonElement>(null);
@@ -67,6 +68,7 @@ export function PauseMenu(
             <div className={css.actionSection}>
               <p className={css.sectionLabel}>Location</p>
               <div className={css.destinations}>
+                {onOpenPlaces && <button onClick={onOpenPlaces} disabled={randomizing} className={controls.secondary}>Places</button>}
                 <button onClick={onChangeLocation} disabled={randomizing} className={controls.secondary}>Change Location</button>
                 {onRandomLocation && <button onClick={handleRandomLocation} disabled={randomizing} className={controls.secondary}>{randomizing ? 'Loading...' : 'Random Location'}</button>}
               </div>

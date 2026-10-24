@@ -79,6 +79,20 @@ the nearest mapped settlement must be within 50 km. Remote areas show the countr
 or current coordinates. Labels refresh after 100 m of travel, at most once per
 second, without external geocoding requests. [Data and limitations](src/world/data/ATTRIBUTION.md#offline-flight-labels).
 
+### Saved places
+
+Open **Places** from the location picker or pause menu. Selecting a favorite or
+recent place starts a flight there immediately, replacing a paused flight.
+Use the save form to bookmark the selected map location or the drone's current
+position from pause. Favorites can be renamed or removed.
+
+The browser stores up to 50 favorites and the latest 20 distinct successful launch
+locations. Failed or cancelled launches do not enter Recent. Clearing Recent does
+not remove favorites. If browser storage is unavailable, changes remain available
+for the session and Places shows a warning. Bookmarks store coordinates and a name;
+flight altitude, orientation and settings are not saved. The existing safe-surface
+search can place the drone near the saved coordinates.
+
 ### Performance diagnostics
 
 Press **Ctrl+Shift+D** to open developer diagnostics. Frame pacing shows median,

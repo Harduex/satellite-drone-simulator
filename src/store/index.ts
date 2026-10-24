@@ -8,9 +8,10 @@ import { createSettingsSlice } from "./settingsSlice";
 import type { DiagnosticsSlice } from "./diagnosticsSlice";
 import { createDiagnosticsSlice } from "./diagnosticsSlice";
 import { createRecordingSlice, type RecordingSlice } from './recordingSlice';
+import { createPlacesSlice, type PlacesSlice } from './placesSlice';
 export { DEFAULT_FOV, DEFAULT_CAMERA_TILT } from "./SettingsPersistence";
 
-export type AppStore = SessionSlice & DroneSlice & SettingsSlice & DiagnosticsSlice & RecordingSlice;
+export type AppStore = SessionSlice & DroneSlice & SettingsSlice & DiagnosticsSlice & RecordingSlice & PlacesSlice;
 
 export const useStore = create<AppStore>()((...a) => ({
   ...createSessionSlice(...a),
@@ -18,6 +19,7 @@ export const useStore = create<AppStore>()((...a) => ({
   ...createSettingsSlice(...a),
   ...createDiagnosticsSlice(...a),
   ...createRecordingSlice(...a),
+  ...createPlacesSlice(...a),
 }));
 
 if (typeof window !== 'undefined') {

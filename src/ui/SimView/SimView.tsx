@@ -9,9 +9,10 @@ import { RecoveryPrompt } from './RecoveryPrompt';
 interface Props {
   session: SimSession;
   isPaused: boolean;
+  onOpenPlaces?: () => void;
 }
 
-export function SimView({ session, isPaused }: Props) {
+export function SimView({ session, isPaused, onOpenPlaces }: Props) {
   return (
     <div className={`${styles.root} ${isPaused ? styles.paused : ''}`}>
       {/* CesiumJS canvas is behind this in #cesium-container */}
@@ -22,6 +23,7 @@ export function SimView({ session, isPaused }: Props) {
       {isPaused && (
         <PauseMenu
           onResume={() => session.resume()}
+          onOpenPlaces={onOpenPlaces}
           onRestart={() => { session.reset(); session.resume(); }}
           onRandomLocation={() => session.flyToRandomLocation()}
           onSaveCurrentAsDefault={() => session.saveCurrentLocationAsDefault()}

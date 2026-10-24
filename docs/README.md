@@ -32,7 +32,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 
 | Document | Status |
 | --- | --- |
-| [Saved places and recent flights](superpowers/specs/2026-10-24-saved-places-design.md) | Proposed design: favorites, recent successful launches and immediate launch on selection |
+| [Saved places and recent flights](superpowers/specs/2026-10-24-saved-places-design.md) | Implemented locally: favorites, recent successful launches and immediate launch on selection |
 | [Bird encounters](superpowers/specs/2026-10-22-bird-encounters-design.md) | Implemented locally: gradual distribution, solo flyers and drone avoidance; provisional swallow retained, web replacement deferred |
 | [Flight interface redesign](superpowers/specs/2026-10-20-interface-redesign.md) | Flight deck interface implemented locally; shared settings, bottom launch dock and real 3D aircraft preview verified |
 | [Landing and approximate building contacts](superpowers/specs/2026-10-19-landing-contacts-design.md) | Bounded wall-contact trial; ground/roof landings retained; sparse probes, contact retention and coverage limits documented |

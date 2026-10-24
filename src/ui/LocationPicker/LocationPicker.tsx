@@ -3,6 +3,7 @@ import { MapController } from './MapController';
 import { SettingsDialog } from '../Settings/SettingsDialog';
 import { FlightBrand } from '../FlightBrand';
 import controls from '../controls.module.css';
+import type { SavedLocation } from '../../store/settingsSlice';
 import { useStore } from '../../store';
 import { getRandomLocation } from '../../game/randomLocation';
 import css from './LocationPicker.module.css';
@@ -21,10 +22,11 @@ function ensureAutocompleteStyles() {
 
 interface Props {
   compact?: boolean;
+  onOpenPlaces?: (selection: SavedLocation | null) => void;
   onFlyHere: (location: { lon: number; lat: number; name: string; random?: boolean }) => Promise<void>;
 }
 
-export function LocationPicker({ onFlyHere, compact = false }: Props) {
+export function LocationPicker({ onFlyHere, onOpenPlaces, compact = false }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapControllerRef = useRef<MapController | null>(null);
@@ -214,6 +216,8 @@ export function LocationPicker({ onFlyHere, compact = false }: Props) {
               </label>
             </form>
             <div className={css.discoveryActions}>
+              {onOpenPlaces && <button type="button" className={controls.quiet} disabled={launching || randomizing || locatingQuery}
+                onClick={() => onOpenPlaces(selectedLocation)}>Places</button>}
               <button onClick={handleRandomLocation} title="Random location" disabled={!mapReady || launching || randomizing || locatingQuery} className={controls.quiet}>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-4 4M3 17h3c5 0 5-10 10-10h5M17 13l4 4-4 4M3 7h3c2 0 3 1 4 3m4 4c1 2 2 3 4 3h3" /></svg>
                 {randomizing ? 'Choosing…' : 'Random location'}

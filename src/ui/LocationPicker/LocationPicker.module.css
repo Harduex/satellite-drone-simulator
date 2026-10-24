@@ -114,7 +114,7 @@
   .launchDock { width:640px; }
   .discovery { flex-wrap:wrap; gap:var(--space-sm); padding-bottom:var(--control-gap); }
   .searchForm { flex-basis:100%; }
-  .discoveryActions { margin-left:calc(-1 * var(--space-sm)); }
+  .discoveryActions { margin-left:calc(-1 * var(--space-sm)); flex-wrap:wrap; max-width:100%; }
 }
 @media(max-width:600px) {
   .header { height:64px; padding:0 18px; }

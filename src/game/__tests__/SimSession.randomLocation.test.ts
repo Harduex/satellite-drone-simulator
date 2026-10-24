@@ -41,6 +41,8 @@ const sessions: SimSession[] = [];
 
 beforeEach(() => {
   coverage.check.mockReset().mockResolvedValue(true);
+  loading.load.mockReset().mockResolvedValue({});
+  useStore.setState({ recentPlaces: [], favoritePlaces: [] });
   Object.defineProperty(navigator, 'getGamepads', {
     configurable: true,
     value: () => [],
@@ -217,5 +219,64 @@ describe('SimSession random location switching', () => {
 
     expect(loop.stop).toHaveBeenCalled();
     expect(useStore.getState().phase).toBe('FLYING');
+  });
+});
+
+
+describe('saved place sessions', () => {
+  it('records the successful actual random candidate rather than rejected attempts', async () => {
+    const { session } = createFixture();
+    coverage.check.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    vi.mocked(getRandomLocation).mockResolvedValueOnce({ lat: 40, lng: 5, name: 'Rejected', random: true });
+    vi.mocked(getRandomLocation).mockResolvedValueOnce({ lat: 41, lng: 6, name: 'Accepted', random: true });
+    await session.flyToRandomLocation();
+    expect(useStore.getState().recentPlaces).toEqual([{ lat: 41, lng: 6, name: 'Accepted' }]);
+  });
+
+  it('launches exact saved coordinates without random candidate checks', async () => {
+    const { session } = createFixture();
+    await expect(session.launchSavedPlace({ lat: 48, lng: 2, name: 'Favorite' })).resolves.toBe(true);
+    expect(coverage.check).not.toHaveBeenCalled();
+    expect(useStore.getState().recentPlaces).toEqual([{ lat: 48, lng: 2, name: 'Favorite' }]);
+  });
+
+  it('preserves lists and returns to the picker after a failed saved-place switch', async () => {
+    const { session } = createFixture();
+    await session.startSession({ lat: 48, lon: 2, name: 'First' });
+    session.pause();
+    useStore.getState().addFavorite({ lat: 49, lng: 3, name: 'Second' });
+    loading.load.mockRejectedValueOnce(new Error('Tiles unavailable'));
+    await expect(session.launchSavedPlace({ lat: 49, lng: 3, name: 'Second' })).rejects.toThrow('Tiles unavailable');
+    expect(useStore.getState().phase).toBe('PICKER');
+    expect(session.getGameLoop()).toBeNull();
+    expect(useStore.getState().favoritePlaces).toHaveLength(1);
+    expect(useStore.getState().recentPlaces).toEqual([{ lat: 48, lng: 2, name: 'First' }]);
+    expect(useStore.getState().pickerInitialLocation?.name).toBe('Second');
+  });
+
+  it('does not record cancelled or ignored saved-place starts', async () => {
+    const { session } = createFixture();
+    let release!: () => void;
+    loading.load.mockImplementationOnce(() => new Promise(resolve => { release = () => resolve({}); }));
+    const launching = session.launchSavedPlace({ lat: 48, lng: 2, name: 'Cancelled' });
+    await vi.waitFor(() => expect(loading.load).toHaveBeenCalled());
+    await expect(session.launchSavedPlace({ lat: 49, lng: 3, name: 'Ignored' })).resolves.toBe(false);
+    await session.endSession();
+    release();
+    await expect(launching).resolves.toBe(false);
+    expect(useStore.getState().recentPlaces).toEqual([]);
+  });
+
+  it('captures the current drone location for a bookmark after travel', async () => {
+    const { session } = createFixture();
+    await session.startSession({ lat: 48, lon: 2, name: 'Launch' });
+    session.pause();
+    const loop = session.getGameLoop()!;
+    loop.getDroneState().position.x += 100;
+    const current = session.getCurrentLocationForPicker()!;
+    expect(current.lat).toBeCloseTo(48, 2);
+    expect(current.lng).toBeGreaterThan(2.001);
+    useStore.getState().addFavorite({ ...current, name: 'Travelled' });
+    expect(useStore.getState().favoritePlaces[0]!.lng).toBe(current.lng);
   });
 });

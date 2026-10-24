@@ -1,8 +1,8 @@
 # Saved places and recent flights
 
-**Date:** 2026-10-24
+**Date:** 2026-10-24 (as-built: 2026-10-24)
 **Scope:** UI-FAVORITES: bookmark places and return directly to favorites or recent flight locations.
-**Status:** Proposed design for approval. Immediate launch on selection is accepted.
+**Status:** Authoritative. Implemented locally in `src/store/placesSlice.ts`, `src/ui/Places/PlacesDialog.tsx` and `src/game/SimSession.ts`.
 
 ## Design
 
@@ -18,7 +18,7 @@ Locations stay in this browser through Zustand and local storage, following exis
 | S2 | Save the selected map location from the picker; save the drone's current horizontal position from pause | Reuse picker selection and `getCurrentLocationForPicker()`. Saving from pause must not silently bookmark the original launch point |
 | S3 | Allow custom favorite names, renaming and removal | Map clicks and current-position bookmarks otherwise have coordinate-only labels. Trim names and limit them to 80 characters |
 | S4 | Keep the latest 20 distinct successful launch locations, newest first | Record the actual accepted spawn location, including random starts. Failed, ignored or cancelled launches do not enter Recent |
-| S5 | Keep up to 50 favorites; refuse additions at the limit with a clear message | Do not evict an existing favorite silently. Proposed capacity is an implementation choice |
+| S5 | Keep up to 50 favorites; refuse additions at the limit with a clear message | Do not evict an existing favorite silently. Bounded local storage without silent eviction |
 | S6 | Match places using latitude/longitude rounded to six decimal places | Repeated launches move one Recent entry to the front. Bookmarking an existing favorite does not create a duplicate |
 | S7 | Allow removing individual Recent entries and clearing Recent; keep favorites independent | Removing history does not remove a bookmark. Add a favorite directly from a Recent entry |
 | S8 | Keep default-location behavior and existing settings reset semantics | Favorites do not replace Save Current As Default or change spawn altitude |
@@ -46,7 +46,8 @@ UI components do not access Cesium or calculate the current drone position.
 
 Persist one versioned document: `fpvsim_places`, containing `version: 1`, `favorites` and `recent` arrays.
 Each entry stores only `lat`, `lng` and `name`. Favorites and Recent have independent names and ordering.
-Recent uses launch order rather than timestamps. Selecting a saved random location revisits its exact coordinates, without random replacement attempts.
+Recent uses launch order rather than timestamps. Selecting a saved random location reuses its coordinates, without random replacement attempts.
+Stored coordinates seed the existing safe-surface search, so the final drone spawn can move nearby.
 Coordinates are finite numbers within latitude/longitude bounds. Stored names are nonempty trimmed strings with the same 80-character limit.
 Stored content is untrusted: validate its version, shape, entries, duplicate keys and list limits before use.
 

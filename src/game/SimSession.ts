@@ -92,6 +92,21 @@ export class SimSession {
     }
   }
 
+  async launchSavedPlace(location: SavedLocation): Promise<boolean> {
+    if (this.disposed || this.isStarting || this.isRandomizing || this.exitPromise) return false;
+    const generation = this.sessionGeneration + 1;
+    try {
+      await this.startSession({ lon: location.lng, lat: location.lat, name: location.name });
+      return generation === this.sessionGeneration && this.gameLoop !== null;
+    } catch (error) {
+      if (generation === this.sessionGeneration) {
+        await this.endSession();
+        useStore.getState().setPickerInitialLocation(location);
+      }
+      throw error;
+    }
+  }
+
   async startSession(
     location: { lon: number; lat: number; name: string; random?: boolean },
   ): Promise<void> {
@@ -334,6 +349,7 @@ export class SimSession {
     );
 
     useStore.getState().setLocation({ lat: location.lat, lng: location.lon, name: location.name });
+    useStore.getState().recordRecentPlace({ lat: location.lat, lng: location.lon, name: location.name });
     useStore.getState().setPhase("FLYING");
     return true;
   }
@@ -388,7 +404,7 @@ export class SimSession {
 
   recover(): void { this.gameLoop?.recover(); }
 
-  private getCurrentLocationForPicker(): SavedLocation | null {
+  getCurrentLocationForPicker(): SavedLocation | null {
     if (this.gameLoop && this.spawnOrigin) {
       try {
         const droneState = this.gameLoop.getDroneState();
