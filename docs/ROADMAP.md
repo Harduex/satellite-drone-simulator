@@ -40,6 +40,7 @@ LW3 covers deferred aircraft; vessels and transit remain separate undecided prop
 | R4 | Controller profiles per device | Proposed | Current mapping uses one shared storage key; validate device identity, persistence and reconnect behavior |
 | R5 | Graphics quality and memory presets | Proposed | Measured budgets across hardware; intentional 6 GiB cache remains the baseline |
 | R6 | Stick endpoint and travel range calibration for controllers | Proposed; implementation not authorized | Record physical min/max travel per axis alongside center offset; scale sub-ranges (e.g. 1000–2000µs / non-unitary USB throws) so full physical stick deflection reaches 100% (-1.0 to +1.0) on all channels |
+| R7 | Guided stick calibration with animated circles showing where to move each stick; circles turn green when the required position is reached, then advance automatically through every step to completion | Proposed; implementation not authorized | Reuse the existing controller-calibration flow; define position tolerance and completion detection. Coordinate with R6 endpoint/travel calibration |
 | F3 | Make crash grace/confirmation independent of render FPS | Proposed; reproduced, fix not approved | Elapsed simulation time independent of HUD publication; retain terrain-sample protection and god-mode separation |
 
 Evidence and detailed limits: [simulator improvement proposals](experiments/simulator-improvements.md).
