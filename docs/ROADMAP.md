@@ -1,6 +1,6 @@
 # Product roadmap
 
-Updated 2026-10-24. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
+Updated 2026-10-31. This roadmap preserves direction and postponed ideas. Horizons express sequence, not delivery dates; neither a roadmap entry nor a suggested priority authorizes implementation.
 
 ## Outcomes and constraints
 
@@ -95,6 +95,7 @@ Detailed research: [living-world sources and constraints](experiments/living-wor
 | MAP-D4/B6 | Browsable, licensed map catalog | Proposed; not selected | Start with an openly licensed sample, compatibility checks and source/license metadata |
 | MAP-OVERVIEW | Pack-provided overview for minimap navigation | Deferred with map packs | Actual-world image, bounds and coordinate metadata; avoid unrelated Google geography |
 | MAP-AI | Reconstruct maps from images/video | Separate research proposal | Existing probes demonstrate conventional meshes, not AI-generated world reconstruction |
+| MAP-SPLAT | Import a Gaussian splat as a flyable map; before flight, set the drone's size in a scale-calibration step so it fits the map's proportions | Proposed; later, implementation not authorized | Aim for plug-in-and-fly with user-provided splats; research supported formats, browser rendering/performance, map units/orientation, spawn placement and collision support. Reuse map import/lifecycle scope under MAP-B2/B3; preserve Google as default. [Related map research](experiments/offline-maps.md) |
 | GFX-Q1 | Compare existing tile grading and camera-dependent occlusion | Deferred experiment | Identical views/motion; establish visible defect before a correction |
 | GFX-Q2 | Compare MSAA and optional FXAA | Deferred experiment | Roof shimmer, softness and GPU cost across hardware |
 | GFX-Q3 | Evaluate normal-capable World Terrain in globe-visible scenes | Deferred experiment | Dataset access, provider failure, collision heights; prerequisite for GFX-R2/R4 |
