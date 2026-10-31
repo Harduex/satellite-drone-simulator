@@ -68,6 +68,10 @@ For normalized stick x, center sensitivity c, maximum m and expo e, the curve is
 
 F1: No matched real-flight train/holdout recordings were supplied. The report leaves their errors and confidence intervals null. Obtain time-aligned sticks, setpoints, gyro, mechanical RPM, voltage/current, known airframe geometry/mass and independent velocity/position before fitting dynamic coefficients.
 
-F2: Live browser verification is incomplete. The available in-app browser timed out at localhost; native browser automation stopped because it could not establish the current URL reliably. No browser FPS, console-clean, search/launch, live takeoff/travel/turn or pause check is claimed from this session's automated core results.
+F2: Live browser checks passed on localhost in the foreground in-app browser: location autocomplete and launch, bounded keyboard throttle ramp, powered ascent, horizontal travel, yaw turn, Escape pause/resume and optional Actual-rate flight. The observed route reached 195m from home, 24.5m AGL and heading 23°. Original Polynomial rates and diagnostics visibility were restored, and the flight was left paused.
+
+F3: Active-flight diagnostics showed approximately 60 FPS with traffic/pedestrians off. One 600-render Polynomial window reported median/p95/p99 16.8/23.8/24.3ms; a 319-render Actual window reported 16.7/23.2/24.9ms with recent tile requests. These observations establish usable flight for this scene; no paired pre-change browser baseline exists, so they do not prove zero FPS regression across devices or scenes. Screenshots and detailed measurements remain ignored local artifacts.
+
+F4: No error-level console messages were captured. Nonfatal Google warnings remain: duplicate loader options, legacy autocomplete guidance and an elevation-service permission denial. The scene and flight continued despite that denial. Provider permissions are separate from physics calibration.
 
 Rollback: select Polynomial to restore original rates; remove the optional rates configuration only when intentionally resetting it. Physical defaults are unchanged. Development reports and raw telemetry stay ignored.

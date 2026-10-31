@@ -50,7 +50,7 @@ Interface: optional `RatesConfig.model` and `RatesConfig.actual` with roll/pitch
 
 - [x] Write failing tests for official curve reference values, center slope, endpoints, symmetry/monotonicity, default controller parity, axes and persistence compatibility.
 - [x] Implement scalar curve evaluation and reuse existing settings controls. Add an explicit model selector and independent Actual sliders.
-- [x] Run core/store/UI tests and build. Browser behavior remains unverified under the blocker recorded below; no user settings were changed.
+- [x] Run core/store/UI tests and build. Browser rate switching and Actual-rate flight verified; original Polynomial rates restored.
 
 ### Task 3: Provenance and automatic comparison report
 
@@ -65,6 +65,6 @@ Interface: `npm run calibrate -- --output=<ignored-directory> [--baseline=<basel
 
 ### Task 4: Review and verification
 
-- [x] Run full tests/build and replay/report checks. Required browser checks remain blocked: in-app localhost timeout, then native automation URL-confidence safety stop. No browser FPS or live-flight result is asserted.
+- [x] Run full tests/build, replay/report checks and live browser checks. Autocomplete/launch, keyboard ascent/travel/turn, pause/resume, Actual-rate flight and foreground diagnostics verified. Observed approximately 60 FPS; no pre-change browser comparison is available. Nonfatal Google provider warnings are recorded in the experiment document.
 - [x] Independent final review of numerical, persistence and report contracts; address verified findings. Effective wind metadata and timestep-aligned convergence inputs are covered by regressions; imported baseline null/missing values are rejected.
-- [x] Inspect staged diff/list/metadata, run redacted secret scanner plus synthetic detection self-test, then commit verified work locally on master. Never push. Browser validation remains incomplete as recorded above.
+- [x] Inspect staged diff/list/metadata, run redacted secret scanner plus synthetic detection self-test, then commit verified work locally on master. Never push.
