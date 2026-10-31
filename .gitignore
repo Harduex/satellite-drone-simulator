@@ -22,6 +22,9 @@ agents.lock
 *.log
 npm-debug.log*
 
+# Local development artifacts
+.local/
+
 # TypeScript
 *.tsbuildinfo
 

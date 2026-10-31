@@ -330,7 +330,7 @@ Potential realism extensions: [ground effect](https://arxiv.org/abs/2506.19424) 
 | Prop pitch, diameter | 4.7in, 5.1in (0.1295m) | T5147-3 geometry |
 | `kQ` | 2.5e-10 | Estimate: implied shaft power ≈ 67–77% of bench electrical power |
 | Inertia | 0.00165 / 0.00125 / 0.0027 kg·m² | Estimate: point-mass motors, arms, central battery/body |
-| Rotor inertia | 2.2e-5 kg·m² | Estimate: 5.1" tri-blade prop + 2207 motor bell |
+| Rotor inertia | 4.5e-6 kg·m² | Estimate: 5.1" tri-blade prop + 2207 motor bell |
 | Cd·A | 0.007 m² lateral (3x vertical) | Estimate: tuned so level top speed ≈ the advertised 190 km/h |
 | Motor lag, load sag | 18ms, 2.5% RPM (τ=180ms) | Estimate: transient 6S load sag without battery discharge |
 | Propwash, ground effect | 16% peak loss, 15% max cushion | Flight-feel approximations for wake descent and low skimming |
@@ -360,6 +360,11 @@ derivative damping follows the [gyro-based D-term principle](https://betaflight.
 Matching bench thrust and an advertised top speed does not validate transient
 handling, battery behavior or propwash against a specific physical airframe. Real-flight calibration remains tracked
 under [R1 in the roadmap](docs/ROADMAP.md).
+
+Development calibration: [deterministic replay, raw 500Hz export and reports](docs/experiments/physics-calibration.md).
+Settings → Controller → Flight rates offers opt-in Betaflight Actual rates with independent
+center sensitivity, maximum rate and expo per axis. The original polynomial model remains
+the default; switching models preserves both sets of values.
 
 Gentle ground and rooftop landings allow resting and taking off again. Severe
 impacts in Standard mode disable motors while the drone continues moving and

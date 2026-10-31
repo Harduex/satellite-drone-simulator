@@ -20,6 +20,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 | [Simulator improvements](experiments/simulator-improvements.md) | Wind/daylight scope and reproduced crash-timing evidence; decisions live in the roadmap |
 | [Living-world and traffic research](experiments/living-world-research.md) | Traffic implemented locally; aircraft research covers free worldwide feeds, regional samples and browser-access blockers; weather deferred |
 | [Browser flight performance](experiments/browser-performance.md) | Population on/off observations, synchronous surface-query mechanism and optimization safeguards. Frame diagnostics and shared population preparation are implemented locally; further proposals and validation limits are in the roadmap |
+| [Physics calibration](experiments/physics-calibration.md) | Deterministic development replay, full-precision 500Hz exports, parameter provenance, optional Actual rates and automatic report commands; real-flight calibration remains R1 |
 
 ## Audits
 
@@ -32,6 +33,7 @@ Start here for project knowledge. Agent instructions for documentation live in [
 
 | Document | Status |
 | --- | --- |
+| [Physics calibration P1 plan](superpowers/plans/2026-10-31-physics-calibration.md) | Replay/export, invariants, provenance, optional rates and comparison-report implementation contract |
 | [Saved places and recent flights](superpowers/specs/2026-10-24-saved-places-design.md) | Implemented locally: favorites, recent successful launches and immediate launch on selection |
 | [Bird encounters](superpowers/specs/2026-10-22-bird-encounters-design.md) | Implemented locally: gradual distribution, solo flyers and drone avoidance; provisional swallow retained, web replacement deferred |
 | [Flight interface redesign](superpowers/specs/2026-10-20-interface-redesign.md) | Flight deck interface implemented locally; shared settings, bottom launch dock and real 3D aircraft preview verified |

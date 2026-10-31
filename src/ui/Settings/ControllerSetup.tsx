@@ -8,6 +8,7 @@ import { colors } from '../theme';
 import { Slider, SettingsPanelHeader } from './shared';
 import css from './ControllerSetup.module.css';
 import { DualStickCrosshair } from '../StickDisplay';
+import { RatesSettings } from './RatesSettings';
 
 /** Map axes for VISUAL display — reads correct axis per channel but does NOT
  *  apply inversion. Inversion is only needed for flight controller sign convention.
@@ -76,8 +77,6 @@ export function ControllerSetup({ onClose }: Props) {
   });
   const [detectionPhase, setDetectionPhase] = useState<'waiting' | 'detected'>('waiting');
   const [selectedPreset, setSelectedPreset] = useState<string>('Generic');
-  const rates = useStore((s) => s.rates);
-  const setRates = useStore((s) => s.setRates);
   const pollRef = useRef<number | null>(null);
   const detectionCountRef = useRef<{ axis: number; count: number } | null>(null);
 
@@ -399,17 +398,13 @@ export function ControllerSetup({ onClose }: Props) {
               onChange={(v) => handleDeadzoneChange(ch, v)}
             />
           ))}
-          {/* Rate sliders */}
-          <h4 className={css.sectionLabel}>Rates</h4>
-          <Slider label="Roll Rate" value={rates.rollRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ rollRate: v })} />
-          <Slider label="Pitch Rate" value={rates.pitchRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ pitchRate: v })} />
-          <Slider label="Yaw Rate" value={rates.yawRate} min={100} max={900} step={10} unit="deg/s" labelWidth={80} onChange={(v) => setRates({ yawRate: v })} />
-          <Slider label="Expo" value={rates.expo} min={0} max={1} step={0.05} labelWidth={80} onChange={(v) => setRates({ expo: v })} />
           <button onClick={handleSave} className={css.saveButton}>
             Save & Close
           </button>
         </div>
       )}
+
+      <RatesSettings />
 
       {/* Dual-stick crosshair shown on detect/center/map steps as raw preview */}
       {(step === 'detect' || step === 'center' || step.startsWith('map-')) && gamepad && (

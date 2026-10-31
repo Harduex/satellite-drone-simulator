@@ -2,6 +2,7 @@ import type { PhysicsConfig, RatesConfig } from "../core/physics/types";
 import { DEFAULT_DRONE_CONFIG, DEFAULT_RATES } from "../core/physics/droneConfig";
 import type { SavedLocation } from "./settingsSlice";
 import { resolveWindConfig } from "../core/physics/WindConfig";
+import { readActualRates } from '../core/flight-controller/RatesConfig';
 
 const DEFAULT_LOCATION_STORAGE_KEY = "fpvsim_default_location";
 const PHYSICS_CONFIG_STORAGE_KEY = "fpvsim_physics_config";
@@ -184,7 +185,13 @@ export const SettingsPersistence = {
       if (typeof localStorage === "undefined") return DEFAULT_RATES;
       const raw = localStorage.getItem(RATES_STORAGE_KEY);
       if (!raw) return DEFAULT_RATES;
-      return mergeNumericPartial(JSON.parse(raw), DEFAULT_RATES);
+      const saved: unknown = JSON.parse(raw);
+      const merged = mergeNumericPartial(saved, DEFAULT_RATES);
+      if (!saved || typeof saved !== 'object') return merged;
+      const source = saved as Record<string, unknown>;
+      if (source.model === 'actual' || source.model === 'polynomial') merged.model = source.model;
+      if (source.actual !== undefined || source.model === 'actual') merged.actual = readActualRates(source.actual);
+      return merged;
     } catch {
       return DEFAULT_RATES;
     }
