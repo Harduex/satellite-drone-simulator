@@ -6,7 +6,7 @@ import type {
 } from "../physics/types";
 import { MOTOR_LAYOUT } from "../physics/types";
 import { PIDController } from "./PIDController";
-import { applyExpo } from "./FlightModes";
+import { axisRateDeg } from "./FlightModes";
 
 // Gains use rad/s error and normalized motor commands, not Betaflight's GUI units.
 const DEFAULT_PID = {
@@ -61,19 +61,14 @@ export class FlightController {
     dt: number,
     out: MotorCommands,
   ): MotorCommands {
-    const { rollRate, pitchRate, yawRate, expo } = this.ratesConfig;
-
     // Stick → raw target angular rate (rad/s)
     // In body frame (X=right, Y=forward, Z=up) with right-hand rotation:
     //   Positive omega.y → right roll (right side down), no negation needed
     //   Positive omega.x → nose up, so negate for stick-forward = pitch down (fly forward)
     //   Positive omega.z → yaw left (CCW from above), so negate for stick-right = yaw right
-    const rawRollRate = applyExpo(stickInputs.roll, expo) * rollRate *
-      DEG_TO_RAD;
-    const rawPitchRate = -applyExpo(stickInputs.pitch, expo) * pitchRate *
-      DEG_TO_RAD;
-    const rawYawRate = -applyExpo(stickInputs.yaw, expo) * yawRate *
-      DEG_TO_RAD;
+    const rawRollRate = axisRateDeg(stickInputs.roll, 'roll', this.ratesConfig) * DEG_TO_RAD;
+    const rawPitchRate = -axisRateDeg(stickInputs.pitch, 'pitch', this.ratesConfig) * DEG_TO_RAD;
+    const rawYawRate = -axisRateDeg(stickInputs.yaw, 'yaw', this.ratesConfig) * DEG_TO_RAD;
 
     // 2nd-order PT2 RC setpoint filter to eliminate discrete USB polling steps
     const rcAlpha = dt > 0 ? dt / (RC_SMOOTHING_TAU + dt) : 1;

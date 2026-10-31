@@ -101,7 +101,7 @@ describe("GameLoop wall-clock integration", () => {
     useStore.setState({ physicsConfig: originalConfig });
   });
 
-  it.each([15, 30, 60, 144])("falls at real-time gravity at %i render FPS", (fps) => {
+  it.each([10, 15, 30, 60, 120, 144])("falls at real-time gravity at %i render FPS", (fps) => {
     for (let frame = 1; frame <= fps; frame++) {
       clock = frame * 1000 / fps;
       preUpdate.raiseEvent();
@@ -120,6 +120,25 @@ describe("GameLoop wall-clock integration", () => {
     clock += 20;
     preUpdate.raiseEvent();
     expect(loop.getDroneState().velocity.z).toBeGreaterThan(-1.2);
+  });
+
+  it('retains fractional steps across display frames', () => {
+    clock = 1;
+    preUpdate.raiseEvent();
+    expect(loop.getDroneState().velocity.z).toBe(0);
+    clock = 2;
+    preUpdate.raiseEvent();
+    expect(loop.getDroneState().velocity.z).toBeCloseTo(-9.81 / 500, 10);
+  });
+
+  it('discards only excess stall time and continues after a 200ms frame', () => {
+    clock = 200;
+    preUpdate.raiseEvent();
+    const velocity = loop.getDroneState().velocity.z;
+    expect(velocity).toBeCloseTo(-0.981, 1);
+    clock = 300;
+    preUpdate.raiseEvent();
+    expect(loop.getDroneState().velocity.z - velocity).toBeCloseTo(-0.981, 1);
   });
 
   it("does not integrate time spent paused", () => {

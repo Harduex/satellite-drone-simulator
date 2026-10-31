@@ -129,4 +129,14 @@ export interface RatesConfig {
   pitchRate: number;
   yawRate: number;
   expo: number; // 0-1
+  model?: 'polynomial' | 'actual'; // omitted preserves saved polynomial rates
+  actual?: ActualRatesConfig;
 }
+
+export interface ActualAxisRates {
+  centerSensitivity: number; // deg/s per normalized stick at center
+  maxRate: number; // deg/s at full stick; floored at centerSensitivity
+  expo: number; // 0-1
+}
+
+export type ActualRatesConfig = Record<'roll' | 'pitch' | 'yaw', ActualAxisRates>;
